@@ -15,6 +15,25 @@ async function goiApi(path, options = {}) {
   const headers = await layHeader()
   const resp = await fetch(`${BASE}${path}`, { ...options, headers })
 
+  if (resp.status === 401) {
+    // Token hết hạn — thử refresh session một lần
+    const { data, error } = await supabase.auth.refreshSession()
+    if (error || !data.session) {
+      // Refresh thất bại → xóa session cũ và về login
+      await supabase.auth.signOut()
+      window.location.href = '/login'
+      return
+    }
+    // Retry với token mới
+    const newHeaders = await layHeader()
+    const retry = await fetch(`${BASE}${path}`, { ...options, headers: newHeaders })
+    if (!retry.ok) {
+      const err = await retry.json().catch(() => ({ detail: 'Lỗi kết nối' }))
+      throw new Error(err.detail || 'Lỗi không xác định')
+    }
+    return retry.json()
+  }
+
   if (!resp.ok) {
     const err = await resp.json().catch(() => ({ detail: 'Lỗi kết nối' }))
     throw new Error(err.detail || 'Lỗi không xác định')

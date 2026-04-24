@@ -1,53 +1,51 @@
 from fastapi import HTTPException, Security, status
 from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
-from jose import JWTError, jwt
+import httpx
 import os
 from dotenv import load_dotenv
 
 load_dotenv()
 
 _bearer = HTTPBearer(auto_error=False)
-
-# Supabase ký JWT bằng JWT_SECRET lấy từ Project Settings → API
-# Khi chưa có biến này, ta decode không verify để lấy user_id
-_jwt_secret = os.getenv("SUPABASE_JWT_SECRET", "")
+_SUPABASE_URL = os.getenv("SUPABASE_URL", "").rstrip("/")
+_ANON_KEY     = os.getenv("SUPABASE_ANON_KEY", "")
 
 
-def lay_user_id(
+async def _xac_thuc_token(token: str) -> str:
+    """
+    Verify token bằng cách gọi Supabase Auth API — đáng tin cậy hơn
+    decode JWT thủ công vì không phụ thuộc vào format JWT secret.
+    """
+    async with httpx.AsyncClient(timeout=5.0) as client:
+        resp = await client.get(
+            f"{_SUPABASE_URL}/auth/v1/user",
+            headers={
+                "apikey":        _ANON_KEY,
+                "Authorization": f"Bearer {token}",
+            },
+        )
+    if resp.status_code != 200:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Cần đăng nhập lại",
+        )
+    return resp.json()["id"]
+
+
+async def lay_user_id(
     credentials: HTTPAuthorizationCredentials = Security(_bearer),
 ) -> str:
-    """Trích user ID từ JWT Supabase. Throw 401 nếu token không hợp lệ."""
     if not credentials:
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="Cần đăng nhập",
         )
-
-    token = credentials.credentials
-    try:
-        # Supabase dùng HS256, audience = "authenticated"
-        payload = jwt.decode(
-            token,
-            _jwt_secret,
-            algorithms=["HS256"],
-            audience="authenticated",
-            options={"verify_signature": bool(_jwt_secret)},
-        )
-        user_id: str = payload.get("sub")
-        if not user_id:
-            raise ValueError("Không có sub trong token")
-        return user_id
-    except (JWTError, ValueError):
-        raise HTTPException(
-            status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="Token không hợp lệ hoặc đã hết hạn",
-        )
+    return await _xac_thuc_token(credentials.credentials)
 
 
 def lay_token(
     credentials: HTTPAuthorizationCredentials = Security(_bearer),
 ) -> str:
-    """Trả về raw JWT để gắn vào Supabase client."""
     if not credentials:
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
