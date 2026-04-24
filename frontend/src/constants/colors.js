@@ -13,4 +13,13 @@ export const NEN_HO = {
   'ocean-deep':    { tren: '#0a1628', duoi: '#050d1a' },
   'coral-reef':    { tren: '#1a3a5c', duoi: '#2d1810' },
   'twilight':      { tren: '#1a1a3a', duoi: '#0a0a1a' },
+  'tropical':      { tren: '#0a2e3a', duoi: '#061820' },
+  'sunset':        { tren: '#2a1a0a', duoi: '#0a0505' },
+}
+
+export const DAY_HO_MAU = {
+  'cat_trang': '#c8b89a',
+  'cat_vang':  '#d4a84a',
+  'soi_den':   '#3a3a4a',
+  'san_ho':    '#cc6655',
 }

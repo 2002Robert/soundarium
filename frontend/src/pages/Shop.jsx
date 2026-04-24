@@ -1,83 +1,129 @@
-import { useState } from 'react'
+import { useState, useRef, useEffect } from 'react'
 import BuyFishModal from '../components/BuyFishModal'
+import FishIcon from '../components/FishIcon'
 
-// Danh sách cá cảnh cơ bản — tạm thời hardcode, sau gọi từ API
 const LOAI_CA_SHOP = [
-  { loai_ca: 'ca_vang',      ten: 'Cá Vàng',        mo_ta: 'Cá vàng hiền lành, dễ nuôi',      mau_demo: '#FFD700' },
-  { loai_ca: 'ca_neon',      ten: 'Cá Neon',         mo_ta: 'Sọc xanh đỏ rực rỡ',              mau_demo: '#00BFFF' },
-  { loai_ca: 'ca_betta',     ten: 'Cá Betta',        mo_ta: 'Đuôi dài, màu sắc đẹp',           mau_demo: '#9B59B6' },
-  { loai_ca: 'ca_clownfish', ten: 'Cá Hề',           mo_ta: 'Cam trắng quen thuộc',             mau_demo: '#FF6B35' },
-  { loai_ca: 'ca_tang',      ten: 'Cá Tang',         mo_ta: 'Tròn trĩnh, màu xanh dương',      mau_demo: '#2ECC71' },
-  { loai_ca: 'ca_angel',     ten: 'Cá Thiên Thần',   mo_ta: 'Vây dài thanh thoát',              mau_demo: '#F39C12' },
-  { loai_ca: 'ca_guppy',     ten: 'Cá Guppy',        mo_ta: 'Nhỏ nhắn, đuôi quạt',             mau_demo: '#E91E63' },
-  { loai_ca: 'ca_tetra',     ten: 'Cá Tetra',        mo_ta: 'Bơi theo đàn, rất linh hoạt',     mau_demo: '#1ABC9C' },
+  { loai_ca: 'ca_vang',      ma: '#CA001', ten: 'Cá Vàng',    mo_ta: 'Hiền lành, dễ nuôi' },
+  { loai_ca: 'ca_neon',      ma: '#CA002', ten: 'Cá Neon',    mo_ta: 'Sọc xanh đỏ rực rỡ' },
+  { loai_ca: 'ca_betta',     ma: '#CA003', ten: 'Cá Betta',   mo_ta: 'Đuôi dài, màu đẹp' },
+  { loai_ca: 'ca_clownfish', ma: '#CA004', ten: 'Cá Hề',      mo_ta: 'Cam trắng quen thuộc' },
+  { loai_ca: 'ca_tang',      ma: '#CA005', ten: 'Cá Tang',    mo_ta: 'Tròn trĩnh, xanh dương' },
+  { loai_ca: 'ca_koi',       ma: '#CA006', ten: 'Cá Koi',     mo_ta: 'Dài, đốm cam trắng' },
+  { loai_ca: 'ca_chep',      ma: '#CA007', ten: 'Cá Chép',    mo_ta: 'Vảy bạc, to khỏe' },
+  { loai_ca: 'ca_dia',       ma: '#CA008', ten: 'Cá Đĩa',     mo_ta: 'Tròn dẹt, kẻ sọc' },
 ]
 
+function phuHop(item, tuKhoa) {
+  if (!tuKhoa) return true
+  const q = tuKhoa.toLowerCase()
+  return item.ten.toLowerCase().includes(q) || item.ma.toLowerCase().includes(q)
+}
+
 export default function Shop() {
-  const [modal, setModal] = useState(null)  // { loai_ca, ten }
+  const [modal, setModal]   = useState(null)
+  const [tuKhoa, setTuKhoa] = useState('')
+  const cardRefs            = useRef({})
+
+  // Scroll to + highlight the first match when search changes
+  useEffect(() => {
+    if (!tuKhoa) return
+    const match = LOAI_CA_SHOP.find(item => phuHop(item, tuKhoa))
+    if (match && cardRefs.current[match.loai_ca]) {
+      cardRefs.current[match.loai_ca].scrollIntoView({ behavior: 'smooth', block: 'nearest' })
+    }
+  }, [tuKhoa])
 
   function khiMuaXong(ca) {
-    // Gửi cá mới về Home qua localStorage event (cross-tab/cross-component)
     localStorage.setItem('snd_ca_moi', JSON.stringify(ca))
     setTimeout(() => localStorage.removeItem('snd_ca_moi'), 100)
     setModal(null)
     window.location.href = '/'
   }
 
+  const coTimKiem = tuKhoa.trim().length > 0
+
   return (
-    <div className="min-h-screen bg-ho-sau text-white">
-      <div className="max-w-lg mx-auto px-4 py-6">
+    <div className="bg-ho-sau text-white flex flex-col" style={{ height: '100dvh' }}>
+      <div className="max-w-2xl mx-auto w-full px-4 pt-6 pb-4 flex-shrink-0">
 
         {/* Header */}
-        <div className="flex items-center gap-3 mb-6">
+        <div className="flex items-center gap-3 mb-4">
           <a href="/" className="text-ho-anh/60 hover:text-ho-anh text-sm transition">← Hồ của tôi</a>
           <h1 className="text-xl font-bold">Cửa hàng cá</h1>
         </div>
 
-        <p className="text-ho-anh/50 text-sm mb-6">
-          Mỗi con cá mang theo một bài nhạc. Chọn loài cá, paste link YouTube là xong.
+        <p className="text-ho-anh/50 text-xs mb-4">
+          Mỗi con cá mang theo một bài nhạc. Chọn loài, paste link YouTube là xong.
         </p>
 
-        {/* Danh sách cá */}
-        <div className="space-y-3">
-          {LOAI_CA_SHOP.map(item => (
-            <div
-              key={item.loai_ca}
-              className="flex items-center gap-4 bg-ho-nong border border-ho-anh/10 rounded-2xl px-4 py-4 hover:border-ho-anh/30 transition"
-            >
-              {/* Avatar cá (vẽ tạm bằng emoji circle màu) */}
+        {/* Search */}
+        <div className="relative mb-5">
+          <span className="absolute left-3 top-1/2 -translate-y-1/2 text-ho-anh/40 text-sm pointer-events-none">🔍</span>
+          <input
+            type="text"
+            placeholder="Tìm tên cá hoặc mã số (#CA001...)"
+            value={tuKhoa}
+            onChange={e => setTuKhoa(e.target.value)}
+            className="w-full bg-ho-nong border border-ho-anh/20 rounded-xl pl-9 pr-4 py-2.5 text-sm text-white placeholder-ho-anh/35 focus:outline-none focus:border-ho-anh/50 transition"
+          />
+          {tuKhoa && (
+            <button
+              onClick={() => setTuKhoa('')}
+              className="absolute right-3 top-1/2 -translate-y-1/2 text-ho-anh/40 hover:text-ho-anh text-lg leading-none"
+            >×</button>
+          )}
+        </div>
+      </div>
+
+      {/* Scrollable grid area */}
+      <div
+        className="flex-1 overflow-y-auto px-4 pb-8 shop-scroll"
+        style={{ scrollbarWidth: 'thin', scrollbarColor: 'rgba(96,165,250,0.35) transparent' }}
+      >
+        <div className="max-w-2xl mx-auto grid grid-cols-2 sm:grid-cols-4 gap-3">
+          {LOAI_CA_SHOP.map(item => {
+            const matched   = coTimKiem && phuHop(item, tuKhoa)
+            const notMatch  = coTimKiem && !phuHop(item, tuKhoa)
+            return (
               <div
-                className="w-12 h-12 rounded-full flex items-center justify-center text-2xl shrink-0"
-                style={{ background: `${item.mau_demo}22`, border: `2px solid ${item.mau_demo}66` }}
+                key={item.loai_ca}
+                ref={el => { cardRefs.current[item.loai_ca] = el }}
+                className="relative flex flex-col items-center bg-ho-nong border rounded-2xl px-3 py-4 transition-all duration-300 cursor-default"
+                style={{
+                  borderColor:  matched  ? 'rgba(96,165,250,0.7)'  : 'rgba(96,165,250,0.1)',
+                  opacity:      notMatch ? 0.35 : 1,
+                  boxShadow:    matched  ? '0 0 18px 4px rgba(96,165,250,0.25)' : 'none',
+                }}
               >
-                🐟
-              </div>
+                {/* Fish icon */}
+                <div className="mb-2">
+                  <FishIcon loaiCa={item.loai_ca} size={72} />
+                </div>
 
-              <div className="flex-1 min-w-0">
-                <div className="font-semibold text-white">{item.ten}</div>
-                <div className="text-ho-anh/50 text-xs mt-0.5">{item.mo_ta}</div>
-              </div>
+                {/* Name */}
+                <div className="font-semibold text-white text-sm text-center leading-tight">{item.ten}</div>
 
-              <div className="flex items-center gap-3 shrink-0">
-                <span className="text-green-400 text-sm font-semibold">Miễn phí</span>
+                {/* Code */}
+                <div className="text-ho-anh/50 text-xs mt-0.5 mb-3 font-mono">{item.ma}</div>
+
+                {/* Price + button */}
+                <div className="text-green-400 text-xs font-semibold mb-2">Miễn phí</div>
                 <button
                   onClick={() => setModal({ loai_ca: item.loai_ca, ten: item.ten })}
-                  className="bg-ho-anh hover:bg-ho-accent text-ho-sau font-semibold px-4 py-2 rounded-xl text-sm transition"
+                  className="w-full bg-ho-anh hover:bg-ho-accent text-ho-sau font-semibold py-1.5 rounded-xl text-xs transition"
                 >
                   Chọn
                 </button>
               </div>
-            </div>
-          ))}
+            )
+          })}
         </div>
 
-        <p className="text-ho-anh/30 text-xs text-center mt-8">
-          {/* TODO STRIPE: Thêm cá premium và thanh toán thật tại đây */}
+        <p className="text-ho-anh/25 text-xs text-center mt-8">
           Thêm nhiều loài cá đặc biệt sắp ra mắt ✨
         </p>
       </div>
 
-      {/* Modal paste link sau khi chọn loài */}
       {modal && (
         <BuyFishModal
           loaiCa={modal.loai_ca}

@@ -42,15 +42,14 @@ body {
   animation: nhip-dong 2s ease-in-out infinite;
 }
 
-/* Marquee cho tên bài dài */
-@keyframes marquee {
-  0%   { transform: translateX(0); }
-  100% { transform: translateX(-50%); }
+/* Marquee player bar */
+@keyframes marquee-song {
+  0%   { transform: translateX(100%); }
+  100% { transform: translateX(-100%); }
 }
 
-.marquee {
-  display: inline-block;
-  /* Nhân đôi nội dung qua CSS content trick — dùng JS thay thế */
-  animation: marquee 8s linear infinite;
-  padding-right: 3rem;
-}
+/* Custom scrollbar for shop grid */
+.shop-scroll::-webkit-scrollbar { width: 5px; }
+.shop-scroll::-webkit-scrollbar-track { background: transparent; }
+.shop-scroll::-webkit-scrollbar-thumb { background: rgba(96,165,250,0.3); border-radius: 9999px; }
+.shop-scroll::-webkit-scrollbar-thumb:hover { background: rgba(96,165,250,0.55); }

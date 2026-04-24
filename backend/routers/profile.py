@@ -6,21 +6,36 @@ import re
 
 router = APIRouter(prefix="/api/profile", tags=["profile"])
 
+LOAI_CA_HOP_LE = {
+    "ca_vang", "ca_neon", "ca_betta", "ca_clownfish",
+    "ca_tang", "ca_koi", "ca_chep", "ca_dia",
+}
 
-class CapNhatProfile(BaseModel):
+
+class CapNhatTen(BaseModel):
     ten_hien_thi: str
 
     @field_validator("ten_hien_thi")
     @classmethod
     def kiem_tra_ten(cls, v: str) -> str:
         v = v.strip()
-        if len(v) < 2:
-            raise ValueError("Tên phải có ít nhất 2 ký tự")
-        if len(v) > 30:
-            raise ValueError("Tên tối đa 30 ký tự")
-        # Chỉ chữ cái, số, dấu gạch dưới và dấu chấm
-        if not re.match(r"^[\w.]+$", v, re.UNICODE):
-            raise ValueError("Tên chỉ được dùng chữ, số, dấu _ và .")
+        if len(v) < 3:
+            raise ValueError("Tên phải có ít nhất 3 ký tự")
+        if len(v) > 20:
+            raise ValueError("Tên tối đa 20 ký tự")
+        if not re.match(r"^[a-zA-Z0-9_]+$", v):
+            raise ValueError("Chỉ dùng chữ cái, số và dấu _")
+        return v
+
+
+class CapNhatAvatar(BaseModel):
+    loai_ca: str
+
+    @field_validator("loai_ca")
+    @classmethod
+    def kiem_tra_loai(cls, v: str) -> str:
+        if v not in LOAI_CA_HOP_LE:
+            raise ValueError("Loài cá không hợp lệ")
         return v
 
 
@@ -28,7 +43,7 @@ class CapNhatProfile(BaseModel):
 async def lay_profile(user_id: str = Depends(lay_user_id)):
     ket_qua = (
         supabase_admin.table("profiles")
-        .select("id, username, coins, tong_gio_nghe")
+        .select("id, username, coins, tong_gio_nghe, avatar_loai_ca, da_doi_username")
         .eq("id", user_id)
         .single()
         .execute()
@@ -39,11 +54,23 @@ async def lay_profile(user_id: str = Depends(lay_user_id)):
 
 
 @router.patch("/cap-nhat-ten")
-async def cap_nhat_ten_hien_thi(
-    body: CapNhatProfile,
+async def cap_nhat_ten(
+    body: CapNhatTen,
     user_id: str = Depends(lay_user_id),
 ):
-    # Kiểm tra tên đã có người dùng chưa
+    profile_hien_tai = (
+        supabase_admin.table("profiles")
+        .select("da_doi_username")
+        .eq("id", user_id)
+        .single()
+        .execute()
+    )
+    if not profile_hien_tai.data:
+        raise HTTPException(status_code=404, detail="Không tìm thấy profile")
+
+    if profile_hien_tai.data.get("da_doi_username"):
+        raise HTTPException(status_code=403, detail="Bạn đã dùng lượt đổi username rồi")
+
     trung = (
         supabase_admin.table("profiles")
         .select("id")
@@ -55,7 +82,21 @@ async def cap_nhat_ten_hien_thi(
 
     ket_qua = (
         supabase_admin.table("profiles")
-        .update({"username": body.ten_hien_thi})
+        .update({"username": body.ten_hien_thi, "da_doi_username": True})
+        .eq("id", user_id)
+        .execute()
+    )
+    return {"profile": ket_qua.data[0]}
+
+
+@router.patch("/cap-nhat-avatar")
+async def cap_nhat_avatar(
+    body: CapNhatAvatar,
+    user_id: str = Depends(lay_user_id),
+):
+    ket_qua = (
+        supabase_admin.table("profiles")
+        .update({"avatar_loai_ca": body.loai_ca})
         .eq("id", user_id)
         .execute()
     )

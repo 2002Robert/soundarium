@@ -1,22 +1,39 @@
 import { useState } from 'react'
 import { API } from '../lib/api'
 
+function kiemTraYouTube(url) {
+  return /youtube\.com\/watch\?.*v=[\w-]{11}/.test(url) ||
+         /youtu\.be\/[\w-]{11}/.test(url)
+}
+
 export default function BuyFishModal({ loaiCa, tenLoai, onXong, onDong }) {
   const [youtubeUrl, setYoutubeUrl] = useState('')
   const [nickname, setNickname]     = useState('')
   const [dangThem, setDangThem]     = useState(false)
   const [loi, setLoi]               = useState('')
 
+  function thayDoiUrl(val) {
+    setYoutubeUrl(val)
+    if (loi && kiemTraYouTube(val.trim())) setLoi('')
+  }
+
   async function xacNhan(e) {
     e.preventDefault()
-    if (!youtubeUrl.trim()) return
+    const url = youtubeUrl.trim()
+    if (!url) return
+
+    if (!kiemTraYouTube(url)) {
+      setLoi('Link không hợp lệ. Vui lòng paste link YouTube đúng định dạng')
+      return
+    }
+
     setDangThem(true)
     setLoi('')
     try {
-      const { ca } = await API.themCa(youtubeUrl.trim(), nickname.trim() || undefined, loaiCa)
+      const { ca } = await API.themCa(url, nickname.trim() || undefined, loaiCa)
       onXong(ca)
     } catch (err) {
-      setLoi(err.message || 'Link không hợp lệ')
+      setLoi(err.message || 'Có lỗi xảy ra')
     } finally {
       setDangThem(false)
     }
@@ -31,7 +48,7 @@ export default function BuyFishModal({ loaiCa, tenLoai, onXong, onDong }) {
         </div>
 
         <p className="text-ho-anh/60 text-sm mb-5">
-          Mỗi con cá là một bài nhạc. Paste link YouTube để con {tenLoai} của bạn mang theo bài nhạc đó.
+          Mỗi con cá là một bài nhạc. Paste link YouTube để {tenLoai} của bạn mang theo bài nhạc đó.
         </p>
 
         <form onSubmit={xacNhan} className="space-y-3">
@@ -40,10 +57,12 @@ export default function BuyFishModal({ loaiCa, tenLoai, onXong, onDong }) {
             <input
               type="text"
               value={youtubeUrl}
-              onChange={e => setYoutubeUrl(e.target.value)}
+              onChange={e => thayDoiUrl(e.target.value)}
               placeholder="https://youtube.com/watch?v=..."
               required
-              className="w-full bg-ho-nong border border-ho-anh/20 rounded-xl px-4 py-3 text-white placeholder-ho-anh/30 focus:outline-none focus:border-ho-anh text-sm"
+              className={`w-full bg-ho-nong border rounded-xl px-4 py-3 text-white placeholder-ho-anh/30 focus:outline-none text-sm transition ${
+                loi ? 'border-red-400/60 focus:border-red-400' : 'border-ho-anh/20 focus:border-ho-anh'
+              }`}
             />
           </div>
 

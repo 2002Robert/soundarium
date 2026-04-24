@@ -10,16 +10,61 @@ import Onboarding from '../components/Onboarding'
 import Toast from '../components/Toast'
 import { useAudio } from '../hooks/useAudio'
 import { useCoins } from '../hooks/useCoins'
+import ProfileCard from '../components/ProfileCard'
+import FishManagerModal from '../components/FishManagerModal'
+import ShopPanel from '../components/ShopPanel'
+import ExplorePanel from '../components/ExplorePanel'
+function roundRect(ctx, x, y, w, h, r) {
+  ctx.beginPath()
+  ctx.moveTo(x + r, y)
+  ctx.lineTo(x + w - r, y)
+  ctx.quadraticCurveTo(x + w, y, x + w, y + r)
+  ctx.lineTo(x + w, y + h - r)
+  ctx.quadraticCurveTo(x + w, y + h, x + w - r, y + h)
+  ctx.lineTo(x + r, y + h)
+  ctx.quadraticCurveTo(x, y + h, x, y + h - r)
+  ctx.lineTo(x, y + r)
+  ctx.quadraticCurveTo(x, y, x + r, y)
+  ctx.closePath()
+}
+
+function IconBtn({ onClick, title, children, className = '' }) {
+  return (
+    <button
+      onClick={onClick}
+      title={title}
+      className={`w-9 h-9 flex items-center justify-center bg-ho-nong/70 hover:bg-ho-nong border border-ho-anh/20 hover:border-ho-anh/40 rounded-xl text-ho-anh/70 hover:text-ho-anh transition text-base ${className}`}
+    >
+      {children}
+    </button>
+  )
+}
 
 export default function Home() {
   const navigate = useNavigate()
-  const [danhSachCa, setDanhSachCa]         = useState([])
-  const [infoCa, setInfoCa]                 = useState(null)  // { ca, x, y }
-  const [toast, setToast]                   = useState(null)
-  const [caLevelUp, setCaLevelUp]           = useState(null)
-  const [hienOnboarding, setHienOnboarding] = useState(false)
+  const [danhSachCa, setDanhSachCa]           = useState([])
+  const [infoCa, setInfoCa]                   = useState(null)
+  const [toast, setToast]                     = useState(null)
+  const [caLevelUp, setCaLevelUp]             = useState(null)
+  const [hienFishManager, setHienFishManager] = useState(false)
+  const [hienShop, setHienShop]               = useState(false)
+  const [hienExplore, setHienExplore]         = useState(false)
+  const [hienOnboarding, setHienOnboarding]   = useState(false)
   const [videoIdDangPhat, setVideoIdDangPhat] = useState(null)
-  const [ytPlayer, setYtPlayer]             = useState(null)
+  const [ytPlayer, setYtPlayer]               = useState(null)
+  const [profileData, setProfileData]         = useState(null)
+
+  const [nenHo, setNenHoState] = useState(() => localStorage.getItem('snd_nen') || 'ocean-shallow')
+  const [dayHo, setDayHoState] = useState(() => localStorage.getItem('snd_day') || 'cat_trang')
+
+  function chonNen(id) {
+    setNenHoState(id)
+    localStorage.setItem('snd_nen', id)
+  }
+  function chonDay(id) {
+    setDayHoState(id)
+    localStorage.setItem('snd_day', id)
+  }
 
   const { dangPhat, phatCa, dungPhat } = useAudio()
   const { coins, thuHoach }            = useCoins()
@@ -52,40 +97,24 @@ export default function Home() {
     setVideoIdDangPhat(ca.video_id)
   }
 
-  // Click cá: lần 1 = phát + hiện panel info, lần 2 (cùng cá) = đóng panel
   function clickCa(ca, x, y) {
-    if (infoCa?.ca.id === ca.id) {
-      setInfoCa(null)
-      return
-    }
+    if (infoCa?.ca.id === ca.id) { setInfoCa(null); return }
     setInfoCa({ ca, x, y })
-    // Tự động phát khi click vào cá chưa phát
-    if (dangPhat !== ca.id) {
-      phatCaObject(ca)
-    }
+    if (dangPhat !== ca.id) phatCaObject(ca)
   }
 
   function togglePhatCaHienTai() {
     if (!caDangPhat) return
-    if (dangPhat) {
-      dungPhat()
-    } else {
-      phatCa(caDangPhat.id)
-    }
+    if (dangPhat) dungPhat()
+    else phatCa(caDangPhat.id)
   }
 
-  // Toggle từ panel info (cùng cá hoặc khác cá)
   function togglePhatTuPanel(ca) {
-    if (dangPhat === ca.id) {
-      dungPhat()
-    } else {
-      phatCaObject(ca)
-    }
+    if (dangPhat === ca.id) dungPhat()
+    else phatCaObject(ca)
   }
 
-  function chuyenCa(ca) {
-    phatCaObject(ca)
-  }
+  function chuyenCa(ca) { phatCaObject(ca) }
 
   function capNhatCa(caMoi) {
     setDanhSachCa(prev => prev.map(c => c.id === caMoi.id ? caMoi : c))
@@ -98,36 +127,81 @@ export default function Home() {
     setInfoCa(null)
   }
 
-  // Được gọi từ Shop sau khi mua cá thành công
   function themCaVaoHo(ca) {
     setDanhSachCa(prev => [...prev, ca])
     hienToast(`${ca.nickname || ca.ten_bai} đã vào hồ!`, 'thanhCong')
   }
 
-  // Expose để Shop gọi (qua localStorage event)
-  useEffect(() => {
-    function nhanCaMoi(e) {
-      if (e.key === 'snd_ca_moi') {
-        try {
-          const ca = JSON.parse(e.newValue)
-          if (ca) themCaVaoHo(ca)
-        } catch {}
-      }
-    }
-    window.addEventListener('storage', nhanCaMoi)
-    return () => window.removeEventListener('storage', nhanCaMoi)
-  }, [])
-
   async function chupAnhHo() {
-    const canvas = document.querySelector('canvas')
-    if (!canvas) return
-    const ctx = canvas.getContext('2d')
+    const src = document.querySelector('canvas')
+    if (!src) return
+
+    const off = document.createElement('canvas')
+    off.width  = src.width
+    off.height = src.height
+    const ctx  = off.getContext('2d')
+
+    ctx.drawImage(src, 0, 0)
+
+    // Vẽ ProfileCard lên ảnh
+    if (profileData) {
+      const tongXP   = danhSachCa.reduce((s, c) => s + (c.xp || 0), 0)
+      const levelHo  = Math.max(1, Math.floor(tongXP / 100))
+      const BOX_W = 210, BOX_H = 72, PAD = 14, R = 12
+
+      ctx.save()
+      ctx.globalAlpha = 0.88
+      ctx.fillStyle = '#0a1628'
+      roundRect(ctx, PAD, PAD, BOX_W, BOX_H, R)
+      ctx.fill()
+      ctx.strokeStyle = 'rgba(96,165,250,0.18)'
+      ctx.lineWidth = 1
+      roundRect(ctx, PAD, PAD, BOX_W, BOX_H, R)
+      ctx.stroke()
+      ctx.restore()
+
+      // Avatar circle
+      const AVATAR_R = 20
+      const ax = PAD + 14 + AVATAR_R
+      const ay = PAD + BOX_H / 2
+      ctx.save()
+      ctx.globalAlpha = 0.9
+      ctx.beginPath()
+      ctx.arc(ax, ay, AVATAR_R, 0, Math.PI * 2)
+      ctx.fillStyle = '#1a3a5c'
+      ctx.fill()
+      ctx.strokeStyle = 'rgba(74,158,218,0.5)'
+      ctx.lineWidth = 2
+      ctx.stroke()
+      ctx.restore()
+
+      // Username
+      ctx.save()
+      ctx.font = 'bold 14px "Segoe UI", system-ui, sans-serif'
+      ctx.fillStyle = '#ffffff'
+      ctx.fillText(profileData.username || 'User', PAD + 14 + AVATAR_R * 2 + 10, PAD + 28)
+      ctx.restore()
+
+      // Stats
+      ctx.save()
+      ctx.font = '11px "Segoe UI", system-ui, sans-serif'
+      ctx.fillStyle = 'rgba(74,158,218,0.75)'
+      ctx.fillText(
+        `🐠 ${danhSachCa.length}   ⭐ Lv.${levelHo}   🪙 ${coins.toLocaleString()}`,
+        PAD + 14 + AVATAR_R * 2 + 10,
+        PAD + 50,
+      )
+      ctx.restore()
+    }
+
+    // Watermark
     ctx.font = '12px sans-serif'
-    ctx.fillStyle = 'rgba(255,255,255,0.4)'
-    ctx.fillText('soundarium.app', canvas.width - 115, canvas.height - 12)
+    ctx.fillStyle = 'rgba(255,255,255,0.3)'
+    ctx.fillText('soundarium.app', src.width - 115, src.height - 12)
+
     const link = document.createElement('a')
     link.download = 'soundarium.png'
-    link.href = canvas.toDataURL()
+    link.href = off.toDataURL()
     link.click()
     hienToast('Đã tải ảnh!', 'thanhCong')
   }
@@ -161,51 +235,52 @@ export default function Home() {
       <AquariumCanvas
         danhSachCa={danhSachCa}
         dangPhat={dangPhat}
+        nenHo={nenHo}
+        dayHo={dayHo}
         onClickCa={clickCa}
         caLevelUp={caLevelUp}
       />
 
-      {/* Empty state */}
       {danhSachCa.length === 0 && (
         <div className="absolute inset-0 flex flex-col items-center justify-center pointer-events-none">
           <div className="text-6xl mb-4 opacity-40">🐠</div>
           <p className="text-white/40 text-center">
             Hồ còn trống<br />
-            <span className="text-sm">Vào <a href="/shop" className="underline pointer-events-auto text-ho-anh/60 hover:text-ho-anh">Shop</a> để mua cá đầu tiên</span>
+            <span className="text-sm pointer-events-auto text-ho-anh/60">
+              Mở <button onClick={() => setHienShop(true)} className="underline hover:text-ho-anh">Cửa hàng</button> để mua cá đầu tiên
+            </span>
           </p>
         </div>
       )}
 
       {/* Header */}
       <div className="absolute top-0 left-0 right-0 flex items-center justify-between px-4 pt-4">
-        <div className="text-ho-anh font-bold">🐟 Soundarium</div>
-        <div className="flex items-center gap-3">
-          <span className="text-ho-anh font-semibold">🪙 {coins.toLocaleString()}</span>
-          <button onClick={chiaSe} className="text-ho-anh/60 hover:text-ho-anh text-xs transition">Chia sẻ</button>
-          <button onClick={chupAnhHo} className="text-ho-anh/60 hover:text-ho-anh text-xs transition">📷</button>
-          <a href="/explore" className="text-ho-anh/60 hover:text-ho-anh text-xs transition">Khám phá</a>
-          <a href="/shop" className="text-ho-anh/60 hover:text-ho-anh text-xs transition">Shop</a>
-          <button onClick={dangXuat} className="text-ho-anh/40 hover:text-ho-anh/70 text-xs transition">Đăng xuất</button>
+        <ProfileCard
+          danhSachCa={danhSachCa}
+          coins={coins}
+          onProfileLoad={setProfileData}
+        />
+
+        <div className="flex items-center gap-2">
+          <IconBtn onClick={chiaSe} title="Chia sẻ hồ">🔗</IconBtn>
+          <IconBtn onClick={chupAnhHo} title="Chụp ảnh hồ">📷</IconBtn>
+          <IconBtn onClick={() => setHienExplore(true)} title="Khám phá">🧭</IconBtn>
+          <IconBtn onClick={() => setHienShop(true)} title="Cửa hàng">🛒</IconBtn>
+          <IconBtn onClick={dangXuat} title="Đăng xuất" className="text-ho-anh/40">🚪</IconBtn>
         </div>
       </div>
 
-      {/* YouTube player — luôn mount, ẩn hoàn toàn */}
       <YouTubePlayer
         videoId={videoIdDangPhat}
         dangPhat={!!dangPhat}
         onReady={setYtPlayer}
         onEnded={() => {
           const i = danhSachCa.findIndex(c => c.id === dangPhat)
-          if (i >= 0 && i < danhSachCa.length - 1) {
-            chuyenCa(danhSachCa[i + 1])
-          } else {
-            dungPhat()
-            setVideoIdDangPhat(null)
-          }
+          if (i >= 0 && i < danhSachCa.length - 1) chuyenCa(danhSachCa[i + 1])
+          else { dungPhat(); setVideoIdDangPhat(null) }
         }}
       />
 
-      {/* Music Player Bar */}
       <MusicPlayerBar
         caDangPhat={caDangPhat}
         danhSachCa={danhSachCa}
@@ -215,7 +290,6 @@ export default function Home() {
         onChuyenCa={chuyenCa}
       />
 
-      {/* Fish Info Panel */}
       {infoCa && (
         <FishInfoPanel
           ca={infoCa.ca}
@@ -226,10 +300,33 @@ export default function Home() {
           onCapNhat={capNhatCa}
           onXoa={xoaCa}
           onDong={() => setInfoCa(null)}
+          onMoQuanLyCa={() => setHienFishManager(true)}
         />
       )}
 
-      {/* Toast */}
+      {hienFishManager && (
+        <FishManagerModal
+          danhSachCa={danhSachCa}
+          onXoa={xoaCa}
+          onDong={() => setHienFishManager(false)}
+        />
+      )}
+
+      {hienShop && (
+        <ShopPanel
+          onThemCa={ca => { themCaVaoHo(ca); setHienShop(false) }}
+          onDong={() => setHienShop(false)}
+          nenHo={nenHo}
+          dayHo={dayHo}
+          onChonNen={chonNen}
+          onChonDay={chonDay}
+        />
+      )}
+
+      {hienExplore && (
+        <ExplorePanel onDong={() => setHienExplore(false)} />
+      )}
+
       {toast && (
         <Toast thongBao={toast.thongBao} loai={toast.loai} onHet={() => setToast(null)} />
       )}

@@ -31,22 +31,22 @@ export const LOAI_CA = {
     tyLeDuoi: 0.55,
     baoGomVay: false,
   },
-  ca_angel: {
-    ten: 'Cá Thiên Thần',
-    tyLeThan: 0.9,
-    tyLeDuoi: 0.8,
+  ca_koi: {
+    ten: 'Cá Koi',
+    tyLeThan: 1.6,
+    tyLeDuoi: 0.7,
     baoGomVay: true,
   },
-  ca_guppy: {
-    ten: 'Cá Guppy',
-    tyLeThan: 1.1,
-    tyLeDuoi: 0.7,
-    baoGomVay: false,
+  ca_chep: {
+    ten: 'Cá Chép',
+    tyLeThan: 1.5,
+    tyLeDuoi: 0.6,
+    baoGomVay: true,
   },
-  ca_tetra: {
-    ten: 'Cá Tetra',
-    tyLeThan: 1.3,
-    tyLeDuoi: 0.5,
+  ca_dia: {
+    ten: 'Cá Đĩa',
+    tyLeThan: 0.9,
+    tyLeDuoi: 0.4,
     baoGomVay: false,
   },
 }

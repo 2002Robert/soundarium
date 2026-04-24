@@ -51,6 +51,12 @@ export const API = {
       body: JSON.stringify({ ten_hien_thi }),
     }),
 
+  capNhatAvatar: (loai_ca) =>
+    goiApi('/api/profile/cap-nhat-avatar', {
+      method: 'PATCH',
+      body: JSON.stringify({ loai_ca }),
+    }),
+
   // Fish
   themCa: (youtubeUrl, nickname, loaiCa) =>
     goiApi('/api/fish/them-ca', {

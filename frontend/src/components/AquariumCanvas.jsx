@@ -1,19 +1,18 @@
 import { useEffect, useRef, useCallback } from 'react'
-import { MAU, NEN_HO } from '../constants/colors'
-import { LOAI_CA, KICH_THUOC_THEO_LEVEL } from '../constants/fishTypes'
+import { NEN_HO, DAY_HO_MAU } from '../constants/colors'
+import { KICH_THUOC_THEO_LEVEL } from '../constants/fishTypes'
 
-// Trạng thái chuyển động của từng con cá — ngoài React state vì cập nhật mỗi frame
 const trangThaiChuyen = new Map()
 
 function khoiTaoChuyen(ca) {
   if (trangThaiChuyen.has(ca.id)) return
   trangThaiChuyen.set(ca.id, {
-    x:       ca.vi_tri_x * window.innerWidth,
-    y:       ca.vi_tri_y * window.innerHeight,
-    huongX:  Math.random() > 0.5 ? 1 : -1,
-    huongY:  (Math.random() - 0.5) * 0.3,
-    tocDo:   0.3 + Math.random() * 0.4,
-    pha:     Math.random() * Math.PI * 2,  // phase cho vẫy đuôi
+    x:      ca.vi_tri_x * window.innerWidth,
+    y:      ca.vi_tri_y * window.innerHeight,
+    huongX: Math.random() > 0.5 ? 1 : -1,
+    huongY: (Math.random() - 0.5) * 0.3,
+    tocDo:  0.3 + Math.random() * 0.4,
+    pha:    Math.random() * Math.PI * 2,
   })
 }
 
@@ -25,71 +24,344 @@ function tinhDoMo(lanNgheCuoi) {
   return 1 - (soNgay - 7) / 23 * 0.8
 }
 
-function veCa(ctx, ca, trang, frame, dangPhat) {
-  const kt = KICH_THUOC_THEO_LEVEL[ca.level] || 40
-  const doMo = tinhDoMo(ca.lan_nghe_cuoi)
-  const loai = LOAI_CA[ca.loai_ca] || LOAI_CA.ca_vang
+// ─── Vẽ mắt chung ──────────────────────────────────────────────
+function veMat(ctx, r) {
+  ctx.beginPath()
+  ctx.arc(r * 0.52, -r * 0.15, r * 0.14, 0, Math.PI * 2)
+  ctx.fillStyle = 'rgba(255,255,255,0.9)'; ctx.fill()
+  ctx.beginPath()
+  ctx.arc(r * 0.54, -r * 0.14, r * 0.08, 0, Math.PI * 2)
+  ctx.fillStyle = '#111'; ctx.fill()
+  ctx.beginPath()
+  ctx.arc(r * 0.57, -r * 0.17, r * 0.03, 0, Math.PI * 2)
+  ctx.fillStyle = 'rgba(255,255,255,0.7)'; ctx.fill()
+}
 
-  // Cập nhật vị trí
+// ─── Ca Vang: tròn mập, đuôi xòe lyre ─────────────────────────
+function veCaVang(ctx, r, mau, g) {
+  ctx.fillStyle = mau
+  // Đuôi lyre
+  ctx.beginPath()
+  ctx.moveTo(-r * 0.88, 0)
+  ctx.lineTo(-r * 1.55, -r * 0.52 + g * r)
+  ctx.lineTo(-r * 1.18, 0 + g * r * 0.2)
+  ctx.lineTo(-r * 1.55,  r * 0.52 + g * r)
+  ctx.closePath(); ctx.fill()
+  // Thân mập
+  ctx.beginPath()
+  ctx.ellipse(0, 0, r * 1.12, r * 0.82, 0, 0, Math.PI * 2)
+  ctx.fill()
+  // Vây lưng
+  ctx.save(); ctx.globalAlpha *= 0.6
+  ctx.beginPath()
+  ctx.moveTo(-r * 0.1, -r * 0.82)
+  ctx.quadraticCurveTo(r * 0.35, -r * 1.2, r * 0.7, -r * 0.82)
+  ctx.quadraticCurveTo(r * 0.2, -r * 0.82, -r * 0.1, -r * 0.82)
+  ctx.fill(); ctx.restore()
+  veMat(ctx, r)
+}
+
+// ─── Ca Neon: thon dài, sọc xanh + đỏ ─────────────────────────
+function veCaNeon(ctx, r, mau, g) {
+  ctx.fillStyle = mau
+  // Đuôi chẻ
+  ctx.beginPath()
+  ctx.moveTo(-r * 1.45, 0)
+  ctx.lineTo(-r * 2.0, -r * 0.38 + g * r * 0.5)
+  ctx.lineTo(-r * 1.6, 0 + g * r * 0.2)
+  ctx.lineTo(-r * 2.0,  r * 0.38 + g * r * 0.5)
+  ctx.closePath(); ctx.fill()
+  // Thân thon
+  ctx.beginPath()
+  ctx.ellipse(0, 0, r * 1.6, r * 0.42, 0, 0, Math.PI * 2)
+  ctx.fill()
+  // Sọc xanh neon lưng
+  ctx.save()
+  ctx.globalAlpha *= 0.85
+  ctx.beginPath()
+  ctx.ellipse(-r * 0.1, -r * 0.1, r * 1.35, r * 0.17, 0, 0, Math.PI * 2)
+  ctx.fillStyle = 'rgba(0,229,255,0.9)'; ctx.fill()
+  // Sọc đỏ bụng
+  ctx.beginPath()
+  ctx.ellipse(r * 0.1,  r * 0.15, r * 1.05, r * 0.14, 0, 0, Math.PI * 2)
+  ctx.fillStyle = 'rgba(244,67,54,0.85)'; ctx.fill()
+  ctx.restore()
+  veMat(ctx, r)
+}
+
+// ─── Ca Betta: thân vừa, đuôi voan dài xuống ──────────────────
+function veCaBetta(ctx, r, mau, g) {
+  ctx.fillStyle = mau
+  // Đuôi voan xuống dưới
+  ctx.save(); ctx.globalAlpha *= 0.62
+  ctx.beginPath()
+  ctx.moveTo(-r * 0.65, r * 0.35)
+  ctx.quadraticCurveTo(-r * 1.1, r * 1.25 + g * r * 0.35, -r * 0.45, r * 1.7 + g * r * 0.25)
+  ctx.quadraticCurveTo( r * 0.0,  r * 1.9,                  r * 0.25,  r * 1.55 + g * r * 0.25)
+  ctx.quadraticCurveTo( r * 0.45, r * 1.0,                  r * 0.25,  r * 0.5)
+  ctx.fill(); ctx.restore()
+  // Đuôi sau
+  ctx.beginPath()
+  ctx.moveTo(-r * 0.88, 0)
+  ctx.lineTo(-r * 1.28, -r * 0.28 + g * r)
+  ctx.lineTo(-r * 0.95,  r * 0.18 + g * r * 0.3)
+  ctx.closePath(); ctx.fill()
+  // Thân
+  ctx.beginPath()
+  ctx.ellipse(0, 0, r * 1.2, r * 0.65, 0, 0, Math.PI * 2)
+  ctx.fill()
+  // Vây lưng dài
+  ctx.save(); ctx.globalAlpha *= 0.68
+  ctx.beginPath()
+  ctx.moveTo(-r * 0.28, -r * 0.65)
+  ctx.quadraticCurveTo(r * 0.2, -r * 1.22, r * 0.7, -r * 0.65)
+  ctx.quadraticCurveTo(r * 0.2, -r * 0.65, -r * 0.28, -r * 0.65)
+  ctx.fill(); ctx.restore()
+  veMat(ctx, r)
+}
+
+// ─── Ca Clownfish (Hề): oval cam, 2 sọc trắng ─────────────────
+function veCaClownfish(ctx, r, mau, g) {
+  ctx.fillStyle = mau
+  // Đuôi
+  ctx.beginPath()
+  ctx.moveTo(-r * 0.88, 0)
+  ctx.lineTo(-r * 1.42, -r * 0.44 + g * r)
+  ctx.lineTo(-r * 1.12, 0 + g * r * 0.2)
+  ctx.lineTo(-r * 1.42,  r * 0.44 + g * r)
+  ctx.closePath(); ctx.fill()
+  // Thân oval
+  ctx.beginPath()
+  ctx.ellipse(0, 0, r * 1.15, r * 0.86, 0, 0, Math.PI * 2)
+  ctx.fill()
+  // Sọc trắng
+  ctx.save()
+  ctx.beginPath()
+  ctx.ellipse( r * 0.42, 0, r * 0.14, r * 0.82, 0, 0, Math.PI * 2)
+  ctx.fillStyle = 'rgba(255,255,255,0.88)'; ctx.fill()
+  ctx.beginPath()
+  ctx.ellipse(-r * 0.12, 0, r * 0.12, r * 0.78, 0, 0, Math.PI * 2)
+  ctx.fillStyle = 'rgba(255,255,255,0.78)'; ctx.fill()
+  // Phủ cam lại giữa sọc
+  ctx.globalAlpha *= 0.55
+  ctx.beginPath()
+  ctx.ellipse(0, 0, r * 0.82, r * 0.7, 0, 0, Math.PI * 2)
+  ctx.fillStyle = mau; ctx.fill()
+  ctx.restore()
+  // Vây lưng
+  ctx.save(); ctx.globalAlpha *= 0.7; ctx.fillStyle = mau
+  ctx.beginPath()
+  ctx.moveTo(-r * 0.2, -r * 0.86)
+  ctx.quadraticCurveTo(r * 0.3, -r * 1.22, r * 0.7, -r * 0.86)
+  ctx.quadraticCurveTo(r * 0.2, -r * 0.86, -r * 0.2, -r * 0.86)
+  ctx.fill(); ctx.restore()
+  veMat(ctx, r)
+}
+
+// ─── Ca Tang: tròn dẹt, đuôi lưỡi liềm, điểm vàng ─────────────
+function veCaTang(ctx, r, mau, g) {
+  ctx.fillStyle = mau
+  // Đuôi lưỡi liềm
+  ctx.beginPath()
+  ctx.moveTo(-r * 0.94, 0)
+  ctx.quadraticCurveTo(-r * 1.3, -r * 0.65 + g * r, -r * 1.05, -r * 0.55 + g * r)
+  ctx.lineTo(-r * 0.94, 0); ctx.fill()
+  ctx.beginPath()
+  ctx.moveTo(-r * 0.94, 0)
+  ctx.quadraticCurveTo(-r * 1.3,  r * 0.65 + g * r, -r * 1.05,  r * 0.55 + g * r)
+  ctx.lineTo(-r * 0.94, 0); ctx.fill()
+  // Thân tròn
+  ctx.beginPath()
+  ctx.ellipse(0, 0, r * 1.05, r * 0.88, 0, 0, Math.PI * 2)
+  ctx.fill()
+  // Điểm vàng đặc trưng
+  ctx.beginPath()
+  ctx.ellipse(-r * 0.58, 0, r * 0.27, r * 0.22, 0, 0, Math.PI * 2)
+  ctx.fillStyle = 'rgba(255,214,0,0.9)'; ctx.fill()
+  // Vây lưng
+  ctx.save(); ctx.globalAlpha *= 0.68; ctx.fillStyle = mau
+  ctx.beginPath()
+  ctx.moveTo(-r * 0.35, -r * 0.88)
+  ctx.quadraticCurveTo(r * 0.25, -r * 1.28, r * 0.72, -r * 0.88)
+  ctx.quadraticCurveTo(r * 0.1, -r * 0.88, -r * 0.35, -r * 0.88)
+  ctx.fill(); ctx.restore()
+  veMat(ctx, r)
+}
+
+// ─── Ca Koi: thân dài, đốm cam trên nền trắng ─────────────────
+function veCaKoi(ctx, r, mau, g) {
+  // Đuôi xòe
+  ctx.fillStyle = 'rgba(255,205,178,0.85)'
+  ctx.beginPath()
+  ctx.moveTo(-r * 1.45, 0)
+  ctx.lineTo(-r * 2.05, -r * 0.42 + g * r)
+  ctx.lineTo(-r * 1.62, 0 + g * r * 0.2)
+  ctx.lineTo(-r * 2.05,  r * 0.42 + g * r)
+  ctx.closePath(); ctx.fill()
+  // Thân trắng dài
+  ctx.beginPath()
+  ctx.ellipse(0, 0, r * 1.65, r * 0.52, 0, 0, Math.PI * 2)
+  ctx.fillStyle = '#f5f5f5'; ctx.fill()
+  // Đốm màu
+  ctx.save()
+  ctx.globalAlpha *= 0.82
+  ctx.fillStyle = mau
+  ctx.beginPath()
+  ctx.ellipse(r * 0.42, -r * 0.14, r * 0.55, r * 0.38, 0, 0, Math.PI * 2)
+  ctx.fill()
+  ctx.beginPath()
+  ctx.ellipse(-r * 0.3,  r * 0.2, r * 0.38, r * 0.28, 0, 0, Math.PI * 2)
+  ctx.fill()
+  ctx.restore()
+  // Vây lưng
+  ctx.save(); ctx.globalAlpha *= 0.7; ctx.fillStyle = 'rgba(255,183,77,0.9)'
+  ctx.beginPath()
+  ctx.moveTo(-r * 0.15, -r * 0.52)
+  ctx.quadraticCurveTo(r * 0.5, -r * 0.88, r * 0.95, -r * 0.52)
+  ctx.quadraticCurveTo(r * 0.3, -r * 0.52, -r * 0.15, -r * 0.52)
+  ctx.fill(); ctx.restore()
+  // Râu
+  ctx.save(); ctx.strokeStyle = 'rgba(200,200,200,0.7)'; ctx.lineWidth = r * 0.06
+  ctx.lineCap = 'round'
+  ctx.beginPath(); ctx.moveTo(r * 0.9, -r * 0.1); ctx.quadraticCurveTo(r * 1.25, -r * 0.35, r * 1.15, -r * 0.55); ctx.stroke()
+  ctx.beginPath(); ctx.moveTo(r * 0.9,  r * 0.1); ctx.quadraticCurveTo(r * 1.3,   r * 0.25,  r * 1.2,  -r * 0.1); ctx.stroke()
+  ctx.restore()
+  veMat(ctx, r)
+}
+
+// ─── Ca Chep: thân to, vảy cung bán nguyệt ────────────────────
+function veCaChep(ctx, r, mau, g) {
+  ctx.fillStyle = mau
+  // Đuôi chẻ đôi
+  ctx.beginPath()
+  ctx.moveTo(-r * 1.18, 0)
+  ctx.lineTo(-r * 1.8, -r * 0.58 + g * r * 0.5)
+  ctx.lineTo(-r * 1.38, -r * 0.1); ctx.closePath(); ctx.fill()
+  ctx.beginPath()
+  ctx.moveTo(-r * 1.18, 0)
+  ctx.lineTo(-r * 1.8,  r * 0.58 + g * r * 0.5)
+  ctx.lineTo(-r * 1.38,  r * 0.1); ctx.closePath(); ctx.fill()
+  // Thân to
+  ctx.beginPath()
+  ctx.ellipse(0, 0, r * 1.45, r * 0.9, 0, 0, Math.PI * 2)
+  ctx.fill()
+  // Vảy — arc bán nguyệt
+  ctx.save(); ctx.globalAlpha *= 0.32; ctx.strokeStyle = '#37474F'; ctx.lineWidth = r * 0.08
+  for (let xi = -1; xi <= 1; xi++) {
+    for (let yi = -1; yi <= 1; yi++) {
+      ctx.beginPath()
+      ctx.arc(xi * r * 0.55, yi * r * 0.38, r * 0.33, Math.PI, 0)
+      ctx.stroke()
+    }
+  }
+  ctx.restore()
+  // Vây lưng lớn
+  ctx.save(); ctx.globalAlpha *= 0.72; ctx.fillStyle = mau
+  ctx.beginPath()
+  ctx.moveTo(-r * 0.48, -r * 0.9)
+  ctx.quadraticCurveTo(r * 0.1, -r * 1.35, r * 0.72, -r * 0.9)
+  ctx.quadraticCurveTo(r * 0.0, -r * 0.9, -r * 0.48, -r * 0.9)
+  ctx.fill(); ctx.restore()
+  // Râu
+  ctx.save(); ctx.strokeStyle = 'rgba(144,164,174,0.8)'; ctx.lineWidth = r * 0.08; ctx.lineCap = 'round'
+  ctx.beginPath(); ctx.moveTo(r * 0.85, -r * 0.1); ctx.quadraticCurveTo(r * 1.2, -r * 0.4, r * 1.1, -r * 0.65); ctx.stroke()
+  ctx.beginPath(); ctx.moveTo(r * 0.85,  r * 0.08); ctx.quadraticCurveTo(r * 1.25, r * 0.25, r * 1.15, -r * 0.1); ctx.stroke()
+  ctx.restore()
+  veMat(ctx, r)
+}
+
+// ─── Ca Dia: hình tròn dẹt, sọc dọc ──────────────────────────
+function veCaDia(ctx, r, mau, g) {
+  ctx.fillStyle = mau
+  // Đuôi nhỏ
+  ctx.beginPath()
+  ctx.moveTo(-r * 0.88, 0)
+  ctx.lineTo(-r * 1.22, -r * 0.24 + g * r * 0.3)
+  ctx.lineTo(-r * 1.0,  0 + g * r * 0.1)
+  ctx.lineTo(-r * 1.22,  r * 0.24 + g * r * 0.3)
+  ctx.closePath(); ctx.fill()
+  // Thân tròn
+  ctx.beginPath()
+  ctx.ellipse(0, 0, r * 0.9, r * 0.9, 0, 0, Math.PI * 2)
+  ctx.fill()
+  // Sọc dọc
+  ctx.save(); ctx.globalAlpha *= 0.38
+  for (let i = -2; i <= 2; i++) {
+    ctx.beginPath()
+    ctx.ellipse(i * r * 0.27, 0, r * 0.07, r * 0.86, 0, 0, Math.PI * 2)
+    ctx.fillStyle = '#004D40'; ctx.fill()
+  }
+  ctx.restore()
+  // Vây lưng
+  ctx.save(); ctx.globalAlpha *= 0.7; ctx.fillStyle = mau
+  ctx.beginPath()
+  ctx.moveTo(-r * 0.18, -r * 0.9)
+  ctx.quadraticCurveTo(r * 0.12, -r * 1.18, r * 0.42, -r * 0.9)
+  ctx.quadraticCurveTo(r * 0.1, -r * 0.9, -r * 0.18, -r * 0.9)
+  ctx.fill(); ctx.restore()
+  // Vây bụng
+  ctx.save(); ctx.globalAlpha *= 0.65; ctx.fillStyle = mau
+  ctx.beginPath()
+  ctx.moveTo(-r * 0.18, r * 0.9)
+  ctx.quadraticCurveTo(r * 0.12, r * 1.18, r * 0.42, r * 0.9)
+  ctx.quadraticCurveTo(r * 0.1, r * 0.9, -r * 0.18, r * 0.9)
+  ctx.fill(); ctx.restore()
+  veMat(ctx, r)
+}
+
+// ─── Dispatch theo loài ───────────────────────────────────────
+function veCaTheoLoai(ctx, loaiCa, r, mau, g) {
+  switch (loaiCa) {
+    case 'ca_neon':      return veCaNeon(ctx, r, mau, g)
+    case 'ca_betta':     return veCaBetta(ctx, r, mau, g)
+    case 'ca_clownfish': return veCaClownfish(ctx, r, mau, g)
+    case 'ca_tang':      return veCaTang(ctx, r, mau, g)
+    case 'ca_koi':       return veCaKoi(ctx, r, mau, g)
+    case 'ca_chep':      return veCaChep(ctx, r, mau, g)
+    case 'ca_dia':       return veCaDia(ctx, r, mau, g)
+    default:             return veCaVang(ctx, r, mau, g)   // ca_vang
+  }
+}
+
+// ─── Frame chính ─────────────────────────────────────────────
+function veCa(ctx, ca, trang, dangPhat) {
+  const kt     = KICH_THUOC_THEO_LEVEL[ca.level] || 40
+  const doMo   = tinhDoMo(ca.lan_nghe_cuoi)
+  const r      = kt / 2
+
   trang.pha += 0.05
-  trang.x += trang.huongX * trang.tocDo
-  trang.y += Math.sin(trang.pha) * 0.3
+  trang.x   += trang.huongX * trang.tocDo
+  trang.y   += Math.sin(trang.pha) * 0.3
 
-  // Nảy lại khi chạm biên
   const w = ctx.canvas.width, h = ctx.canvas.height
   if (trang.x < kt || trang.x > w - kt) trang.huongX *= -1
-  if (trang.y < kt * 0.5 || trang.y > h - kt * 0.5) trang.huongY *= -1
   trang.y = Math.max(kt * 0.5, Math.min(h - kt * 0.5, trang.y))
+
+  const gocDuoi = Math.sin(trang.pha * 2) * 0.28
 
   ctx.save()
   ctx.globalAlpha = doMo
   ctx.translate(trang.x, trang.y)
-
-  // Lật theo hướng bơi
   if (trang.huongX < 0) ctx.scale(-1, 1)
 
-  // Thân cá
-  const r = kt / 2
-  ctx.beginPath()
-  ctx.ellipse(0, 0, r * (loai.tyLeThan || 1.3), r * 0.65, 0, 0, Math.PI * 2)
-  ctx.fillStyle = ca.mau_ca
-  ctx.fill()
+  veCaTheoLoai(ctx, ca.loai_ca, r, ca.mau_ca || '#FFB300', gocDuoi)
 
-  // Đuôi — dao động theo phase
-  const gocDuoi = Math.sin(trang.pha * 2) * 0.3
-  ctx.beginPath()
-  ctx.moveTo(-r * loai.tyLeThan * 0.8, 0)
-  ctx.lineTo(
-    -r * loai.tyLeThan * 0.8 - r * loai.tyLeDuoi,
-    -r * 0.5 + gocDuoi * r
-  )
-  ctx.lineTo(
-    -r * loai.tyLeThan * 0.8 - r * loai.tyLeDuoi,
-     r * 0.5 + gocDuoi * r
-  )
-  ctx.closePath()
-  ctx.fillStyle = ca.mau_ca
-  ctx.fill()
-
-  // Mắt cá
-  ctx.beginPath()
-  ctx.arc(r * 0.5, -r * 0.15, r * 0.12, 0, Math.PI * 2)
-  ctx.fillStyle = '#000'
-  ctx.fill()
-
-  // Nhạc note khi đang phát
+  // Note nhạc
   if (dangPhat) {
-    ctx.font = `${r * 0.5}px serif`
-    ctx.fillText('♪', r * 0.3, -r * 0.6)
+    ctx.font = `${r * 0.52}px serif`
+    ctx.fillStyle = 'rgba(255,255,255,0.92)'
+    ctx.fillText('♪', r * 0.3, -r * 0.75)
   }
 
-  // Zzz khi ngủ (> 7 ngày)
-  const soNgay = (Date.now() - new Date(ca.lan_nghe_cuoi)) / 86400000
-  if (soNgay > 7) {
-    ctx.font = `${r * 0.4}px serif`
-    ctx.fillStyle = 'rgba(200,200,255,0.7)'
-    ctx.fillText('z', r * 0.6, -r * 0.7)
-    ctx.fillText('z', r * 0.9, -r * 1.0)
+  // Zzz khi ngủ > 7 ngày
+  if (ca.lan_nghe_cuoi) {
+    const soNgay = (Date.now() - new Date(ca.lan_nghe_cuoi)) / 86400000
+    if (soNgay > 7) {
+      ctx.font = `${r * 0.38}px serif`
+      ctx.fillStyle = 'rgba(200,200,255,0.7)'
+      ctx.fillText('z', r * 0.6, -r * 0.85)
+      ctx.fillText('z', r * 0.9, -r * 1.12)
+    }
   }
 
   ctx.restore()
@@ -100,17 +372,15 @@ function veBongBong(ctx, bongBubbles) {
     b.y -= b.tocDo
     b.x += Math.sin(b.y * 0.05) * 0.3
     b.doMo = Math.max(0, b.doMo - 0.003)
-
     if (b.y < 0 || b.doMo <= 0) {
       bongBubbles[i] = {
-        x:     Math.random() * ctx.canvas.width,
-        y:     ctx.canvas.height + 10,
-        r:     1 + Math.random() * 3,
+        x: Math.random() * ctx.canvas.width,
+        y: ctx.canvas.height + 10,
+        r: 1 + Math.random() * 3,
         tocDo: 0.2 + Math.random() * 0.5,
         doMo:  0.1 + Math.random() * 0.3,
       }
     }
-
     ctx.beginPath()
     ctx.arc(b.x, b.y, b.r, 0, Math.PI * 2)
     ctx.strokeStyle = `rgba(126,200,227,${b.doMo})`
@@ -121,26 +391,27 @@ function veBongBong(ctx, bongBubbles) {
 
 export default function AquariumCanvas({
   danhSachCa,
-  dangPhat,         // ca_id đang phát
-  nenHo = 'ocean-shallow',
+  dangPhat,
+  nenHo  = 'ocean-shallow',
+  dayHo  = 'cat_trang',
   onClickCa,
   onGiuCa,
-  caLevelUp = null, // ca_id vừa lên level để hiệu ứng
+  caLevelUp = null,
 }) {
-  const canvasRef   = useRef(null)
-  const frameRef    = useRef(0)
-  const bongRef     = useRef(
+  const canvasRef = useRef(null)
+  const frameRef  = useRef(0)
+  const bongRef   = useRef(
     Array.from({ length: 30 }, () => ({
-      x:     Math.random() * window.innerWidth,
-      y:     Math.random() * window.innerHeight,
-      r:     1 + Math.random() * 3,
+      x: Math.random() * window.innerWidth,
+      y: Math.random() * window.innerHeight,
+      r: 1 + Math.random() * 3,
       tocDo: 0.2 + Math.random() * 0.5,
       doMo:  0.1 + Math.random() * 0.3,
     }))
   )
-  const giuRef = useRef(null)
+  const giuRef        = useRef(null)
+  const longPressedRef = useRef(false)  // chặn click sau long press
 
-  // Khởi tạo trạng thái chuyển động cho cá mới
   danhSachCa.forEach(khoiTaoChuyen)
 
   const veFrame = useCallback(() => {
@@ -148,7 +419,6 @@ export default function AquariumCanvas({
     if (!canvas) return
     const ctx = canvas.getContext('2d')
 
-    // Resize canvas nếu cửa sổ thay đổi
     if (canvas.width !== window.innerWidth || canvas.height !== window.innerHeight) {
       canvas.width  = window.innerWidth
       canvas.height = window.innerHeight
@@ -157,14 +427,12 @@ export default function AquariumCanvas({
     const w = canvas.width, h = canvas.height
     const nen = NEN_HO[nenHo] || NEN_HO['ocean-shallow']
 
-    // Vẽ nền gradient
     const grad = ctx.createLinearGradient(0, 0, 0, h)
     grad.addColorStop(0, nen.tren)
     grad.addColorStop(1, nen.duoi)
     ctx.fillStyle = grad
     ctx.fillRect(0, 0, w, h)
 
-    // Hiệu ứng ánh sáng lọc qua nước (sine wave)
     const thoiGian = frameRef.current * 0.02
     for (let i = 0; i < 5; i++) {
       const xAnh = (Math.sin(thoiGian + i * 1.2) * 0.5 + 0.5) * w
@@ -175,27 +443,40 @@ export default function AquariumCanvas({
       ctx.fillRect(0, 0, w, h)
     }
 
+    // Đáy hồ
+    const dayMau = DAY_HO_MAU[dayHo] || '#c8b89a'
+    const dayH = Math.max(50, h * 0.07)
+    const dayY = h - dayH
+    const dayGrad = ctx.createLinearGradient(0, dayY, 0, h)
+    dayGrad.addColorStop(0, dayMau + '00')
+    dayGrad.addColorStop(0.35, dayMau + 'bb')
+    dayGrad.addColorStop(1, dayMau + 'ff')
+    ctx.fillStyle = dayGrad
+    ctx.beginPath()
+    ctx.moveTo(0, h)
+    for (let x = 0; x <= w; x += 18) {
+      ctx.lineTo(x, dayY + Math.sin(x * 0.04 + thoiGian * 0.4) * 5)
+    }
+    ctx.lineTo(w, h)
+    ctx.closePath()
+    ctx.fill()
+
     veBongBong(ctx, bongRef.current)
 
-    // Vẽ từng con cá
     danhSachCa.forEach(ca => {
       const trang = trangThaiChuyen.get(ca.id)
       if (!trang) return
-      veCa(ctx, ca, trang, frameRef.current, dangPhat === ca.id)
+      veCa(ctx, ca, trang, dangPhat === ca.id)
     })
 
-    // Hiệu ứng level up — bong bóng xung quanh cá vừa lên level
     if (caLevelUp) {
       const trang = trangThaiChuyen.get(caLevelUp)
       if (trang) {
         for (let i = 0; i < 8; i++) {
           const goc = (i / 8) * Math.PI * 2
-          const dx = Math.cos(goc) * 30
-          const dy = Math.sin(goc) * 30
           ctx.beginPath()
-          ctx.arc(trang.x + dx, trang.y + dy, 4, 0, Math.PI * 2)
-          ctx.fillStyle = 'rgba(255,220,100,0.7)'
-          ctx.fill()
+          ctx.arc(trang.x + Math.cos(goc) * 30, trang.y + Math.sin(goc) * 30, 4, 0, Math.PI * 2)
+          ctx.fillStyle = 'rgba(255,220,100,0.7)'; ctx.fill()
         }
         ctx.font = '14px sans-serif'
         ctx.fillStyle = '#ffd700'
@@ -205,46 +486,53 @@ export default function AquariumCanvas({
 
     frameRef.current++
     requestAnimationFrame(veFrame)
-  }, [danhSachCa, dangPhat, nenHo, caLevelUp])
+  }, [danhSachCa, dangPhat, nenHo, dayHo, caLevelUp])
 
   useEffect(() => {
     const id = requestAnimationFrame(veFrame)
     return () => cancelAnimationFrame(id)
   }, [veFrame])
 
-  // Nhận click/giữ trên canvas → tìm cá bị click
-  const xuLyClick = useCallback((e) => {
-    const rect = canvasRef.current.getBoundingClientRect()
-    const mx = e.clientX - rect.left
-    const my = e.clientY - rect.top
-
+  // Tìm cá tại vị trí (mx, my) — dùng vị trí HIỆN TẠI của cá
+  function timCa(mx, my) {
     for (const ca of danhSachCa) {
       const trang = trangThaiChuyen.get(ca.id)
       if (!trang) continue
       const kt = KICH_THUOC_THEO_LEVEL[ca.level] || 40
-      const dx = mx - trang.x, dy = my - trang.y
-      if (dx * dx + dy * dy < kt * kt) {
-        onClickCa?.(ca, trang.x, trang.y)
-        return
+      if ((mx - trang.x) ** 2 + (my - trang.y) ** 2 < kt * kt) {
+        return { ca, x: trang.x, y: trang.y }
       }
     }
+    return null
+  }
+
+  const xuLyClick = useCallback((e) => {
+    // Bỏ qua click ngay sau long press
+    if (longPressedRef.current) {
+      longPressedRef.current = false
+      return
+    }
+    const rect = canvasRef.current.getBoundingClientRect()
+    const mx = e.clientX - rect.left
+    const my = e.clientY - rect.top
+    const hit = timCa(mx, my)
+    if (hit) onClickCa?.(hit.ca, hit.x, hit.y)
   }, [danhSachCa, onClickCa])
 
   const xuLyMouseDown = useCallback((e) => {
+    if (!onGiuCa) return  // không cần timer nếu không có handler
+    const rect = canvasRef.current.getBoundingClientRect()
+    const mx = e.clientX - rect.left
+    const my = e.clientY - rect.top
+
+    // Detect cá NGAY LÚC nhấn — cá vẫn còn ở đây, chưa bơi đi
+    const hit = timCa(mx, my)
+    if (!hit) return  // không nhấn vào cá nào → không cần timer
+
     giuRef.current = setTimeout(() => {
-      const rect = canvasRef.current.getBoundingClientRect()
-      const mx = e.clientX - rect.left
-      const my = e.clientY - rect.top
-      for (const ca of danhSachCa) {
-        const trang = trangThaiChuyen.get(ca.id)
-        if (!trang) continue
-        const kt = KICH_THUOC_THEO_LEVEL[ca.level] || 40
-        if ((mx - trang.x) ** 2 + (my - trang.y) ** 2 < kt * kt) {
-          onGiuCa?.(ca, mx, my)
-          return
-        }
-      }
-    }, 500)
+      longPressedRef.current = true
+      onGiuCa(hit.ca, hit.x, hit.y)
+    }, 700)
   }, [danhSachCa, onGiuCa])
 
   const xuLyMouseUp = useCallback(() => {
@@ -259,7 +547,7 @@ export default function AquariumCanvas({
       onClick={xuLyClick}
       onMouseDown={xuLyMouseDown}
       onMouseUp={xuLyMouseUp}
-      onTouchStart={(e) => xuLyMouseDown(e.touches[0])}
+      onTouchStart={e => xuLyMouseDown(e.touches[0])}
       onTouchEnd={xuLyMouseUp}
     />
   )

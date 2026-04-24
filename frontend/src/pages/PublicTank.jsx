@@ -4,6 +4,7 @@ import { API } from '../lib/api'
 import AquariumCanvas from '../components/AquariumCanvas'
 import YouTubePlayer from '../components/YouTubePlayer'
 import MusicPlayerBar from '../components/MusicPlayerBar'
+import PublicFishPanel from '../components/PublicFishPanel'
 
 export default function PublicTank() {
   const { username } = useParams()
@@ -12,6 +13,7 @@ export default function PublicTank() {
   const [dangPhat, setDangPhat] = useState(null)   // ca_id đang phát
   const [videoId, setVideoId]   = useState(null)
   const [ytPlayer, setYtPlayer] = useState(null)
+  const [infoCa, setInfoCa]     = useState(null)  // { ca, x, y }
 
   const danhSachCa = tank?.fish || []
   const caDangPhat = danhSachCa.find(c => c.id === dangPhat) ?? null
@@ -84,6 +86,7 @@ export default function PublicTank() {
         danhSachCa={danhSachCa}
         dangPhat={dangPhat}
         onClickCa={clickCa}
+        onGiuCa={(ca, x, y) => setInfoCa({ ca, x, y })}
       />
 
       {/* Header */}
@@ -110,6 +113,16 @@ export default function PublicTank() {
         onReady={setYtPlayer}
         onEnded={khiHetBai}
       />
+
+      {/* Panel thông tin cá khi giữ chuột */}
+      {infoCa && (
+        <PublicFishPanel
+          ca={infoCa.ca}
+          x={infoCa.x}
+          y={infoCa.y}
+          onDong={() => setInfoCa(null)}
+        />
+      )}
 
       {/* Music player bar — chỉ hiện khi đang phát */}
       <MusicPlayerBar

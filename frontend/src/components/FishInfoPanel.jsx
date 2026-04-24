@@ -5,11 +5,12 @@ import { API } from '../lib/api'
 export default function FishInfoPanel({
   ca,
   x, y,
-  dangPhat,       // boolean — cá này có đang phát không
-  onTogglePhat,   // () => toggle play/pause cá này
-  onCapNhat,      // (caMoi) => cập nhật state
-  onXoa,          // (caId) => xóa khỏi danh sách
-  onDong,         // () => đóng panel
+  dangPhat,          // boolean — cá này có đang phát không
+  onTogglePhat,      // () => toggle play/pause cá này
+  onCapNhat,         // (caMoi) => cập nhật state
+  onXoa,             // (caId) => xóa khỏi danh sách
+  onDong,            // () => đóng panel
+  onMoQuanLyCa,     // () => mở modal danh sách cá
 }) {
   const [cheDoSua, setCheDoSua] = useState(false)
   const [nickname, setNickname]   = useState(ca.nickname || '')
@@ -71,19 +72,29 @@ export default function FishInfoPanel({
 
       {!cheDoSua ? (
         /* Chế độ xem */
-        <div className="px-3 pb-3 flex gap-2">
-          <button
-            onClick={onTogglePhat}
-            className="flex-1 bg-ho-anh hover:bg-ho-accent text-ho-sau font-semibold py-2 rounded-xl text-sm transition"
-          >
-            {dangPhat ? '⏸ Dừng' : '▶ Nghe'}
-          </button>
-          <button
-            onClick={() => setCheDoSua(true)}
-            className="px-3 py-2 border border-ho-anh/30 hover:border-ho-anh text-ho-anh/70 hover:text-ho-anh rounded-xl text-sm transition"
-          >
-            Sửa
-          </button>
+        <div className="px-3 pb-3 space-y-2">
+          <div className="flex gap-2">
+            <button
+              onClick={onTogglePhat}
+              className="flex-1 bg-ho-anh hover:bg-ho-accent text-ho-sau font-semibold py-2 rounded-xl text-sm transition"
+            >
+              {dangPhat ? '⏸ Dừng' : '▶ Nghe'}
+            </button>
+            <button
+              onClick={() => setCheDoSua(true)}
+              className="px-3 py-2 border border-ho-anh/30 hover:border-ho-anh text-ho-anh/70 hover:text-ho-anh rounded-xl text-sm transition"
+              title="Sửa cá"
+            >
+              ✎
+            </button>
+            <button
+              onClick={() => { onDong(); onMoQuanLyCa?.() }}
+              className="px-3 py-2 border border-red-400/20 hover:border-red-400/50 text-red-400/50 hover:text-red-400 rounded-xl text-sm transition"
+              title="Quản lý & xóa cá"
+            >
+              🗑
+            </button>
+          </div>
         </div>
       ) : (
         /* Chế độ sửa */
@@ -117,9 +128,6 @@ export default function FishInfoPanel({
               Huỷ
             </button>
           </div>
-          <button onClick={xacNhanXoa} className="w-full text-red-400/60 hover:text-red-400 text-xs py-1 transition">
-            Xóa cá này
-          </button>
         </div>
       )}
     </div>
