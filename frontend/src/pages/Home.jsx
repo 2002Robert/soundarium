@@ -1,48 +1,45 @@
-import { useState, useEffect, useCallback } from 'react'
+import { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { supabase } from '../lib/supabase'
 import { API } from '../lib/api'
 import AquariumCanvas from '../components/AquariumCanvas'
 import FishEditMenu from '../components/FishEditMenu'
 import YouTubePlayer from '../components/YouTubePlayer'
+import MusicPlayerBar from '../components/MusicPlayerBar'
 import Onboarding from '../components/Onboarding'
 import Toast from '../components/Toast'
 import { useAudio } from '../hooks/useAudio'
 import { useCoins } from '../hooks/useCoins'
 
 export default function Home() {
-  const navigate  = useNavigate()
-  const [user, setUser]               = useState(null)
-  const [danhSachCa, setDanhSachCa]   = useState([])
-  const [urlInput, setUrlInput]       = useState('')
-  const [dangThem, setDangThem]       = useState(false)
-  const [menuCa, setMenuCa]           = useState(null)  // { ca, x, y }
-  const [toast, setToast]             = useState(null)  // { thongBao, loai }
-  const [caLevelUp, setCaLevelUp]     = useState(null)
+  const navigate = useNavigate()
+  const [danhSachCa, setDanhSachCa]         = useState([])
+  const [urlInput, setUrlInput]             = useState('')
+  const [dangThem, setDangThem]             = useState(false)
+  const [menuCa, setMenuCa]                 = useState(null)
+  const [toast, setToast]                   = useState(null)
+  const [caLevelUp, setCaLevelUp]           = useState(null)
   const [hienOnboarding, setHienOnboarding] = useState(false)
   const [videoIdDangPhat, setVideoIdDangPhat] = useState(null)
+  const [ytPlayer, setYtPlayer]             = useState(null)
 
-  const { dangPhat, phatCa, dungPhat, dangKyPlayer } = useAudio()
-  const { coins, thuHoach, setCoins } = useCoins()
+  const { dangPhat, phatCa, dungPhat } = useAudio()
+  const { coins, thuHoach }            = useCoins()
+
+  // Cá đang phát (object đầy đủ để hiển thị trong player bar)
+  const caDangPhat = danhSachCa.find(c => c.id === dangPhat) ?? null
 
   useEffect(() => {
     supabase.auth.getUser().then(({ data }) => {
       if (!data.user) { navigate('/login'); return }
-      setUser(data.user)
-
-      // Hiện onboarding lần đầu
       if (!localStorage.getItem('snd_onboarded')) setHienOnboarding(true)
-
       khoiDongHo()
     })
   }, [navigate])
 
   async function khoiDongHo() {
     try {
-      const [tankRes, coinsRes] = await Promise.all([
-        API.layTankCuaToi(),
-        thuHoach(),
-      ])
+      const [tankRes] = await Promise.all([API.layTankCuaToi(), thuHoach()])
       setDanhSachCa(tankRes.tank.fish || [])
     } catch {
       hienToast('Không kết nối được server', 'loi')
@@ -69,13 +66,32 @@ export default function Home() {
     }
   }
 
+  function phatCaObject(ca) {
+    phatCa(ca.id)
+    setVideoIdDangPhat(ca.video_id)
+  }
+
   function clickCa(ca) {
     if (dangPhat === ca.id) {
       dungPhat()
       setVideoIdDangPhat(null)
     } else {
-      phatCa(ca.id)
-      setVideoIdDangPhat(ca.video_id)
+      phatCaObject(ca)
+    }
+  }
+
+  // Chuyển cá từ player bar (prev/next)
+  function chuyenCa(ca) {
+    phatCaObject(ca)
+  }
+
+  // Toggle play/pause từ player bar
+  function togglePhat() {
+    if (dangPhat) {
+      dungPhat()
+    } else if (caDangPhat) {
+      // Resume bài cũ — chỉ cần set lại state, video đã load
+      phatCa(caDangPhat.id)
     }
   }
 
@@ -90,12 +106,6 @@ export default function Home() {
   function xoaCaKhoiDanh(caId) {
     setDanhSachCa(prev => prev.filter(c => c.id !== caId))
     if (dangPhat === caId) { dungPhat(); setVideoIdDangPhat(null) }
-  }
-
-  function handleLevelUp(caId) {
-    setCaLevelUp(caId)
-    setTimeout(() => setCaLevelUp(null), 2500)
-    hienToast('Cá lên level!', 'thanhCong')
   }
 
   async function chupAnhHo() {
@@ -124,6 +134,9 @@ export default function Home() {
     await supabase.auth.signOut()
     navigate('/login')
   }
+
+  // Đẩy form lên khi player bar hiện (tránh bị che)
+  const dayFormLen = caDangPhat ? 'bottom-20' : 'bottom-6'
 
   return (
     <div className="fixed inset-0 overflow-hidden">
@@ -154,11 +167,11 @@ export default function Home() {
         </div>
       )}
 
-      {/* Loading khi đang thêm cá */}
+      {/* Loading */}
       {dangThem && (
         <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
           <div className="flex gap-2">
-            {[0,1,2].map(i => (
+            {[0, 1, 2].map(i => (
               <div
                 key={i}
                 className="w-3 h-3 rounded-full bg-ho-anh/60 animate-bounce"
@@ -174,28 +187,18 @@ export default function Home() {
         <div className="text-ho-anh font-bold">🐟 Soundarium</div>
         <div className="flex items-center gap-3">
           <span className="text-ho-anh font-semibold">🪙 {coins.toLocaleString()}</span>
-          <button onClick={chiaSe} className="text-ho-anh/60 hover:text-ho-anh text-xs transition">
-            Chia sẻ
-          </button>
-          <button onClick={chupAnhHo} className="text-ho-anh/60 hover:text-ho-anh text-xs transition">
-            📷
-          </button>
-          <a href="/explore" className="text-ho-anh/60 hover:text-ho-anh text-xs transition">
-            Khám phá
-          </a>
-          <a href="/shop" className="text-ho-anh/60 hover:text-ho-anh text-xs transition">
-            Shop
-          </a>
-          <button onClick={dangXuat} className="text-ho-anh/40 hover:text-ho-anh/70 text-xs transition">
-            Đăng xuất
-          </button>
+          <button onClick={chiaSe} className="text-ho-anh/60 hover:text-ho-anh text-xs transition">Chia sẻ</button>
+          <button onClick={chupAnhHo} className="text-ho-anh/60 hover:text-ho-anh text-xs transition">📷</button>
+          <a href="/explore" className="text-ho-anh/60 hover:text-ho-anh text-xs transition">Khám phá</a>
+          <a href="/shop" className="text-ho-anh/60 hover:text-ho-anh text-xs transition">Shop</a>
+          <button onClick={dangXuat} className="text-ho-anh/40 hover:text-ho-anh/70 text-xs transition">Đăng xuất</button>
         </div>
       </div>
 
-      {/* Form thêm cá */}
+      {/* Form thêm cá — dịch lên khi player bar hiện */}
       <form
         onSubmit={themCaMoi}
-        className="absolute bottom-6 left-1/2 -translate-x-1/2 w-full max-w-md px-4"
+        className={`absolute ${dayFormLen} left-1/2 -translate-x-1/2 w-full max-w-md px-4 transition-all duration-300`}
       >
         <div className="flex gap-2 bg-ho-sau/80 backdrop-blur-sm border border-ho-anh/20 rounded-2xl p-2">
           <input
@@ -214,12 +217,31 @@ export default function Home() {
         </div>
       </form>
 
-      {/* YouTube player luôn mount — ẩn bằng CSS, không dùng conditional render */}
+      {/* YouTube player — luôn mount, ẩn hoàn toàn bằng CSS */}
       <YouTubePlayer
         videoId={videoIdDangPhat}
         dangPhat={!!dangPhat}
-        onReady={dangKyPlayer}
-        onEnded={() => { dungPhat(); setVideoIdDangPhat(null) }}
+        onReady={setYtPlayer}
+        onEnded={() => {
+          // Tự động chuyển sang bài tiếp theo
+          const i = danhSachCa.findIndex(c => c.id === dangPhat)
+          if (i >= 0 && i < danhSachCa.length - 1) {
+            chuyenCa(danhSachCa[i + 1])
+          } else {
+            dungPhat()
+            setVideoIdDangPhat(null)
+          }
+        }}
+      />
+
+      {/* Music Player Bar */}
+      <MusicPlayerBar
+        caDangPhat={caDangPhat}
+        danhSachCa={danhSachCa}
+        dangPhat={!!dangPhat}
+        player={ytPlayer}
+        onToggle={togglePhat}
+        onChuyenCa={chuyenCa}
       />
 
       {/* Menu chỉnh sửa cá */}
@@ -234,13 +256,9 @@ export default function Home() {
         />
       )}
 
-      {/* Toast notification */}
+      {/* Toast */}
       {toast && (
-        <Toast
-          thongBao={toast.thongBao}
-          loai={toast.loai}
-          onHet={() => setToast(null)}
-        />
+        <Toast thongBao={toast.thongBao} loai={toast.loai} onHet={() => setToast(null)} />
       )}
     </div>
   )

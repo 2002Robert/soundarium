@@ -41,3 +41,16 @@ body {
 .nhip-dong {
   animation: nhip-dong 2s ease-in-out infinite;
 }
+
+/* Marquee cho tên bài dài */
+@keyframes marquee {
+  0%   { transform: translateX(0); }
+  100% { transform: translateX(-50%); }
+}
+
+.marquee {
+  display: inline-block;
+  /* Nhân đôi nội dung qua CSS content trick — dùng JS thay thế */
+  animation: marquee 8s linear infinite;
+  padding-right: 3rem;
+}
