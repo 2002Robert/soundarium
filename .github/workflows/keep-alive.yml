@@ -1,15 +1,19 @@
-name: Keep Alive
+name: Keep Render Alive
 
 on:
   schedule:
-    # Chạy mỗi 5 ngày lúc 3 giờ sáng UTC để Supabase không tự pause
-    - cron: '0 3 */5 * *'
+    - cron: '*/10 * * * *'
   workflow_dispatch:
 
 jobs:
   ping:
     runs-on: ubuntu-latest
     steps:
-      - name: Ping API
+      - name: Ping /health
         run: |
-          curl -f ${{ secrets.RAILWAY_URL }}/health || echo "Ping done"
+          STATUS=$(curl -s -o /dev/null -w "%{http_code}" https://soundarium-api.onrender.com/health)
+          echo "Status: $STATUS"
+          if [ "$STATUS" != "200" ]; then
+            echo "Warning: health check returned $STATUS"
+            exit 1
+          fi
