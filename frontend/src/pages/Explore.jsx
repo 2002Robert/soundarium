@@ -106,13 +106,11 @@ export default function Explore() {
         </div>
       )}
 
-      {videoId && (
-        <YouTubePlayer
-          videoId={videoId}
-          dangPhat={!!dangPhat}
-          onEnded={() => { setDangPhat(null); setVideoId(null) }}
-        />
-      )}
+      <YouTubePlayer
+        videoId={videoId}
+        dangPhat={!!dangPhat}
+        onEnded={() => { setDangPhat(null); setVideoId(null) }}
+      />
 
       {toast && <Toast thongBao={toast.thongBao} loai={toast.loai} onHet={() => setToast(null)} />}
     </div>

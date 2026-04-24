@@ -73,13 +73,11 @@ export default function PublicTank() {
         </a>
       </div>
 
-      {videoId && (
-        <YouTubePlayer
-          videoId={videoId}
-          dangPhat={!!dangPhat}
-          onEnded={() => { setDangPhat(null); setVideoId(null) }}
-        />
-      )}
+      <YouTubePlayer
+        videoId={videoId}
+        dangPhat={!!dangPhat}
+        onEnded={() => { setDangPhat(null); setVideoId(null) }}
+      />
     </div>
   )
 }

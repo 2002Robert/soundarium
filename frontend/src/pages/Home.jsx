@@ -214,15 +214,13 @@ export default function Home() {
         </div>
       </form>
 
-      {/* YouTube player ẩn */}
-      {videoIdDangPhat && (
-        <YouTubePlayer
-          videoId={videoIdDangPhat}
-          dangPhat={!!dangPhat}
-          onReady={dangKyPlayer}
-          onEnded={() => { dungPhat(); setVideoIdDangPhat(null) }}
-        />
-      )}
+      {/* YouTube player luôn mount — ẩn bằng CSS, không dùng conditional render */}
+      <YouTubePlayer
+        videoId={videoIdDangPhat}
+        dangPhat={!!dangPhat}
+        onReady={dangKyPlayer}
+        onEnded={() => { dungPhat(); setVideoIdDangPhat(null) }}
+      />
 
       {/* Menu chỉnh sửa cá */}
       {menuCa && (
