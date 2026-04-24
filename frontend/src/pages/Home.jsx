@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom'
 import { supabase } from '../lib/supabase'
 import { API } from '../lib/api'
 import AquariumCanvas from '../components/AquariumCanvas'
-import FishEditMenu from '../components/FishEditMenu'
+import FishInfoPanel from '../components/FishInfoPanel'
 import YouTubePlayer from '../components/YouTubePlayer'
 import MusicPlayerBar from '../components/MusicPlayerBar'
 import Onboarding from '../components/Onboarding'
@@ -14,9 +14,7 @@ import { useCoins } from '../hooks/useCoins'
 export default function Home() {
   const navigate = useNavigate()
   const [danhSachCa, setDanhSachCa]         = useState([])
-  const [urlInput, setUrlInput]             = useState('')
-  const [dangThem, setDangThem]             = useState(false)
-  const [menuCa, setMenuCa]                 = useState(null)
+  const [infoCa, setInfoCa]                 = useState(null)  // { ca, x, y }
   const [toast, setToast]                   = useState(null)
   const [caLevelUp, setCaLevelUp]           = useState(null)
   const [hienOnboarding, setHienOnboarding] = useState(false)
@@ -26,18 +24,17 @@ export default function Home() {
   const { dangPhat, phatCa, dungPhat } = useAudio()
   const { coins, thuHoach }            = useCoins()
 
-  // Cá đang phát (object đầy đủ để hiển thị trong player bar)
   const caDangPhat = danhSachCa.find(c => c.id === dangPhat) ?? null
 
   useEffect(() => {
     supabase.auth.getUser().then(({ data }) => {
       if (!data.user) { navigate('/login'); return }
       if (!localStorage.getItem('snd_onboarded')) setHienOnboarding(true)
-      khoiDongHo()
+      khoiDong()
     })
   }, [navigate])
 
-  async function khoiDongHo() {
+  async function khoiDong() {
     try {
       const [tankRes] = await Promise.all([API.layTankCuaToi(), thuHoach()])
       setDanhSachCa(tankRes.tank.fish || [])
@@ -50,63 +47,76 @@ export default function Home() {
     setToast({ thongBao, loai })
   }
 
-  async function themCaMoi(e) {
-    e.preventDefault()
-    if (!urlInput.trim()) return
-    setDangThem(true)
-    try {
-      const { ca } = await API.themCa(urlInput.trim())
-      setDanhSachCa(prev => [...prev, ca])
-      setUrlInput('')
-      hienToast('Đã thêm cá mới!', 'thanhCong')
-    } catch (err) {
-      hienToast(err.message || 'Link không hợp lệ', 'loi')
-    } finally {
-      setDangThem(false)
-    }
-  }
-
   function phatCaObject(ca) {
     phatCa(ca.id)
     setVideoIdDangPhat(ca.video_id)
   }
 
-  function clickCa(ca) {
+  // Click cá: lần 1 = phát + hiện panel info, lần 2 (cùng cá) = đóng panel
+  function clickCa(ca, x, y) {
+    if (infoCa?.ca.id === ca.id) {
+      setInfoCa(null)
+      return
+    }
+    setInfoCa({ ca, x, y })
+    // Tự động phát khi click vào cá chưa phát
+    if (dangPhat !== ca.id) {
+      phatCaObject(ca)
+    }
+  }
+
+  function togglePhatCaHienTai() {
+    if (!caDangPhat) return
+    if (dangPhat) {
+      dungPhat()
+    } else {
+      phatCa(caDangPhat.id)
+    }
+  }
+
+  // Toggle từ panel info (cùng cá hoặc khác cá)
+  function togglePhatTuPanel(ca) {
     if (dangPhat === ca.id) {
       dungPhat()
-      setVideoIdDangPhat(null)
     } else {
       phatCaObject(ca)
     }
   }
 
-  // Chuyển cá từ player bar (prev/next)
   function chuyenCa(ca) {
     phatCaObject(ca)
   }
 
-  // Toggle play/pause từ player bar
-  function togglePhat() {
-    if (dangPhat) {
-      dungPhat()
-    } else if (caDangPhat) {
-      // Resume bài cũ — chỉ cần set lại state, video đã load
-      phatCa(caDangPhat.id)
-    }
-  }
-
-  function giuCa(ca, x, y) {
-    setMenuCa({ ca, x, y })
-  }
-
-  function capNhatCaTrongDanh(caMoi) {
+  function capNhatCa(caMoi) {
     setDanhSachCa(prev => prev.map(c => c.id === caMoi.id ? caMoi : c))
+    setInfoCa(prev => prev ? { ...prev, ca: caMoi } : null)
   }
 
-  function xoaCaKhoiDanh(caId) {
+  function xoaCa(caId) {
     setDanhSachCa(prev => prev.filter(c => c.id !== caId))
     if (dangPhat === caId) { dungPhat(); setVideoIdDangPhat(null) }
+    setInfoCa(null)
   }
+
+  // Được gọi từ Shop sau khi mua cá thành công
+  function themCaVaoHo(ca) {
+    setDanhSachCa(prev => [...prev, ca])
+    hienToast(`${ca.nickname || ca.ten_bai} đã vào hồ!`, 'thanhCong')
+  }
+
+  // Expose để Shop gọi (qua localStorage event)
+  useEffect(() => {
+    function nhanCaMoi(e) {
+      if (e.key === 'snd_ca_moi') {
+        try {
+          const ca = JSON.parse(e.newValue)
+          if (ca) themCaVaoHo(ca)
+        } catch {}
+      }
+    }
+    window.addEventListener('storage', nhanCaMoi)
+    return () => window.removeEventListener('storage', nhanCaMoi)
+  }, [])
 
   async function chupAnhHo() {
     const canvas = document.querySelector('canvas')
@@ -124,9 +134,13 @@ export default function Home() {
 
   async function chiaSe() {
     const { data } = await supabase.auth.getUser()
-    const username = data?.user?.email?.split('@')[0]
-    const url = `${window.location.origin}/u/${username}`
-    await navigator.clipboard.writeText(url)
+    const { data: profile } = await supabase
+      .from('profiles')
+      .select('username')
+      .eq('id', data.user.id)
+      .single()
+    const username = profile?.username || data?.user?.email?.split('@')[0]
+    await navigator.clipboard.writeText(`${window.location.origin}/u/${username}`)
     hienToast('Đã copy link hồ!', 'thanhCong')
   }
 
@@ -134,9 +148,6 @@ export default function Home() {
     await supabase.auth.signOut()
     navigate('/login')
   }
-
-  // Đẩy form lên khi player bar hiện (tránh bị che)
-  const dayFormLen = caDangPhat ? 'bottom-20' : 'bottom-6'
 
   return (
     <div className="fixed inset-0 overflow-hidden">
@@ -151,34 +162,17 @@ export default function Home() {
         danhSachCa={danhSachCa}
         dangPhat={dangPhat}
         onClickCa={clickCa}
-        onGiuCa={giuCa}
         caLevelUp={caLevelUp}
       />
 
       {/* Empty state */}
-      {danhSachCa.length === 0 && !dangThem && (
+      {danhSachCa.length === 0 && (
         <div className="absolute inset-0 flex flex-col items-center justify-center pointer-events-none">
           <div className="text-6xl mb-4 opacity-40">🐠</div>
           <p className="text-white/40 text-center">
             Hồ còn trống<br />
-            <span className="text-sm">Paste link YouTube bên dưới để thêm cá</span>
+            <span className="text-sm">Vào <a href="/shop" className="underline pointer-events-auto text-ho-anh/60 hover:text-ho-anh">Shop</a> để mua cá đầu tiên</span>
           </p>
-          <div className="mt-4 text-white/20 text-2xl animate-bounce">↓</div>
-        </div>
-      )}
-
-      {/* Loading */}
-      {dangThem && (
-        <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
-          <div className="flex gap-2">
-            {[0, 1, 2].map(i => (
-              <div
-                key={i}
-                className="w-3 h-3 rounded-full bg-ho-anh/60 animate-bounce"
-                style={{ animationDelay: `${i * 0.15}s` }}
-              />
-            ))}
-          </div>
         </div>
       )}
 
@@ -195,35 +189,12 @@ export default function Home() {
         </div>
       </div>
 
-      {/* Form thêm cá — dịch lên khi player bar hiện */}
-      <form
-        onSubmit={themCaMoi}
-        className={`absolute ${dayFormLen} left-1/2 -translate-x-1/2 w-full max-w-md px-4 transition-all duration-300`}
-      >
-        <div className="flex gap-2 bg-ho-sau/80 backdrop-blur-sm border border-ho-anh/20 rounded-2xl p-2">
-          <input
-            value={urlInput}
-            onChange={e => setUrlInput(e.target.value)}
-            placeholder="Paste link YouTube để thêm cá..."
-            className="flex-1 bg-transparent text-white placeholder-ho-anh/40 text-sm px-3 focus:outline-none"
-          />
-          <button
-            type="submit"
-            disabled={dangThem || !urlInput}
-            className="bg-ho-anh text-ho-sau font-semibold px-4 py-2 rounded-xl text-sm hover:bg-ho-accent transition disabled:opacity-40"
-          >
-            +
-          </button>
-        </div>
-      </form>
-
-      {/* YouTube player — luôn mount, ẩn hoàn toàn bằng CSS */}
+      {/* YouTube player — luôn mount, ẩn hoàn toàn */}
       <YouTubePlayer
         videoId={videoIdDangPhat}
         dangPhat={!!dangPhat}
         onReady={setYtPlayer}
         onEnded={() => {
-          // Tự động chuyển sang bài tiếp theo
           const i = danhSachCa.findIndex(c => c.id === dangPhat)
           if (i >= 0 && i < danhSachCa.length - 1) {
             chuyenCa(danhSachCa[i + 1])
@@ -240,19 +211,21 @@ export default function Home() {
         danhSachCa={danhSachCa}
         dangPhat={!!dangPhat}
         player={ytPlayer}
-        onToggle={togglePhat}
+        onToggle={togglePhatCaHienTai}
         onChuyenCa={chuyenCa}
       />
 
-      {/* Menu chỉnh sửa cá */}
-      {menuCa && (
-        <FishEditMenu
-          ca={menuCa.ca}
-          x={menuCa.x}
-          y={menuCa.y}
-          onDong={() => setMenuCa(null)}
-          onCapNhat={capNhatCaTrongDanh}
-          onXoa={xoaCaKhoiDanh}
+      {/* Fish Info Panel */}
+      {infoCa && (
+        <FishInfoPanel
+          ca={infoCa.ca}
+          x={infoCa.x}
+          y={infoCa.y}
+          dangPhat={dangPhat === infoCa.ca.id}
+          onTogglePhat={() => togglePhatTuPanel(infoCa.ca)}
+          onCapNhat={capNhatCa}
+          onXoa={xoaCa}
+          onDong={() => setInfoCa(null)}
         />
       )}
 

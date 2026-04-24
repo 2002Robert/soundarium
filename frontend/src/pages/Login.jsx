@@ -3,11 +3,12 @@ import { useNavigate } from 'react-router-dom'
 import { supabase } from '../lib/supabase'
 
 export default function Login() {
-  const [email, setEmail]       = useState('')
-  const [matKhau, setMatKhau]   = useState('')
-  const [dangKy, setDangKy]     = useState(false)
-  const [dangGui, setDangGui]   = useState(false)
-  const [loi, setLoi]           = useState('')
+  const [email, setEmail]         = useState('')
+  const [matKhau, setMatKhau]     = useState('')
+  const [dangKy, setDangKy]       = useState(false)
+  const [nhoDangNhap, setNhoDangNhap] = useState(true)
+  const [dangGui, setDangGui]     = useState(false)
+  const [loi, setLoi]             = useState('')
   const navigate = useNavigate()
 
   async function xuLyGui(e) {
@@ -17,13 +18,27 @@ export default function Login() {
 
     try {
       if (dangKy) {
-        const { error } = await supabase.auth.signUp({ email, password: matKhau })
+        const { error } = await supabase.auth.signUp({
+          email,
+          password: matKhau,
+          options: { data: { remember: nhoDangNhap } },
+        })
         if (error) throw error
-        // Trigger sẽ tự tạo profile và tank
-        navigate('/')
+        // Sau đăng ký → đặt tên hồ trước khi vào app
+        navigate('/setup-profile')
       } else {
-        const { error } = await supabase.auth.signInWithPassword({ email, password: matKhau })
+        const { error } = await supabase.auth.signInWithPassword({
+          email,
+          password: matKhau,
+        })
         if (error) throw error
+
+        // Nếu không tích nhớ → xóa session khi đóng tab
+        if (!nhoDangNhap) {
+          localStorage.setItem('snd_no_persist', '1')
+        } else {
+          localStorage.removeItem('snd_no_persist')
+        }
         navigate('/')
       }
     } catch (err) {
@@ -61,8 +76,23 @@ export default function Login() {
             className="w-full bg-ho-nong border border-ho-anh/20 rounded-xl px-4 py-3 text-white placeholder-ho-anh/40 focus:outline-none focus:border-ho-anh"
           />
 
+          {/* Remember me */}
+          <label className="flex items-center gap-3 cursor-pointer select-none px-1">
+            <div
+              onClick={() => setNhoDangNhap(!nhoDangNhap)}
+              className={`w-5 h-5 rounded flex items-center justify-center border transition ${
+                nhoDangNhap
+                  ? 'bg-ho-anh border-ho-anh'
+                  : 'border-ho-anh/30 bg-transparent'
+              }`}
+            >
+              {nhoDangNhap && <span className="text-ho-sau text-xs font-bold">✓</span>}
+            </div>
+            <span className="text-ho-anh/60 text-sm">Lưu thông tin đăng nhập</span>
+          </label>
+
           {loi && (
-            <div className="text-red-400 text-sm text-center bg-red-400/10 rounded-lg p-2">
+            <div className="text-red-400 text-sm text-center bg-red-400/10 rounded-xl p-3">
               {loi}
             </div>
           )}
@@ -77,7 +107,7 @@ export default function Login() {
         </form>
 
         <button
-          onClick={() => setDangKy(!dangKy)}
+          onClick={() => { setDangKy(!dangKy); setLoi('') }}
           className="w-full text-ho-anh/60 hover:text-ho-anh text-sm mt-4 transition"
         >
           {dangKy ? 'Đã có tài khoản? Đăng nhập' : 'Chưa có tài khoản? Đăng ký'}

@@ -53,6 +53,10 @@ async def them_ca_moi(
     thong_tin = await lay_thong_tin_video(video_id)
     thuoc_tinh_ngau_nhien = tao_ca_ngau_nhien()
 
+    # Dùng loài từ shop nếu có, ngược lại random
+    if body.loai_ca:
+        thuoc_tinh_ngau_nhien["loai_ca"] = body.loai_ca
+
     ca_moi = {
         "tank_id": tank_id,
         "youtube_url": body.youtube_url,

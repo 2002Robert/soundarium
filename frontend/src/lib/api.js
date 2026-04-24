@@ -42,11 +42,20 @@ async function goiApi(path, options = {}) {
 }
 
 export const API = {
+  // Profile
+  layProfile: () => goiApi('/api/profile/cua-toi'),
+
+  capNhatTenHienThi: (ten_hien_thi) =>
+    goiApi('/api/profile/cap-nhat-ten', {
+      method: 'PATCH',
+      body: JSON.stringify({ ten_hien_thi }),
+    }),
+
   // Fish
-  themCa: (youtubeUrl, nickname) =>
+  themCa: (youtubeUrl, nickname, loaiCa) =>
     goiApi('/api/fish/them-ca', {
       method: 'POST',
-      body: JSON.stringify({ youtube_url: youtubeUrl, nickname }),
+      body: JSON.stringify({ youtube_url: youtubeUrl, nickname, loai_ca: loaiCa }),
     }),
 
   layDanhSachCa: () => goiApi('/api/fish/danh-sach'),

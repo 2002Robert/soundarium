@@ -2,7 +2,7 @@ import os
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from dotenv import load_dotenv
-from routers import fish, tank, coins
+from routers import fish, tank, coins, profile
 
 load_dotenv()
 
@@ -30,6 +30,7 @@ app.add_middleware(
 app.include_router(fish.router)
 app.include_router(tank.router)
 app.include_router(coins.router)
+app.include_router(profile.router)
 
 
 @app.get("/")

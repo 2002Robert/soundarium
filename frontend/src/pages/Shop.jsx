@@ -1,117 +1,91 @@
-import { useState, useEffect } from 'react'
-import { supabase } from '../lib/supabase'
-import { API } from '../lib/api'
-import Toast from '../components/Toast'
+import { useState } from 'react'
+import BuyFishModal from '../components/BuyFishModal'
 
-const TABS = ['Cá', 'Trang trí', 'Nền hồ']
-const LOAI_THEO_TAB = ['fish', 'decoration', 'background']
+// Danh sách cá cảnh cơ bản — tạm thời hardcode, sau gọi từ API
+const LOAI_CA_SHOP = [
+  { loai_ca: 'ca_vang',      ten: 'Cá Vàng',        mo_ta: 'Cá vàng hiền lành, dễ nuôi',      mau_demo: '#FFD700' },
+  { loai_ca: 'ca_neon',      ten: 'Cá Neon',         mo_ta: 'Sọc xanh đỏ rực rỡ',              mau_demo: '#00BFFF' },
+  { loai_ca: 'ca_betta',     ten: 'Cá Betta',        mo_ta: 'Đuôi dài, màu sắc đẹp',           mau_demo: '#9B59B6' },
+  { loai_ca: 'ca_clownfish', ten: 'Cá Hề',           mo_ta: 'Cam trắng quen thuộc',             mau_demo: '#FF6B35' },
+  { loai_ca: 'ca_tang',      ten: 'Cá Tang',         mo_ta: 'Tròn trĩnh, màu xanh dương',      mau_demo: '#2ECC71' },
+  { loai_ca: 'ca_angel',     ten: 'Cá Thiên Thần',   mo_ta: 'Vây dài thanh thoát',              mau_demo: '#F39C12' },
+  { loai_ca: 'ca_guppy',     ten: 'Cá Guppy',        mo_ta: 'Nhỏ nhắn, đuôi quạt',             mau_demo: '#E91E63' },
+  { loai_ca: 'ca_tetra',     ten: 'Cá Tetra',        mo_ta: 'Bơi theo đàn, rất linh hoạt',     mau_demo: '#1ABC9C' },
+]
 
 export default function Shop() {
-  const [tab, setTab]         = useState(0)
-  const [items, setItems]     = useState([])
-  const [coins, setCoins]     = useState(0)
-  const [dangMua, setDangMua] = useState(null)
-  const [toast, setToast]     = useState(null)
+  const [modal, setModal] = useState(null)  // { loai_ca, ten }
 
-  useEffect(() => {
-    layItems()
-    API.xemSoDuCoins().then(d => setCoins(d.coins)).catch(() => {})
-  }, [])
-
-  async function layItems() {
-    const { data } = await supabase
-      .from('shop_items')
-      .select('*')
-      .eq('la_active', true)
-      .order('gia_coins')
-    setItems(data || [])
+  function khiMuaXong(ca) {
+    // Gửi cá mới về Home qua localStorage event (cross-tab/cross-component)
+    localStorage.setItem('snd_ca_moi', JSON.stringify(ca))
+    setTimeout(() => localStorage.removeItem('snd_ca_moi'), 100)
+    setModal(null)
+    window.location.href = '/'
   }
-
-  async function mua(item) {
-    setDangMua(item.id)
-    try {
-      const ket_qua = await API.muaItem(item.id)
-      setCoins(ket_qua.coins_con_lai)
-      setToast({ thongBao: `Đã mua ${item.ten}!`, loai: 'thanhCong' })
-      // TODO STRIPE: Khi cần thanh toán thật, thay thế API.muaItem bằng Stripe Checkout
-    } catch (err) {
-      setToast({ thongBao: err.message, loai: 'loi' })
-    } finally {
-      setDangMua(null)
-    }
-  }
-
-  const itemsHienThi = items.filter(i => i.loai === LOAI_THEO_TAB[tab])
-
-  const MAUARITY = { common: 'text-white', uncommon: 'text-green-400', rare: 'text-purple-400' }
 
   return (
     <div className="min-h-screen bg-ho-sau text-white">
       <div className="max-w-lg mx-auto px-4 py-6">
-        <div className="flex items-center justify-between mb-6">
-          <div className="flex items-center gap-3">
-            <a href="/" className="text-ho-anh/60 hover:text-ho-anh text-sm transition">← Hồ của tôi</a>
-            <h1 className="text-xl font-bold">Cửa hàng</h1>
-          </div>
-          <span className="text-ho-anh font-semibold">🪙 {coins.toLocaleString()}</span>
+
+        {/* Header */}
+        <div className="flex items-center gap-3 mb-6">
+          <a href="/" className="text-ho-anh/60 hover:text-ho-anh text-sm transition">← Hồ của tôi</a>
+          <h1 className="text-xl font-bold">Cửa hàng cá</h1>
         </div>
 
-        {/* Tabs */}
-        <div className="flex bg-ho-nong rounded-xl p-1 mb-6">
-          {TABS.map((t, i) => (
-            <button
-              key={t}
-              onClick={() => setTab(i)}
-              className={`flex-1 py-2 text-sm rounded-lg transition ${tab === i ? 'bg-ho-anh text-ho-sau font-semibold' : 'text-ho-anh/60 hover:text-ho-anh'}`}
+        <p className="text-ho-anh/50 text-sm mb-6">
+          Mỗi con cá mang theo một bài nhạc. Chọn loài cá, paste link YouTube là xong.
+        </p>
+
+        {/* Danh sách cá */}
+        <div className="space-y-3">
+          {LOAI_CA_SHOP.map(item => (
+            <div
+              key={item.loai_ca}
+              className="flex items-center gap-4 bg-ho-nong border border-ho-anh/10 rounded-2xl px-4 py-4 hover:border-ho-anh/30 transition"
             >
-              {t}
-            </button>
+              {/* Avatar cá (vẽ tạm bằng emoji circle màu) */}
+              <div
+                className="w-12 h-12 rounded-full flex items-center justify-center text-2xl shrink-0"
+                style={{ background: `${item.mau_demo}22`, border: `2px solid ${item.mau_demo}66` }}
+              >
+                🐟
+              </div>
+
+              <div className="flex-1 min-w-0">
+                <div className="font-semibold text-white">{item.ten}</div>
+                <div className="text-ho-anh/50 text-xs mt-0.5">{item.mo_ta}</div>
+              </div>
+
+              <div className="flex items-center gap-3 shrink-0">
+                <span className="text-green-400 text-sm font-semibold">Miễn phí</span>
+                <button
+                  onClick={() => setModal({ loai_ca: item.loai_ca, ten: item.ten })}
+                  className="bg-ho-anh hover:bg-ho-accent text-ho-sau font-semibold px-4 py-2 rounded-xl text-sm transition"
+                >
+                  Chọn
+                </button>
+              </div>
+            </div>
           ))}
         </div>
 
-        {/* Danh sách item */}
-        <div className="space-y-3">
-          {itemsHienThi.map(item => {
-            const duTien = coins >= (item.gia_coins || 0)
-            return (
-              <div
-                key={item.id}
-                className="flex items-center justify-between bg-ho-nong border border-ho-anh/10 rounded-xl px-4 py-3"
-              >
-                <div>
-                  <span className={`font-medium ${MAUARITY[item.rarity] || 'text-white'}`}>
-                    {item.ten}
-                  </span>
-                  <span className="text-xs text-ho-anh/40 ml-2">{item.rarity}</span>
-                </div>
-                <div className="flex items-center gap-3">
-                  <span className="text-ho-anh text-sm">
-                    {item.gia_coins ? `🪙 ${item.gia_coins}` : 'Miễn phí'}
-                  </span>
-                  <button
-                    onClick={() => mua(item)}
-                    disabled={!duTien || dangMua === item.id}
-                    title={!duTien ? 'Chưa đủ coins' : ''}
-                    className={`px-3 py-1 rounded-lg text-sm font-medium transition ${
-                      duTien
-                        ? 'bg-ho-anh text-ho-sau hover:bg-ho-accent'
-                        : 'bg-ho-anh/20 text-ho-anh/30 cursor-not-allowed'
-                    }`}
-                  >
-                    {dangMua === item.id ? '...' : 'Mua'}
-                  </button>
-                </div>
-              </div>
-            )
-          })}
-
-          {itemsHienThi.length === 0 && (
-            <div className="text-center text-ho-anh/40 py-12">Chưa có item nào</div>
-          )}
-        </div>
+        <p className="text-ho-anh/30 text-xs text-center mt-8">
+          {/* TODO STRIPE: Thêm cá premium và thanh toán thật tại đây */}
+          Thêm nhiều loài cá đặc biệt sắp ra mắt ✨
+        </p>
       </div>
 
-      {toast && <Toast thongBao={toast.thongBao} loai={toast.loai} onHet={() => setToast(null)} />}
+      {/* Modal paste link sau khi chọn loài */}
+      {modal && (
+        <BuyFishModal
+          loaiCa={modal.loai_ca}
+          tenLoai={modal.ten}
+          onXong={khiMuaXong}
+          onDong={() => setModal(null)}
+        />
+      )}
     </div>
   )
 }

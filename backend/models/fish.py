@@ -6,6 +6,7 @@ import re
 class ThemCaMoi(BaseModel):
     youtube_url: str
     nickname: Optional[str] = None
+    loai_ca: Optional[str] = None   # Truyền từ shop; None = random
 
     @field_validator("youtube_url")
     @classmethod
