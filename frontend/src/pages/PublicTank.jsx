@@ -3,37 +3,66 @@ import { useParams } from 'react-router-dom'
 import { API } from '../lib/api'
 import AquariumCanvas from '../components/AquariumCanvas'
 import YouTubePlayer from '../components/YouTubePlayer'
+import MusicPlayerBar from '../components/MusicPlayerBar'
 
 export default function PublicTank() {
   const { username } = useParams()
-  const [tank, setTank]           = useState(null)
-  const [owner, setOwner]         = useState(null)
-  const [dangPhat, setDangPhat]   = useState(null)
-  const [videoId, setVideoId]     = useState(null)
-  const [dang404, setDang404]     = useState(false)
+  const [tank, setTank]         = useState(null)
+  const [dang404, setDang404]   = useState(false)
+  const [dangPhat, setDangPhat] = useState(null)   // ca_id đang phát
+  const [videoId, setVideoId]   = useState(null)
+  const [ytPlayer, setYtPlayer] = useState(null)
+
+  const danhSachCa = tank?.fish || []
+  const caDangPhat = danhSachCa.find(c => c.id === dangPhat) ?? null
 
   useEffect(() => {
-    // Dynamic meta tags cho OG share
     document.title = `${username} hồ cá — Soundarium`
-
     API.xemTankNguoiKhac(username)
-      .then(({ tank: t, owner: o }) => {
+      .then(({ tank: t }) => {
         setTank(t)
-        setOwner(o)
-        const mo_ta = `${(t.fish || []).length} con cá đang bơi`
+        const soCa = (t.fish || []).length
         document.querySelector('meta[property="og:title"]')
           ?.setAttribute('content', `${username} hồ cá`)
         document.querySelector('meta[property="og:description"]')
-          ?.setAttribute('content', mo_ta)
+          ?.setAttribute('content', `${soCa} con cá đang bơi`)
       })
       .catch(() => setDang404(true))
   }, [username])
 
+  function phatCaObject(ca) {
+    setDangPhat(ca.id)
+    setVideoId(ca.video_id)
+  }
+
   function clickCa(ca) {
     if (dangPhat === ca.id) {
-      setDangPhat(null); setVideoId(null)
+      setDangPhat(null)
+      setVideoId(null)
     } else {
-      setDangPhat(ca.id); setVideoId(ca.video_id)
+      phatCaObject(ca)
+    }
+  }
+
+  function chuyenCa(ca) {
+    phatCaObject(ca)
+  }
+
+  function togglePhat() {
+    if (dangPhat) {
+      setDangPhat(null)
+    } else if (caDangPhat) {
+      setDangPhat(caDangPhat.id)
+    }
+  }
+
+  function khiHetBai() {
+    const i = danhSachCa.findIndex(c => c.id === dangPhat)
+    if (i >= 0 && i < danhSachCa.length - 1) {
+      phatCaObject(danhSachCa[i + 1])
+    } else {
+      setDangPhat(null)
+      setVideoId(null)
     }
   }
 
@@ -52,15 +81,16 @@ export default function PublicTank() {
   return (
     <div className="fixed inset-0 overflow-hidden">
       <AquariumCanvas
-        danhSachCa={tank.fish || []}
+        danhSachCa={danhSachCa}
         dangPhat={dangPhat}
         onClickCa={clickCa}
       />
 
+      {/* Header */}
       <div className="absolute top-4 left-4 bg-ho-sau/70 backdrop-blur-sm rounded-xl px-4 py-2">
         <div className="text-white font-semibold">🐟 Hồ của {username}</div>
         <div className="text-ho-anh/60 text-xs">
-          {(tank.fish || []).length} con cá · Click cá để nghe nhạc
+          {danhSachCa.length} con cá · Click cá để nghe nhạc
         </div>
       </div>
 
@@ -73,10 +103,22 @@ export default function PublicTank() {
         </a>
       </div>
 
+      {/* YouTube player — luôn mount, ẩn hoàn toàn */}
       <YouTubePlayer
         videoId={videoId}
         dangPhat={!!dangPhat}
-        onEnded={() => { setDangPhat(null); setVideoId(null) }}
+        onReady={setYtPlayer}
+        onEnded={khiHetBai}
+      />
+
+      {/* Music player bar — chỉ hiện khi đang phát */}
+      <MusicPlayerBar
+        caDangPhat={caDangPhat}
+        danhSachCa={danhSachCa}
+        dangPhat={!!dangPhat}
+        player={ytPlayer}
+        onToggle={togglePhat}
+        onChuyenCa={chuyenCa}
       />
     </div>
   )
