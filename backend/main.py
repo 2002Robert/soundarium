@@ -14,12 +14,12 @@ app = FastAPI(
 
 _frontend_url = os.getenv("FRONTEND_URL", "http://localhost:5173")
 
-# Cho phép cả localhost dev và production frontend gọi API
 app.add_middleware(
     CORSMiddleware,
     allow_origins=[
         "http://localhost:5173",
         "http://localhost:3000",
+        "https://soundarium.pages.dev",
         _frontend_url,
     ],
     allow_credentials=True,
