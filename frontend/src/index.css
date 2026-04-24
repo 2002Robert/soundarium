@@ -1,0 +1,43 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+body {
+  background-color: #0a1628;
+  color: #e0f0ff;
+  font-family: 'Segoe UI', system-ui, sans-serif;
+  overflow: hidden;
+}
+
+@keyframes boi-len {
+  from { transform: translateY(0) rotate(0deg); opacity: 1; }
+  to   { transform: translateY(-60px) rotate(10deg); opacity: 0; }
+}
+
+@keyframes fade-in-tu-duoi {
+  from { transform: translateY(30px); opacity: 0; }
+  to   { transform: translateY(0);    opacity: 1; }
+}
+
+@keyframes nhip-dong {
+  0%, 100% { transform: scale(1); }
+  50%       { transform: scale(1.05); }
+}
+
+.ca-moi {
+  animation: fade-in-tu-duoi 0.5s ease-out;
+}
+
+.coin-noi {
+  animation: boi-len 1.5s ease-out forwards;
+}
+
+.nhip-dong {
+  animation: nhip-dong 2s ease-in-out infinite;
+}

@@ -1,0 +1,15 @@
+name: Keep Alive
+
+on:
+  schedule:
+    # Chạy mỗi 5 ngày lúc 3 giờ sáng UTC để Supabase không tự pause
+    - cron: '0 3 */5 * *'
+  workflow_dispatch:
+
+jobs:
+  ping:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Ping API
+        run: |
+          curl -f ${{ secrets.RAILWAY_URL }}/health || echo "Ping done"

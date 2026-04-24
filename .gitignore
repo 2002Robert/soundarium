@@ -1,0 +1,17 @@
+# Không bao giờ đẩy file này lên GitHub
+.env
+backend/.env
+frontend/.env
+
+# Python
+__pycache__/
+*.py[cod]
+venv/
+.venv/
+*.egg-info/
+
+# Node
+node_modules/
+dist/
+.DS_Store
+*.local
