@@ -200,6 +200,53 @@ async def cap_nhat_thoi_gian_nghe(
     }
 
 
+@router.post("/cho-an/{ca_id}")
+async def cho_ca_an(ca_id: str, user_id: str = Depends(lay_user_id)):
+    """
+    Cho cá ăn: +1 XP cá, +1 XP người (tong_gio_nghe tính tương đương).
+    Frontend tự quản lý cooldown 15 phút qua localStorage.
+    """
+    tank_id = await _lay_tank_id_cua_user(user_id)
+
+    ca = (
+        supabase_admin.table("fish")
+        .select("id, level, xp")
+        .eq("id", ca_id)
+        .eq("tank_id", tank_id)
+        .single()
+        .execute()
+    )
+    if not ca.data:
+        raise HTTPException(status_code=404, detail="Không tìm thấy con cá này")
+
+    xp_moi = ca.data["xp"] + 1
+    level_moi, xp_sau_len = kiem_tra_len_level(xp_moi, ca.data["level"])
+    da_len_level = level_moi > ca.data["level"]
+
+    supabase_admin.table("fish").update({
+        "xp": xp_sau_len,
+        "level": level_moi,
+    }).eq("id", ca_id).execute()
+
+    # +1 XP người dưới dạng 1/60 giờ nghe
+    profile = (
+        supabase_admin.table("profiles")
+        .select("tong_gio_nghe")
+        .eq("id", user_id)
+        .single()
+        .execute()
+    )
+    if profile.data:
+        supabase_admin.table("profiles").update({
+            "tong_gio_nghe": (profile.data.get("tong_gio_nghe") or 0) + 1 / 60
+        }).eq("id", user_id).execute()
+
+    return {
+        "ca": {**ca.data, "xp": xp_sau_len, "level": level_moi},
+        "da_len_level": da_len_level,
+    }
+
+
 @router.post("/test-cap-xp/{ca_id}")
 async def test_cap_xp_thu_cong(
     ca_id: str,

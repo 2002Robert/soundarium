@@ -75,6 +75,9 @@ export const API = {
   xoaCa: (caId) =>
     goiApi(`/api/fish/xoa/${caId}`, { method: 'DELETE' }),
 
+  choAnCa: (caId) =>
+    goiApi(`/api/fish/cho-an/${caId}`, { method: 'POST' }),
+
   capNhatNghe: (caId, soPhut = 5) =>
     goiApi(`/api/fish/cap-nhat-nghe/${caId}`, {
       method: 'POST',

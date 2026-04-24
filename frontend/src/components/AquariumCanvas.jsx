@@ -467,6 +467,19 @@ export default function AquariumCanvas({
       const trang = trangThaiChuyen.get(ca.id)
       if (!trang) return
       veCa(ctx, ca, trang, dangPhat === ca.id)
+
+      const ten = ca.nickname || ''
+      if (ten) {
+        const kt = KICH_THUOC_THEO_LEVEL[ca.level] || 40
+        ctx.save()
+        ctx.globalAlpha = 0.7
+        ctx.font = `${Math.max(10, Math.round(kt * 0.32))}px sans-serif`
+        ctx.fillStyle = '#ffffff'
+        ctx.textAlign = 'center'
+        ctx.textBaseline = 'top'
+        ctx.fillText(ten, trang.x, trang.y + kt * 0.65)
+        ctx.restore()
+      }
     })
 
     if (caLevelUp) {

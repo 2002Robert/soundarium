@@ -14,6 +14,7 @@ import ProfileCard from '../components/ProfileCard'
 import FishManagerModal from '../components/FishManagerModal'
 import ShopPanel from '../components/ShopPanel'
 import ExplorePanel from '../components/ExplorePanel'
+
 function roundRect(ctx, x, y, w, h, r) {
   ctx.beginPath()
   ctx.moveTo(x + r, y)
@@ -40,6 +41,34 @@ function IconBtn({ onClick, title, children, className = '' }) {
   )
 }
 
+function LogoutConfirm({ onXacNhan, onHuy }) {
+  return (
+    <div className="fixed inset-0 bg-black/60 flex items-center justify-center z-50 px-4">
+      <div
+        className="bg-ho-sau border border-ho-anh/20 rounded-2xl p-6 w-full max-w-xs"
+        style={{ backdropFilter: 'blur(12px)' }}
+      >
+        <h3 className="text-white font-semibold text-base mb-1">Đăng xuất?</h3>
+        <p className="text-ho-anh/55 text-sm mb-5">Phiên đăng nhập sẽ kết thúc.</p>
+        <div className="flex gap-3">
+          <button
+            onClick={onXacNhan}
+            className="flex-1 bg-red-500/80 hover:bg-red-500 text-white font-semibold py-2 rounded-xl text-sm transition"
+          >
+            Đăng xuất
+          </button>
+          <button
+            onClick={onHuy}
+            className="flex-1 border border-ho-anh/30 text-ho-anh/70 hover:text-ho-anh py-2 rounded-xl text-sm transition"
+          >
+            Huỷ
+          </button>
+        </div>
+      </div>
+    </div>
+  )
+}
+
 export default function Home() {
   const navigate = useNavigate()
   const [danhSachCa, setDanhSachCa]           = useState([])
@@ -50,6 +79,7 @@ export default function Home() {
   const [hienShop, setHienShop]               = useState(false)
   const [hienExplore, setHienExplore]         = useState(false)
   const [hienOnboarding, setHienOnboarding]   = useState(false)
+  const [hienLogout, setHienLogout]           = useState(false)
   const [videoIdDangPhat, setVideoIdDangPhat] = useState(null)
   const [ytPlayer, setYtPlayer]               = useState(null)
   const [profileData, setProfileData]         = useState(null)
@@ -57,14 +87,27 @@ export default function Home() {
   const [nenHo, setNenHoState] = useState(() => localStorage.getItem('snd_nen') || 'ocean-shallow')
   const [dayHo, setDayHoState] = useState(() => localStorage.getItem('snd_day') || 'cat_trang')
 
-  function chonNen(id) {
-    setNenHoState(id)
-    localStorage.setItem('snd_nen', id)
+  // Audio controls
+  const [loopMode, setLoopMode] = useState(() => localStorage.getItem('snd_loop') || 'off')
+  const [shuffle, setShuffle]   = useState(() => localStorage.getItem('snd_shuffle') === '1')
+  const [volume, setVolume]     = useState(() => Number(localStorage.getItem('snd_vol') ?? 70))
+
+  function chonNen(id) { setNenHoState(id); localStorage.setItem('snd_nen', id) }
+  function chonDay(id) { setDayHoState(id); localStorage.setItem('snd_day', id) }
+
+  function doiLoop(mode) { setLoopMode(mode); localStorage.setItem('snd_loop', mode) }
+  function doiShuffle(val) { setShuffle(val); localStorage.setItem('snd_shuffle', val ? '1' : '0') }
+  function doiVolume(val) {
+    setVolume(val)
+    localStorage.setItem('snd_vol', String(val))
+    try { ytPlayer?.setVolume?.(val) } catch {}
   }
-  function chonDay(id) {
-    setDayHoState(id)
-    localStorage.setItem('snd_day', id)
-  }
+
+  // Áp dụng volume khi player ready
+  useEffect(() => {
+    if (!ytPlayer) return
+    try { ytPlayer.setVolume?.(volume) } catch {}
+  }, [ytPlayer])
 
   const { dangPhat, phatCa, dungPhat } = useAudio()
   const { coins, thuHoach }            = useCoins()
@@ -88,14 +131,9 @@ export default function Home() {
     }
   }
 
-  function hienToast(thongBao, loai = 'info') {
-    setToast({ thongBao, loai })
-  }
+  function hienToast(thongBao, loai = 'info') { setToast({ thongBao, loai }) }
 
-  function phatCaObject(ca) {
-    phatCa(ca.id)
-    setVideoIdDangPhat(ca.video_id)
-  }
+  function phatCaObject(ca) { phatCa(ca.id); setVideoIdDangPhat(ca.video_id) }
 
   function clickCa(ca, x, y) {
     if (infoCa?.ca.id === ca.id) { setInfoCa(null); return }
@@ -132,6 +170,25 @@ export default function Home() {
     hienToast(`${ca.nickname || ca.ten_bai} đã vào hồ!`, 'thanhCong')
   }
 
+  function khiKetThucBai() {
+    if (loopMode === 'one') {
+      // Phát lại bài hiện tại
+      try { ytPlayer?.seekTo?.(0, true); ytPlayer?.playVideo?.() } catch {}
+      return
+    }
+    const ds = shuffle
+      ? [...danhSachCa].sort(() => Math.random() - 0.5)
+      : danhSachCa
+    const i = ds.findIndex(c => c.id === dangPhat)
+    if (i >= 0 && i < ds.length - 1) {
+      chuyenCa(ds[i + 1])
+    } else if (loopMode === 'all' && ds.length > 0) {
+      chuyenCa(ds[0])
+    } else {
+      dungPhat(); setVideoIdDangPhat(null)
+    }
+  }
+
   async function chupAnhHo() {
     const src = document.querySelector('canvas')
     if (!src) return
@@ -140,13 +197,11 @@ export default function Home() {
     off.width  = src.width
     off.height = src.height
     const ctx  = off.getContext('2d')
-
     ctx.drawImage(src, 0, 0)
 
-    // Vẽ ProfileCard lên ảnh
     if (profileData) {
-      const tongXP   = danhSachCa.reduce((s, c) => s + (c.xp || 0), 0)
-      const levelHo  = Math.max(1, Math.floor(tongXP / 100))
+      const tongXP  = danhSachCa.reduce((s, c) => s + (c.xp || 0), 0)
+      const levelHo = Math.max(1, Math.floor(tongXP / 100))
       const BOX_W = 210, BOX_H = 72, PAD = 14, R = 12
 
       ctx.save()
@@ -160,7 +215,6 @@ export default function Home() {
       ctx.stroke()
       ctx.restore()
 
-      // Avatar circle
       const AVATAR_R = 20
       const ax = PAD + 14 + AVATAR_R
       const ay = PAD + BOX_H / 2
@@ -168,33 +222,23 @@ export default function Home() {
       ctx.globalAlpha = 0.9
       ctx.beginPath()
       ctx.arc(ax, ay, AVATAR_R, 0, Math.PI * 2)
-      ctx.fillStyle = '#1a3a5c'
-      ctx.fill()
-      ctx.strokeStyle = 'rgba(74,158,218,0.5)'
-      ctx.lineWidth = 2
-      ctx.stroke()
+      ctx.fillStyle = '#1a3a5c'; ctx.fill()
+      ctx.strokeStyle = 'rgba(74,158,218,0.5)'; ctx.lineWidth = 2; ctx.stroke()
       ctx.restore()
 
-      // Username
       ctx.save()
       ctx.font = 'bold 14px "Segoe UI", system-ui, sans-serif'
       ctx.fillStyle = '#ffffff'
       ctx.fillText(profileData.username || 'User', PAD + 14 + AVATAR_R * 2 + 10, PAD + 28)
       ctx.restore()
 
-      // Stats
       ctx.save()
       ctx.font = '11px "Segoe UI", system-ui, sans-serif'
       ctx.fillStyle = 'rgba(74,158,218,0.75)'
-      ctx.fillText(
-        `🐠 ${danhSachCa.length}   ⭐ Lv.${levelHo}   🪙 ${coins.toLocaleString()}`,
-        PAD + 14 + AVATAR_R * 2 + 10,
-        PAD + 50,
-      )
+      ctx.fillText(`🐠 ${danhSachCa.length}   ⭐ Lv.${levelHo}   🪙 ${coins.toLocaleString()}`, PAD + 14 + AVATAR_R * 2 + 10, PAD + 50)
       ctx.restore()
     }
 
-    // Watermark
     ctx.font = '12px sans-serif'
     ctx.fillStyle = 'rgba(255,255,255,0.3)'
     ctx.fillText('soundarium.app', src.width - 115, src.height - 12)
@@ -209,16 +253,13 @@ export default function Home() {
   async function chiaSe() {
     const { data } = await supabase.auth.getUser()
     const { data: profile } = await supabase
-      .from('profiles')
-      .select('username')
-      .eq('id', data.user.id)
-      .single()
+      .from('profiles').select('username').eq('id', data.user.id).single()
     const username = profile?.username || data?.user?.email?.split('@')[0]
     await navigator.clipboard.writeText(`${window.location.origin}/u/${username}`)
     hienToast('Đã copy link hồ!', 'thanhCong')
   }
 
-  async function dangXuat() {
+  async function xacNhanDangXuat() {
     await supabase.auth.signOut()
     navigate('/login')
   }
@@ -255,18 +296,13 @@ export default function Home() {
 
       {/* Header */}
       <div className="absolute top-0 left-0 right-0 flex items-center justify-between px-4 pt-4">
-        <ProfileCard
-          danhSachCa={danhSachCa}
-          coins={coins}
-          onProfileLoad={setProfileData}
-        />
-
+        <ProfileCard danhSachCa={danhSachCa} coins={coins} onProfileLoad={setProfileData} />
         <div className="flex items-center gap-2">
           <IconBtn onClick={chiaSe} title="Chia sẻ hồ">🔗</IconBtn>
           <IconBtn onClick={chupAnhHo} title="Chụp ảnh hồ">📷</IconBtn>
           <IconBtn onClick={() => setHienExplore(true)} title="Khám phá">🧭</IconBtn>
           <IconBtn onClick={() => setHienShop(true)} title="Cửa hàng">🛒</IconBtn>
-          <IconBtn onClick={dangXuat} title="Đăng xuất" className="text-ho-anh/40">🚪</IconBtn>
+          <IconBtn onClick={() => setHienLogout(true)} title="Đăng xuất" className="text-ho-anh/40">🚪</IconBtn>
         </div>
       </div>
 
@@ -274,11 +310,7 @@ export default function Home() {
         videoId={videoIdDangPhat}
         dangPhat={!!dangPhat}
         onReady={setYtPlayer}
-        onEnded={() => {
-          const i = danhSachCa.findIndex(c => c.id === dangPhat)
-          if (i >= 0 && i < danhSachCa.length - 1) chuyenCa(danhSachCa[i + 1])
-          else { dungPhat(); setVideoIdDangPhat(null) }
-        }}
+        onEnded={khiKetThucBai}
       />
 
       <MusicPlayerBar
@@ -288,6 +320,12 @@ export default function Home() {
         player={ytPlayer}
         onToggle={togglePhatCaHienTai}
         onChuyenCa={chuyenCa}
+        loopMode={loopMode}
+        onLoopMode={doiLoop}
+        shuffle={shuffle}
+        onShuffle={doiShuffle}
+        volume={volume}
+        onVolume={doiVolume}
       />
 
       {infoCa && (
@@ -305,31 +343,25 @@ export default function Home() {
       )}
 
       {hienFishManager && (
-        <FishManagerModal
-          danhSachCa={danhSachCa}
-          onXoa={xoaCa}
-          onDong={() => setHienFishManager(false)}
-        />
+        <FishManagerModal danhSachCa={danhSachCa} onXoa={xoaCa} onDong={() => setHienFishManager(false)} />
       )}
 
       {hienShop && (
         <ShopPanel
           onThemCa={ca => { themCaVaoHo(ca); setHienShop(false) }}
           onDong={() => setHienShop(false)}
-          nenHo={nenHo}
-          dayHo={dayHo}
-          onChonNen={chonNen}
-          onChonDay={chonDay}
+          nenHo={nenHo} dayHo={dayHo}
+          onChonNen={chonNen} onChonDay={chonDay}
         />
       )}
 
-      {hienExplore && (
-        <ExplorePanel onDong={() => setHienExplore(false)} />
+      {hienExplore && <ExplorePanel onDong={() => setHienExplore(false)} />}
+
+      {hienLogout && (
+        <LogoutConfirm onXacNhan={xacNhanDangXuat} onHuy={() => setHienLogout(false)} />
       )}
 
-      {toast && (
-        <Toast thongBao={toast.thongBao} loai={toast.loai} onHet={() => setToast(null)} />
-      )}
+      {toast && <Toast thongBao={toast.thongBao} loai={toast.loai} onHet={() => setToast(null)} />}
     </div>
   )
 }

@@ -17,7 +17,13 @@ function getMau(loaiCa) {
   return LOAI_CA.find(x => x.loai_ca === loaiCa)?.mau ?? '#FFB300'
 }
 
-export default function ProfileCard({ danhSachCa, coins, onProfileLoad }) {
+const CARD_STYLE = {
+  background: 'rgba(10,22,40,0.72)',
+  backdropFilter: 'blur(10px)',
+  border: '1px solid rgba(96,165,250,0.13)',
+}
+
+export default function ProfileCard({ danhSachCa, coins, onProfileLoad, compact = false }) {
   const [profile, setProfile]             = useState(null)
   const [dangSuaTen, setDangSuaTen]       = useState(false)
   const [tenMoi, setTenMoi]               = useState('')
@@ -42,12 +48,38 @@ export default function ProfileCard({ danhSachCa, coins, onProfileLoad }) {
     if (dangSuaTen) inputRef.current?.focus()
   }, [dangSuaTen])
 
-  if (!profile) return null
-
-  const avatarLoai = profile.avatar_loai_ca || 'ca_vang'
+  const avatarLoai = profile?.avatar_loai_ca || 'ca_vang'
   const mauVien   = getMau(avatarLoai)
-  const tongXP    = danhSachCa.reduce((s, c) => s + (c.xp || 0), 0)
-  const levelHo   = Math.max(1, Math.floor(tongXP / 100))
+
+  // Loading skeleton
+  if (!profile) {
+    return (
+      <div
+        className="flex items-center gap-3 px-4 py-3 rounded-2xl"
+        style={CARD_STYLE}
+      >
+        <div
+          className="rounded-full shrink-0 animate-pulse"
+          style={{ width: compact ? 36 : 48, height: compact ? 36 : 48, background: 'rgba(96,165,250,0.12)' }}
+        />
+        <div className="space-y-2">
+          <div className="h-3 w-20 rounded animate-pulse" style={{ background: 'rgba(96,165,250,0.12)' }} />
+          {!compact && <div className="h-2 w-28 rounded animate-pulse" style={{ background: 'rgba(96,165,250,0.08)' }} />}
+        </div>
+      </div>
+    )
+  }
+
+  const tongXP  = danhSachCa.reduce((s, c) => s + (c.xp || 0), 0)
+  const levelHo = Math.max(1, Math.floor(tongXP / 100))
+
+  const avatarSize  = compact ? 36 : 48
+  // Fix: dùng box-shadow thay vì border để tránh bị clip bởi overflow:hidden + border-radius
+  const avatarStyle = {
+    width: avatarSize, height: avatarSize,
+    background: `${mauVien}28`,
+    boxShadow: `0 0 0 2.5px ${mauVien}bb`,
+  }
 
   function batDauSua() {
     setTenMoi(profile.username || '')
@@ -97,17 +129,35 @@ export default function ProfileCard({ danhSachCa, coins, onProfileLoad }) {
     setTimeout(() => setToast(null), 4500)
   }
 
+  if (compact) {
+    return (
+      <>
+        <div
+          className="flex items-center gap-2 px-3 py-2 rounded-2xl transition hover:brightness-110 cursor-pointer"
+          style={CARD_STYLE}
+          onClick={() => setHienPicker(true)}
+          title="Đổi avatar"
+        >
+          <div className="rounded-full overflow-hidden shrink-0" style={avatarStyle}>
+            <FishIcon loaiCa={avatarLoai} fill />
+          </div>
+          <span className="text-white font-bold text-sm truncate max-w-[80px]">
+            {profile.username}
+          </span>
+        </div>
+
+        {hienPicker && <AvatarPicker avatarLoai={avatarLoai} onChon={chonAvatar} onDong={() => setHienPicker(false)} />}
+        {toast && <ToastMsg msg={toast} />}
+      </>
+    )
+  }
+
   return (
     <>
       {/* Card */}
       <div
         className="flex items-center gap-3 px-4 py-3 rounded-2xl transition hover:brightness-110"
-        style={{
-          background: 'rgba(10,22,40,0.72)',
-          backdropFilter: 'blur(10px)',
-          border: '1px solid rgba(96,165,250,0.13)',
-          minWidth: 200,
-        }}
+        style={{ ...CARD_STYLE, minWidth: 200 }}
       >
         {/* Avatar */}
         <div
@@ -115,17 +165,9 @@ export default function ProfileCard({ danhSachCa, coins, onProfileLoad }) {
           onClick={() => setHienPicker(true)}
           title="Đổi avatar"
         >
-          <div
-            className="rounded-full overflow-hidden"
-            style={{
-              width: 48, height: 48,
-              background: `${mauVien}28`,
-              border: `2.5px solid ${mauVien}bb`,
-            }}
-          >
+          <div className="rounded-full overflow-hidden" style={avatarStyle}>
             <FishIcon loaiCa={avatarLoai} fill />
           </div>
-          {/* Hover overlay */}
           <div className="absolute inset-0 rounded-full bg-black/45 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center text-white/90 text-sm select-none">
             ✎
           </div>
@@ -133,8 +175,6 @@ export default function ProfileCard({ danhSachCa, coins, onProfileLoad }) {
 
         {/* Text info */}
         <div className="min-w-0">
-
-          {/* Username row */}
           {dangSuaTen ? (
             <div>
               <div className="flex items-center gap-1">
@@ -150,25 +190,14 @@ export default function ProfileCard({ danhSachCa, coins, onProfileLoad }) {
                   placeholder="username"
                   className="bg-ho-nong border border-ho-anh/40 rounded-lg px-2 py-0.5 text-white text-sm w-28 focus:outline-none focus:border-ho-anh"
                 />
-                <button
-                  onClick={luuTen}
-                  disabled={dangLuu}
-                  className="text-green-400 hover:text-green-300 text-sm font-bold leading-none disabled:opacity-40"
-                >✓</button>
-                <button
-                  onClick={huy}
-                  className="text-red-400/60 hover:text-red-400 text-sm leading-none"
-                >✕</button>
+                <button onClick={luuTen} disabled={dangLuu} className="text-green-400 hover:text-green-300 text-sm font-bold leading-none disabled:opacity-40">✓</button>
+                <button onClick={huy} className="text-red-400/60 hover:text-red-400 text-sm leading-none">✕</button>
               </div>
-              {loiTen && (
-                <div className="text-red-400 text-[10px] mt-0.5">{loiTen}</div>
-              )}
+              {loiTen && <div className="text-red-400 text-[10px] mt-0.5">{loiTen}</div>}
             </div>
           ) : (
             <div className="flex items-center gap-1.5">
-              <span className="text-white font-bold text-base truncate max-w-[120px]">
-                {profile.username}
-              </span>
+              <span className="text-white font-bold text-base truncate max-w-[120px]">{profile.username}</span>
               {!profile.da_doi_username && (
                 <button
                   onClick={batDauSua}
@@ -179,7 +208,6 @@ export default function ProfileCard({ danhSachCa, coins, onProfileLoad }) {
             </div>
           )}
 
-          {/* Stats */}
           {!dangSuaTen && (
             <div className="flex items-center gap-2 mt-1">
               <span className="text-ho-anh/50 text-[13px]">🐠 {danhSachCa.length}</span>
@@ -190,53 +218,51 @@ export default function ProfileCard({ danhSachCa, coins, onProfileLoad }) {
         </div>
       </div>
 
-      {/* Toast */}
-      {toast && (
-        <div
-          className="absolute top-16 left-4 bg-ho-nong border border-ho-anh/20 rounded-xl px-4 py-2.5 text-white text-xs max-w-[260px] shadow-xl"
-          style={{ backdropFilter: 'blur(8px)', zIndex: 100 }}
-        >
-          {toast}
-        </div>
-      )}
-
-      {/* Avatar picker */}
-      {hienPicker && (
-        <div
-          className="fixed inset-0 bg-black/55 flex items-center justify-center z-50 px-4"
-          onClick={() => setHienPicker(false)}
-        >
-          <div
-            className="bg-ho-sau border border-ho-anh/15 rounded-2xl p-5 w-full max-w-[300px]"
-            onClick={e => e.stopPropagation()}
-          >
-            <div className="flex items-center justify-between mb-4">
-              <h3 className="text-white font-semibold text-sm">Chọn avatar</h3>
-              <button onClick={() => setHienPicker(false)} className="text-ho-anh/40 hover:text-ho-anh transition">✕</button>
-            </div>
-            <div className="grid grid-cols-4 gap-2">
-              {LOAI_CA.map(item => (
-                <button
-                  key={item.loai_ca}
-                  onClick={() => chonAvatar(item.loai_ca)}
-                  className="flex flex-col items-center gap-1 py-2 rounded-xl transition"
-                  style={{
-                    border: avatarLoai === item.loai_ca
-                      ? `2px solid ${item.mau}`
-                      : '2px solid transparent',
-                    background: avatarLoai === item.loai_ca
-                      ? `${item.mau}18`
-                      : 'transparent',
-                  }}
-                >
-                  <FishIcon loaiCa={item.loai_ca} size={44} />
-                  <span className="text-ho-anh/55 text-[9px] leading-tight text-center">{item.ten}</span>
-                </button>
-              ))}
-            </div>
-          </div>
-        </div>
-      )}
+      {toast && <ToastMsg msg={toast} />}
+      {hienPicker && <AvatarPicker avatarLoai={avatarLoai} onChon={chonAvatar} onDong={() => setHienPicker(false)} />}
     </>
+  )
+}
+
+function ToastMsg({ msg }) {
+  return (
+    <div
+      className="absolute top-16 left-4 bg-ho-nong border border-ho-anh/20 rounded-xl px-4 py-2.5 text-white text-xs max-w-[260px] shadow-xl"
+      style={{ backdropFilter: 'blur(8px)', zIndex: 100 }}
+    >
+      {msg}
+    </div>
+  )
+}
+
+function AvatarPicker({ avatarLoai, onChon, onDong }) {
+  return (
+    <div className="fixed inset-0 bg-black/55 flex items-center justify-center z-50 px-4" onClick={onDong}>
+      <div
+        className="bg-ho-sau border border-ho-anh/15 rounded-2xl p-5 w-full max-w-[300px]"
+        onClick={e => e.stopPropagation()}
+      >
+        <div className="flex items-center justify-between mb-4">
+          <h3 className="text-white font-semibold text-sm">Chọn avatar</h3>
+          <button onClick={onDong} className="text-ho-anh/40 hover:text-ho-anh transition">✕</button>
+        </div>
+        <div className="grid grid-cols-4 gap-2">
+          {LOAI_CA.map(item => (
+            <button
+              key={item.loai_ca}
+              onClick={() => onChon(item.loai_ca)}
+              className="flex flex-col items-center gap-1 py-2 rounded-xl transition"
+              style={{
+                border: avatarLoai === item.loai_ca ? `2px solid ${item.mau}` : '2px solid transparent',
+                background: avatarLoai === item.loai_ca ? `${item.mau}18` : 'transparent',
+              }}
+            >
+              <FishIcon loaiCa={item.loai_ca} size={44} />
+              <span className="text-ho-anh/55 text-[9px] leading-tight text-center">{item.ten}</span>
+            </button>
+          ))}
+        </div>
+      </div>
+    </div>
   )
 }

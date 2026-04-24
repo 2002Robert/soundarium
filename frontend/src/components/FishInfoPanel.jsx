@@ -1,22 +1,52 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { LOAI_CA } from '../constants/fishTypes'
 import { API } from '../lib/api'
+
+const DELAY_AN_MS = 15 * 60 * 1000  // 15 phút
+
+function tinhCooldown(caId) {
+  const raw = localStorage.getItem(`snd_an_${caId}`)
+  if (!raw) return null
+  const t = Number(raw)
+  const now = Date.now()
+  const diff = DELAY_AN_MS - (now - t)
+  return diff > 0 ? diff : null
+}
+
+function formatCooldown(ms) {
+  const s = Math.ceil(ms / 1000)
+  const m = Math.floor(s / 60)
+  const sec = s % 60
+  return `${m}:${sec.toString().padStart(2, '0')}`
+}
 
 export default function FishInfoPanel({
   ca,
   x, y,
-  dangPhat,          // boolean — cá này có đang phát không
-  onTogglePhat,      // () => toggle play/pause cá này
-  onCapNhat,         // (caMoi) => cập nhật state
-  onXoa,             // (caId) => xóa khỏi danh sách
-  onDong,            // () => đóng panel
-  onMoQuanLyCa,     // () => mở modal danh sách cá
+  dangPhat,
+  onTogglePhat,
+  onCapNhat,
+  onXoa,
+  onDong,
+  onMoQuanLyCa,
 }) {
-  const [cheDoSua, setCheDoSua] = useState(false)
-  const [nickname, setNickname]   = useState(ca.nickname || '')
-  const [youtubeUrl, setYoutubeUrl] = useState(ca.youtube_url || '')
-  const [dangLuu, setDangLuu]     = useState(false)
-  const [loi, setLoi]             = useState('')
+  const [cheDoSua, setCheDoSua]       = useState(false)
+  const [nickname, setNickname]       = useState(ca.nickname || '')
+  const [youtubeUrl, setYoutubeUrl]   = useState(ca.youtube_url || '')
+  const [dangLuu, setDangLuu]         = useState(false)
+  const [loi, setLoi]                 = useState('')
+  const [dangAn, setDangAn]           = useState(false)
+  const [cdMs, setCdMs]               = useState(() => tinhCooldown(ca.id))
+
+  useEffect(() => {
+    if (!cdMs) return
+    const id = setInterval(() => {
+      const left = tinhCooldown(ca.id)
+      setCdMs(left)
+      if (!left) clearInterval(id)
+    }, 1000)
+    return () => clearInterval(id)
+  }, [cdMs, ca.id])
 
   const tenLoai = LOAI_CA[ca.loai_ca]?.ten || ca.loai_ca || 'Cá'
   const tenHienThi = ca.nickname || ca.ten_bai || tenLoai
@@ -49,6 +79,18 @@ export default function FishInfoPanel({
     onDong()
   }
 
+  async function choAn() {
+    if (cdMs || dangAn) return
+    setDangAn(true)
+    try {
+      const res = await API.choAnCa(ca.id)
+      onCapNhat?.(res.ca)
+      localStorage.setItem(`snd_an_${ca.id}`, String(Date.now()))
+      setCdMs(DELAY_AN_MS)
+    } catch {}
+    setDangAn(false)
+  }
+
   return (
     <div
       className="fixed z-50 w-56 bg-ho-sau/95 border border-ho-anh/20 rounded-2xl shadow-2xl overflow-hidden"
@@ -73,6 +115,20 @@ export default function FishInfoPanel({
       {!cheDoSua ? (
         /* Chế độ xem */
         <div className="px-3 pb-3 space-y-2">
+          {/* Feed button */}
+          <button
+            onClick={choAn}
+            disabled={!!cdMs || dangAn}
+            title={cdMs ? `Đang tiêu hoá (${formatCooldown(cdMs)})` : 'Cho cá ăn (+1 XP)'}
+            className={`w-full flex items-center justify-center gap-1.5 py-2 rounded-xl text-sm font-semibold transition mb-2 ${
+              cdMs
+                ? 'bg-ho-nong text-ho-anh/40 cursor-not-allowed'
+                : 'bg-green-500/20 hover:bg-green-500/30 border border-green-500/30 text-green-400'
+            }`}
+          >
+            {cdMs ? `⏳ ${formatCooldown(cdMs)}` : dangAn ? '...' : '🍖 Cho ăn (+1 XP)'}
+          </button>
+
           <div className="flex gap-2">
             <button
               onClick={onTogglePhat}
