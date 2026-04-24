@@ -12,24 +12,33 @@ _ANON_KEY     = os.getenv("SUPABASE_ANON_KEY", "")
 
 
 async def _xac_thuc_token(token: str) -> str:
-    """
-    Verify token bằng cách gọi Supabase Auth API — đáng tin cậy hơn
-    decode JWT thủ công vì không phụ thuộc vào format JWT secret.
-    """
-    async with httpx.AsyncClient(timeout=5.0) as client:
-        resp = await client.get(
-            f"{_SUPABASE_URL}/auth/v1/user",
-            headers={
-                "apikey":        _ANON_KEY,
-                "Authorization": f"Bearer {token}",
-            },
+    try:
+        async with httpx.AsyncClient(timeout=8.0) as client:
+            resp = await client.get(
+                f"{_SUPABASE_URL}/auth/v1/user",
+                headers={
+                    "apikey":        _ANON_KEY,
+                    "Authorization": f"Bearer {token}",
+                },
+            )
+    except Exception:
+        raise HTTPException(
+            status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+            detail="Không thể kết nối xác thực",
         )
     if resp.status_code != 200:
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="Cần đăng nhập lại",
         )
-    return resp.json()["id"]
+    data = resp.json()
+    uid = data.get("id")
+    if not uid:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Token không hợp lệ",
+        )
+    return uid
 
 
 async def lay_user_id(
