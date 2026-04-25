@@ -10,8 +10,10 @@ function loadYouTubeAPI() {
 }
 
 export default function YouTubePlayer({ videoId, dangPhat, onReady, onEnded }) {
-  const iframeRef = useRef(null)
-  const playerRef = useRef(null)
+  const iframeRef  = useRef(null)
+  const playerRef  = useRef(null)
+  const onEndedRef = useRef(onEnded)
+  onEndedRef.current = onEnded   // luôn trỏ đến callback mới nhất
 
   useEffect(() => {
     loadYouTubeAPI()
@@ -33,8 +35,9 @@ export default function YouTubePlayer({ videoId, dangPhat, onReady, onEnded }) {
         },
         events: {
           onReady: (e) => onReady?.(e.target),
+          // Dùng ref để tránh stale closure — callback luôn là phiên bản mới nhất
           onStateChange: (e) => {
-            if (e.data === 0) onEnded?.()
+            if (e.data === 0) onEndedRef.current?.()
           },
         },
       })

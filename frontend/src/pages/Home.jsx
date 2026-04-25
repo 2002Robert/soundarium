@@ -95,15 +95,13 @@ export default function Home() {
   const [dayHo, setDayHoState] = useState(() => localStorage.getItem('snd_day') || 'cat_trang')
 
   // Audio controls
-  const [loopMode, setLoopMode] = useState(() => localStorage.getItem('snd_loop') || 'off')
-  const [shuffle, setShuffle]   = useState(() => localStorage.getItem('snd_shuffle') === '1')
-  const [volume, setVolume]     = useState(() => Number(localStorage.getItem('snd_vol') ?? 70))
+  const [repeatMode, setRepeatMode] = useState(() => localStorage.getItem('snd_repeat') || 'off')
+  const [volume, setVolume]         = useState(() => Number(localStorage.getItem('snd_vol') ?? 70))
 
   function chonNen(id) { setNenHoState(id); localStorage.setItem('snd_nen', id) }
   function chonDay(id) { setDayHoState(id); localStorage.setItem('snd_day', id) }
 
-  function doiLoop(mode) { setLoopMode(mode); localStorage.setItem('snd_loop', mode) }
-  function doiShuffle(val) { setShuffle(val); localStorage.setItem('snd_shuffle', val ? '1' : '0') }
+  function doiRepeatMode(mode) { setRepeatMode(mode); localStorage.setItem('snd_repeat', mode) }
   function doiVolume(val) {
     setVolume(val)
     localStorage.setItem('snd_vol', String(val))
@@ -236,19 +234,20 @@ export default function Home() {
   }
 
   function khiKetThucBai() {
-    if (loopMode === 'one') {
-      // Phát lại bài hiện tại
+    if (repeatMode === 'loop') {
       try { ytPlayer?.seekTo?.(0, true); ytPlayer?.playVideo?.() } catch {}
       return
     }
-    const ds = shuffle
-      ? [...danhSachCa].sort(() => Math.random() - 0.5)
-      : danhSachCa
-    const i = ds.findIndex(c => c.id === dangPhat)
-    if (i >= 0 && i < ds.length - 1) {
-      chuyenCa(ds[i + 1])
-    } else if (loopMode === 'all' && ds.length > 0) {
-      chuyenCa(ds[0])
+    if (repeatMode === 'shuffle') {
+      const khac = danhSachCa.filter(c => c.id !== dangPhat)
+      const next = khac.length > 0 ? khac : danhSachCa
+      if (next.length > 0) chuyenCa(next[Math.floor(Math.random() * next.length)])
+      return
+    }
+    // tuần tự ('off')
+    const i = danhSachCa.findIndex(c => c.id === dangPhat)
+    if (i >= 0 && i < danhSachCa.length - 1) {
+      chuyenCa(danhSachCa[i + 1])
     } else {
       dungPhat(); setVideoIdDangPhat(null)
     }
@@ -400,10 +399,8 @@ export default function Home() {
         player={ytPlayer}
         onToggle={togglePhatCaHienTai}
         onChuyenCa={chuyenCa}
-        loopMode={loopMode}
-        onLoopMode={doiLoop}
-        shuffle={shuffle}
-        onShuffle={doiShuffle}
+        repeatMode={repeatMode}
+        onRepeatMode={doiRepeatMode}
         volume={volume}
         onVolume={doiVolume}
       />

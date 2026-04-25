@@ -20,9 +20,12 @@ async function fetchTenBai(videoId) {
   }
 }
 
-// loopMode: 'off' | 'one' | 'all'
-const LOOP_ICONS = { off: '🔁', one: '🔂', all: '🔁' }
-const LOOP_LABELS = { off: 'Tắt lặp', one: 'Lặp 1 bài', all: 'Lặp tất cả' }
+// repeatMode: 'off' (tuần tự) | 'shuffle' (ngẫu nhiên) | 'loop' (lặp 1 bài)
+const REPEAT_CFG = {
+  off:     { icon: '🔁', label: 'Tuần tự',    active: false },
+  shuffle: { icon: '🔀', label: 'Ngẫu nhiên', active: true  },
+  loop:    { icon: '🔂', label: 'Lặp 1 bài',  active: true  },
+}
 
 export default function MusicPlayerBar({
   caDangPhat,
@@ -31,10 +34,8 @@ export default function MusicPlayerBar({
   player,
   onToggle,
   onChuyenCa,
-  loopMode = 'off',
-  onLoopMode,
-  shuffle = false,
-  onShuffle,
+  repeatMode = 'off',
+  onRepeatMode,
   volume = 70,
   onVolume,
 }) {
@@ -102,7 +103,7 @@ export default function MusicPlayerBar({
   }
 
   function baiTiep() {
-    if (shuffle) {
+    if (repeatMode === 'shuffle') {
       const khac = danhSachCa.filter(c => c.id !== caDangPhat?.id)
       if (khac.length) onChuyenCa(khac[Math.floor(Math.random() * khac.length)])
       return
@@ -111,9 +112,9 @@ export default function MusicPlayerBar({
     if (i >= 0 && i < danhSachCa.length - 1) onChuyenCa(danhSachCa[i + 1])
   }
 
-  function chuyenLoop() {
-    const next = { off: 'all', all: 'one', one: 'off' }
-    onLoopMode?.(next[loopMode] ?? 'off')
+  function chuyenRepeat() {
+    const next = { off: 'shuffle', shuffle: 'loop', loop: 'off' }
+    onRepeatMode?.(next[repeatMode] ?? 'off')
   }
 
   const phanTram = tongGio > 0 ? (thoiGian / tongGio) * 100 : 0
@@ -169,15 +170,6 @@ export default function MusicPlayerBar({
             )}
           </div>
 
-          {/* Shuffle */}
-          <button
-            onClick={() => onShuffle?.(!shuffle)}
-            title="Ngẫu nhiên"
-            className={`w-8 h-8 flex items-center justify-center rounded-lg text-sm transition ${
-              shuffle ? 'text-ho-anh bg-ho-anh/15' : 'text-ho-anh/35 hover:text-ho-anh/60'
-            }`}
-          >🔀</button>
-
           {/* Prev */}
           <button
             onClick={baiTruoc}
@@ -200,18 +192,17 @@ export default function MusicPlayerBar({
             title="Bài tiếp"
           >⏭</button>
 
-          {/* Loop */}
+          {/* Repeat mode — 1 nút, bấm để cycle: tuần tự → shuffle → loop */}
           <button
-            onClick={chuyenLoop}
-            title={LOOP_LABELS[loopMode]}
+            onClick={chuyenRepeat}
+            title={REPEAT_CFG[repeatMode]?.label}
             className={`w-8 h-8 flex items-center justify-center rounded-lg text-sm transition ${
-              loopMode !== 'off' ? 'text-ho-anh bg-ho-anh/15' : 'text-ho-anh/35 hover:text-ho-anh/60'
+              REPEAT_CFG[repeatMode]?.active
+                ? 'text-ho-anh bg-ho-anh/15'
+                : 'text-ho-anh/35 hover:text-ho-anh/60'
             }`}
           >
-            {LOOP_ICONS[loopMode]}
-            {loopMode === 'one' && (
-              <span className="text-[9px] font-bold text-ho-anh absolute ml-3 mt-3 leading-none">1</span>
-            )}
+            {REPEAT_CFG[repeatMode]?.icon}
           </button>
 
           {/* Volume */}
