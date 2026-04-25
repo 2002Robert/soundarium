@@ -13,7 +13,17 @@ async function layHeader() {
 
 async function goiApi(path, options = {}) {
   const headers = await layHeader()
-  const resp = await fetch(`${BASE}${path}`, { ...options, headers })
+  const ctrl = new AbortController()
+  const tid  = setTimeout(() => ctrl.abort(), 15000)  // 15s — đủ cho Render cold start
+  let resp
+  try {
+    resp = await fetch(`${BASE}${path}`, { ...options, headers, signal: ctrl.signal })
+  } catch (err) {
+    clearTimeout(tid)
+    if (err.name === 'AbortError') throw new Error('Server đang khởi động, thử lại sau')
+    throw new Error('Không kết nối được server')
+  }
+  clearTimeout(tid)
 
   if (resp.status === 401) {
     // Token hết hạn — thử refresh session một lần

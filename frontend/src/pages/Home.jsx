@@ -91,6 +91,8 @@ export default function Home() {
   const [selectedTankId, setSelectedTankId]   = useState(null)
   const [dangTaoTank, setDangTaoTank]         = useState(false)
   const [playerBarHeight, setPlayerBarHeight] = useState(0)
+  const [dangKhoiDong, setDangKhoiDong]       = useState(true)
+  const [loiKetNoi, setLoiKetNoi]             = useState(false)
 
   const [nenHo, setNenHoState] = useState(() => localStorage.getItem('snd_nen') || 'ocean-shallow')
   const [dayHo, setDayHoState] = useState(() => localStorage.getItem('snd_day') || 'cat_trang')
@@ -129,8 +131,11 @@ export default function Home() {
   }, [navigate])
 
   async function khoiDong() {
+    setDangKhoiDong(true)
+    setLoiKetNoi(false)
     try {
-      const [tankListRes] = await Promise.all([API.layDanhSachTank(), thuHoach()])
+      thuHoach().catch(() => {})   // fire-and-forget, không chặn load hồ
+      const tankListRes = await API.layDanhSachTank()
       const tanks = tankListRes.tanks || []
       setDanhSachTank(tanks)
       if (tanks.length > 0) {
@@ -139,8 +144,10 @@ export default function Home() {
         const fishRes = await API.layDanhSachCa(tid)
         setDanhSachCa(fishRes.danh_sach_ca || [])
       }
+      setDangKhoiDong(false)
     } catch {
-      hienToast('Không kết nối được server', 'loi')
+      setDangKhoiDong(false)
+      setLoiKetNoi(true)
     }
   }
 
@@ -330,6 +337,31 @@ export default function Home() {
 
   return (
     <div className="fixed inset-0 overflow-hidden">
+      {/* Loading / lỗi kết nối */}
+      {(dangKhoiDong || loiKetNoi) && (
+        <div className="fixed inset-0 z-[300] flex flex-col items-center justify-center bg-black/55" style={{ backdropFilter: 'blur(8px)' }}>
+          {dangKhoiDong ? (
+            <>
+              <div className="text-4xl mb-4 animate-bounce">🐠</div>
+              <p className="text-white/70 text-sm">Đang kết nối server…</p>
+              <p className="text-white/35 text-xs mt-1">Server đang thức dậy, vài giây nhé</p>
+            </>
+          ) : (
+            <>
+              <div className="text-4xl mb-4">😵</div>
+              <p className="text-white/80 text-sm font-semibold mb-1">Không kết nối được server</p>
+              <p className="text-white/40 text-xs mb-4">Server Render free tier có thể đang ngủ</p>
+              <button
+                onClick={khoiDong}
+                className="px-5 py-2 bg-ho-anh hover:bg-ho-accent text-ho-sau font-semibold rounded-xl text-sm transition"
+              >
+                Thử lại
+              </button>
+            </>
+          )}
+        </div>
+      )}
+
       {hienOnboarding && (
         <Onboarding onXong={() => {
           localStorage.setItem('snd_onboarded', '1')
