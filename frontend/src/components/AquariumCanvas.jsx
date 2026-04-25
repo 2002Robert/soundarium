@@ -509,21 +509,21 @@ export default function AquariumCanvas({
       ctx.fillRect(0, 0, w, h)
     }
 
-    // Đáy hồ
+    // Đáy hồ — dùng hHieuQua để cát luôn hiện trên player bar
     const dayMau = DAY_HO_MAU[dayHo] || '#c8b89a'
-    const dayH = Math.max(50, h * 0.07)
-    const dayY = h - dayH
-    const dayGrad = ctx.createLinearGradient(0, dayY, 0, h)
+    const dayH = Math.max(50, hHieuQua * 0.08)
+    const dayY = hHieuQua - dayH
+    const dayGrad = ctx.createLinearGradient(0, dayY, 0, hHieuQua)
     dayGrad.addColorStop(0, dayMau + '00')
     dayGrad.addColorStop(0.35, dayMau + 'bb')
     dayGrad.addColorStop(1, dayMau + 'ff')
     ctx.fillStyle = dayGrad
     ctx.beginPath()
-    ctx.moveTo(0, h)
+    ctx.moveTo(0, hHieuQua)
     for (let x = 0; x <= w; x += 18) {
       ctx.lineTo(x, dayY + Math.sin(x * 0.04 + thoiGian * 0.4) * 5)
     }
-    ctx.lineTo(w, h)
+    ctx.lineTo(w, hHieuQua)
     ctx.closePath()
     ctx.fill()
 

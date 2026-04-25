@@ -404,27 +404,25 @@ export default function Home() {
         </div>
       )}
 
-      {/* Header */}
-      <div className="absolute top-0 left-0 right-0 flex items-center justify-between px-4 pt-4 z-[100]">
+      {/* Header — góc trên trái, buttons ngay dưới profile card */}
+      <div className="absolute top-0 left-0 px-4 pt-4 z-[100]">
         <ProfileCard
           danhSachCa={danhSachCa}
           coins={coins}
           ngocTrai={ngocTrai}
           onProfileLoad={p => { setProfileData(p); setNgocTrai(p.ngoc_trai || 0) }}
         />
-        <div className="flex items-center gap-2">
-          {danhSachTank.length > 0 && (
-            <TankSwitcher
-              danhSachTank={danhSachTank}
-              selectedId={selectedTankId}
-              onChon={doiTank}
-              onTaoMoi={taoTankMoi}
-              dangTao={dangTaoTank}
-            />
-          )}
+        <div className="flex items-center gap-1.5 mt-2">
+          <TankSwitcher
+            danhSachTank={danhSachTank}
+            selectedId={selectedTankId}
+            onChon={doiTank}
+            onTaoMoi={taoTankMoi}
+            dangTao={dangTaoTank}
+          />
           <IconBtn onClick={chiaSe} title="Chia sẻ hồ">🔗</IconBtn>
           <IconBtn onClick={chupAnhHo} title="Chụp ảnh hồ">📷</IconBtn>
-          <IconBtn onClick={() => setHienExplore(true)} title="Khám phá">🧭</IconBtn>
+          <IconBtn onClick={() => setHienExplore(true)} title="Khám phá">🔍</IconBtn>
           <IconBtn onClick={() => setHienShop(true)} title="Cửa hàng">🛒</IconBtn>
           <IconBtn onClick={() => setHienLogout(true)} title="Đăng xuất" className="text-ho-anh/40">🚪</IconBtn>
         </div>
