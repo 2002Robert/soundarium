@@ -324,7 +324,7 @@ function veCaTheoLoai(ctx, loaiCa, r, mau, g) {
 }
 
 // ─── Frame chính ─────────────────────────────────────────────
-function veCa(ctx, ca, trang, dangPhat) {
+function veCa(ctx, ca, trang, dangPhat, hHieuQua) {
   const kt     = KICH_THUOC_THEO_LEVEL[ca.level] || 40
   const doMo   = tinhDoMo(ca.lan_nghe_cuoi)
   const r      = kt / 2
@@ -333,7 +333,8 @@ function veCa(ctx, ca, trang, dangPhat) {
   trang.x   += trang.huongX * trang.tocDo
   trang.y   += Math.sin(trang.pha) * 0.3
 
-  const w = ctx.canvas.width, h = ctx.canvas.height
+  const w = ctx.canvas.width
+  const h = hHieuQua ?? ctx.canvas.height    // dùng vùng hiệu quả nếu có
   if (trang.x < kt || trang.x > w - kt) trang.huongX *= -1
   trang.y = Math.max(kt * 0.5, Math.min(h - kt * 0.5, trang.y))
 
@@ -446,13 +447,14 @@ function veBongBong(ctx, bongBubbles) {
 export default function AquariumCanvas({
   danhSachCa,
   dangPhat,
-  nenHo    = 'ocean-shallow',
-  dayHo    = 'cat_trang',
+  nenHo     = 'ocean-shallow',
+  dayHo     = 'cat_trang',
   onClickCa,
   onGiuCa,
   caLevelUp = null,
   suaGai    = [],
   onClickSua,
+  bottomPad = 0,
 }) {
   const canvasRef      = useRef(null)
   const frameRef       = useRef(0)
@@ -472,6 +474,8 @@ export default function AquariumCanvas({
   suaGaiRef.current    = suaGai
   onClickSuaRef.current = onClickSua
   const suaGaiPosRef   = useRef({})
+  const bottomPadRef   = useRef(bottomPad)
+  bottomPadRef.current = bottomPad
 
   danhSachCa.forEach(khoiTaoChuyen)
 
@@ -486,6 +490,7 @@ export default function AquariumCanvas({
     }
 
     const w = canvas.width, h = canvas.height
+    const hHieuQua = h - bottomPadRef.current   // vùng cá được bơi (trừ player bar)
     const nen = NEN_HO[nenHo] || NEN_HO['ocean-shallow']
 
     const grad = ctx.createLinearGradient(0, 0, 0, h)
@@ -527,7 +532,7 @@ export default function AquariumCanvas({
     danhSachCa.forEach(ca => {
       const trang = trangThaiChuyen.get(ca.id)
       if (!trang) return
-      veCa(ctx, ca, trang, dangPhat === ca.id)
+      veCa(ctx, ca, trang, dangPhat === ca.id, hHieuQua)
 
       const ten = ca.nickname || ca.ten_bai || ''
       if (ten) {
@@ -547,14 +552,14 @@ export default function AquariumCanvas({
       }
     })
 
-    // Vẽ sứa
+    // Vẽ sứa (trong vùng hiệu quả)
     const suaList = suaGaiRef.current
     if (suaList.length > 0) {
       const t = frameRef.current * 0.02
       suaList.forEach(sua => {
         const rx = sua.x * w
-        const ry = sua.y * h + Math.sin(t * 0.7 + sua.pha) * 12
-        const sr = Math.min(w, h) * 0.038
+        const ry = sua.y * hHieuQua + Math.sin(t * 0.7 + sua.pha) * 12
+        const sr = Math.min(w, hHieuQua) * 0.038
         veSua(ctx, rx, ry, sr, sua.pha, t)
         suaGaiPosRef.current[sua.id] = { x: rx, y: ry, r: sr }
       })
@@ -645,7 +650,7 @@ export default function AquariumCanvas({
   return (
     <canvas
       ref={canvasRef}
-      className="fixed inset-0 w-full h-full"
+      className="fixed inset-0 w-full h-full z-0"
       style={{ cursor: 'pointer' }}
       onClick={xuLyClick}
       onMouseDown={xuLyMouseDown}

@@ -90,6 +90,7 @@ export default function Home() {
   const [danhSachTank, setDanhSachTank]       = useState([])
   const [selectedTankId, setSelectedTankId]   = useState(null)
   const [dangTaoTank, setDangTaoTank]         = useState(false)
+  const [playerBarHeight, setPlayerBarHeight] = useState(0)
 
   const [nenHo, setNenHoState] = useState(() => localStorage.getItem('snd_nen') || 'ocean-shallow')
   const [dayHo, setDayHoState] = useState(() => localStorage.getItem('snd_day') || 'cat_trang')
@@ -345,6 +346,7 @@ export default function Home() {
         caLevelUp={caLevelUp}
         suaGai={suaGai}
         onClickSua={bietSua}
+        bottomPad={playerBarHeight}
       />
 
       {danhSachCa.length === 0 && (
@@ -360,7 +362,7 @@ export default function Home() {
       )}
 
       {/* Header */}
-      <div className="absolute top-0 left-0 right-0 flex items-center justify-between px-4 pt-4">
+      <div className="absolute top-0 left-0 right-0 flex items-center justify-between px-4 pt-4 z-[100]">
         <ProfileCard
           danhSachCa={danhSachCa}
           coins={coins}
@@ -403,6 +405,7 @@ export default function Home() {
         onRepeatMode={doiRepeatMode}
         volume={volume}
         onVolume={doiVolume}
+        onHeightChange={setPlayerBarHeight}
       />
 
       {infoCa && (
