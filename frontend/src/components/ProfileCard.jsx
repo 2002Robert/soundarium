@@ -2,6 +2,7 @@ import { useState, useEffect, useRef } from 'react'
 import { API } from '../lib/api'
 import { supabase } from '../lib/supabase'
 import FishIcon from './FishIcon'
+import { tinhLevelNguoiChoi } from '../constants/playerLevel'
 
 const LOAI_CA = [
   { loai_ca: 'ca_vang',      ten: 'Cá Vàng',  mau: '#FFB300' },
@@ -24,7 +25,7 @@ const CARD_STYLE = {
   border: '1px solid rgba(96,165,250,0.13)',
 }
 
-export default function ProfileCard({ danhSachCa, coins, onProfileLoad, compact = false }) {
+export default function ProfileCard({ danhSachCa, coins, ngocTrai = 0, onProfileLoad, compact = false }) {
   const [profile, setProfile]             = useState(null)
   const [dangSuaTen, setDangSuaTen]       = useState(false)
   const [tenMoi, setTenMoi]               = useState('')
@@ -89,8 +90,7 @@ export default function ProfileCard({ danhSachCa, coins, onProfileLoad, compact 
     )
   }
 
-  const tongXP  = danhSachCa.reduce((s, c) => s + (c.xp || 0), 0)
-  const levelHo = Math.max(1, Math.floor(tongXP / 100))
+  const levelHo = tinhLevelNguoiChoi(profile.tong_gio_nghe || 0)
 
   const avatarSize  = compact ? 36 : 48
   // Fix: dùng box-shadow thay vì border để tránh bị clip bởi overflow:hidden + border-radius
@@ -232,6 +232,7 @@ export default function ProfileCard({ danhSachCa, coins, onProfileLoad, compact 
               <span className="text-ho-anh/50 text-[13px]">🐠 {danhSachCa.length}</span>
               <span className="text-ho-anh/50 text-[13px]">⭐ Lv.{levelHo}</span>
               <span className="text-ho-anh/50 text-[13px]">🪙 {coins.toLocaleString()}</span>
+              {ngocTrai > 0 && <span className="text-ho-anh/50 text-[13px]">💎 {ngocTrai}</span>}
             </div>
           )}
         </div>

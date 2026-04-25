@@ -1,4 +1,5 @@
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, HTTPException, status, Query
+from typing import Optional
 from database import lay_client_voi_token, supabase_admin
 from auth import lay_user_id, lay_token
 from models.fish import ThemCaMoi, ChinhSuaCa, CapNhatNghe, TestCapXP
@@ -12,19 +13,33 @@ from datetime import datetime, timezone
 
 router = APIRouter(prefix="/api/fish", tags=["fish"])
 
+COINS_KHI_CHO_AN = 3  # coins thưởng mỗi lần cho ăn
 
-async def _lay_tank_id_cua_user(user_id: str) -> str:
-    """Lấy tank_id của user — mỗi user có đúng 1 tank."""
-    ket_qua = (
-        supabase_admin.table("tanks")
-        .select("id")
-        .eq("user_id", user_id)
-        .single()
-        .execute()
-    )
-    if not ket_qua.data:
+
+async def _lay_tank_id_cua_user(user_id: str, tank_id: Optional[str] = None) -> str:
+    """Lấy tank_id của user. Nếu tank_id được chỉ định, xác thực nó thuộc user."""
+    if tank_id:
+        ket_qua = (
+            supabase_admin.table("tanks")
+            .select("id")
+            .eq("id", tank_id)
+            .eq("user_id", user_id)
+            .execute()
+        )
+        data = ket_qua.data[0] if ket_qua.data else None
+    else:
+        ket_qua = (
+            supabase_admin.table("tanks")
+            .select("id")
+            .eq("user_id", user_id)
+            .limit(1)
+            .execute()
+        )
+        data = ket_qua.data[0] if ket_qua.data else None
+
+    if not data:
         raise HTTPException(status_code=404, detail="Không tìm thấy hồ cá")
-    return ket_qua.data["id"]
+    return data["id"]
 
 
 @router.post("/them-ca")
@@ -32,18 +47,18 @@ async def them_ca_moi(
     body: ThemCaMoi,
     user_id: str = Depends(lay_user_id),
     token: str = Depends(lay_token),
+    tank_id: Optional[str] = Query(None),
 ):
     video_id = trich_video_id(body.youtube_url)
     if not video_id:
         raise HTTPException(status_code=400, detail="Link YouTube không hợp lệ")
 
-    tank_id = await _lay_tank_id_cua_user(user_id)
+    tid = await _lay_tank_id_cua_user(user_id, tank_id)
 
-    # Kiểm tra cá với video này đã có trong hồ chưa
     trung_lap = (
         supabase_admin.table("fish")
         .select("id")
-        .eq("tank_id", tank_id)
+        .eq("tank_id", tid)
         .eq("video_id", video_id)
         .execute()
     )
@@ -53,12 +68,8 @@ async def them_ca_moi(
     thong_tin = await lay_thong_tin_video(video_id)
     thuoc_tinh_ngau_nhien = tao_ca_ngau_nhien()
 
-    # Dùng loài từ shop nếu có, ngược lại random
-    if body.loai_ca:
-        thuoc_tinh_ngau_nhien["loai_ca"] = body.loai_ca
-
     ca_moi = {
-        "tank_id": tank_id,
+        "tank_id": tid,
         "youtube_url": body.youtube_url,
         "video_id": video_id,
         "ten_bai": thong_tin["ten_bai"],
@@ -72,12 +83,15 @@ async def them_ca_moi(
 
 
 @router.get("/danh-sach")
-async def lay_danh_sach_ca(user_id: str = Depends(lay_user_id)):
-    tank_id = await _lay_tank_id_cua_user(user_id)
+async def lay_danh_sach_ca(
+    user_id: str = Depends(lay_user_id),
+    tank_id: Optional[str] = Query(None),
+):
+    tid = await _lay_tank_id_cua_user(user_id, tank_id)
     ket_qua = (
         supabase_admin.table("fish")
         .select("*")
-        .eq("tank_id", tank_id)
+        .eq("tank_id", tid)
         .order("ngay_them")
         .execute()
     )
@@ -89,15 +103,15 @@ async def chinh_sua_ca(
     ca_id: str,
     body: ChinhSuaCa,
     user_id: str = Depends(lay_user_id),
+    tank_id: Optional[str] = Query(None),
 ):
-    tank_id = await _lay_tank_id_cua_user(user_id)
+    tid = await _lay_tank_id_cua_user(user_id, tank_id)
 
-    # Xác nhận cá này thuộc hồ của user
     ca = (
         supabase_admin.table("fish")
         .select("id, video_id, level, xp")
         .eq("id", ca_id)
-        .eq("tank_id", tank_id)
+        .eq("tank_id", tid)
         .single()
         .execute()
     )
@@ -118,7 +132,6 @@ async def chinh_sua_ca(
             "video_id": video_id_moi,
             "ten_bai": thong_tin["ten_bai"],
             "ten_kenh": thong_tin["ten_kenh"],
-            # Level và XP giữ nguyên khi đổi link — thiết kế có chủ đích
         })
 
     if not cap_nhat:
@@ -134,14 +147,18 @@ async def chinh_sua_ca(
 
 
 @router.delete("/xoa/{ca_id}")
-async def xoa_ca(ca_id: str, user_id: str = Depends(lay_user_id)):
-    tank_id = await _lay_tank_id_cua_user(user_id)
+async def xoa_ca(
+    ca_id: str,
+    user_id: str = Depends(lay_user_id),
+    tank_id: Optional[str] = Query(None),
+):
+    tid = await _lay_tank_id_cua_user(user_id, tank_id)
 
     ca = (
         supabase_admin.table("fish")
         .select("id")
         .eq("id", ca_id)
-        .eq("tank_id", tank_id)
+        .eq("tank_id", tid)
         .single()
         .execute()
     )
@@ -157,15 +174,16 @@ async def cap_nhat_thoi_gian_nghe(
     ca_id: str,
     body: CapNhatNghe,
     user_id: str = Depends(lay_user_id),
+    tank_id: Optional[str] = Query(None),
 ):
     """Gọi mỗi 5 phút khi người dùng đang nghe để cộng XP và kiểm tra level up."""
-    tank_id = await _lay_tank_id_cua_user(user_id)
+    tid = await _lay_tank_id_cua_user(user_id, tank_id)
 
     ca = (
         supabase_admin.table("fish")
         .select("id, level, xp")
         .eq("id", ca_id)
-        .eq("tank_id", tank_id)
+        .eq("tank_id", tid)
         .single()
         .execute()
     )
@@ -183,15 +201,17 @@ async def cap_nhat_thoi_gian_nghe(
         "lan_nghe_cuoi": datetime.now(timezone.utc).isoformat(),
     }).eq("id", ca_id).execute()
 
-    # Cộng tổng giờ nghe vào profile để hiển thị thống kê
-    supabase_admin.table("profiles").update({
-        "tong_gio_nghe": supabase_admin.table("profiles")
-            .select("tong_gio_nghe")
-            .eq("id", user_id)
-            .single()
-            .execute()
-            .data["tong_gio_nghe"] + body.so_phut / 60
-    }).eq("id", user_id).execute()
+    profile = (
+        supabase_admin.table("profiles")
+        .select("tong_gio_nghe")
+        .eq("id", user_id)
+        .single()
+        .execute()
+    )
+    if profile.data:
+        supabase_admin.table("profiles").update({
+            "tong_gio_nghe": (profile.data.get("tong_gio_nghe") or 0) + body.so_phut / 60
+        }).eq("id", user_id).execute()
 
     return {
         "level_moi": level_moi,
@@ -201,18 +221,22 @@ async def cap_nhat_thoi_gian_nghe(
 
 
 @router.post("/cho-an/{ca_id}")
-async def cho_ca_an(ca_id: str, user_id: str = Depends(lay_user_id)):
+async def cho_ca_an(
+    ca_id: str,
+    user_id: str = Depends(lay_user_id),
+    tank_id: Optional[str] = Query(None),
+):
     """
-    Cho cá ăn: +1 XP cá, +1 XP người (tong_gio_nghe tính tương đương).
+    Cho cá ăn: +1 XP cá, +3 coins người dùng.
     Frontend tự quản lý cooldown 15 phút qua localStorage.
     """
-    tank_id = await _lay_tank_id_cua_user(user_id)
+    tid = await _lay_tank_id_cua_user(user_id, tank_id)
 
     ca = (
         supabase_admin.table("fish")
         .select("id, level, xp")
         .eq("id", ca_id)
-        .eq("tank_id", tank_id)
+        .eq("tank_id", tid)
         .single()
         .execute()
     )
@@ -228,22 +252,26 @@ async def cho_ca_an(ca_id: str, user_id: str = Depends(lay_user_id)):
         "level": level_moi,
     }).eq("id", ca_id).execute()
 
-    # +1 XP người dưới dạng 1/60 giờ nghe
+    # +3 coins và +1/60 giờ nghe
     profile = (
         supabase_admin.table("profiles")
-        .select("tong_gio_nghe")
+        .select("tong_gio_nghe, coins")
         .eq("id", user_id)
         .single()
         .execute()
     )
+    coins_moi = profile.data.get("coins", 0) if profile.data else 0
     if profile.data:
         supabase_admin.table("profiles").update({
-            "tong_gio_nghe": (profile.data.get("tong_gio_nghe") or 0) + 1 / 60
+            "tong_gio_nghe": (profile.data.get("tong_gio_nghe") or 0) + 1 / 60,
+            "coins": coins_moi + COINS_KHI_CHO_AN,
         }).eq("id", user_id).execute()
 
     return {
         "ca": {**ca.data, "xp": xp_sau_len, "level": level_moi},
         "da_len_level": da_len_level,
+        "coins_nhan": COINS_KHI_CHO_AN,
+        "coins_hien_tai": coins_moi + COINS_KHI_CHO_AN,
     }
 
 
@@ -253,17 +281,13 @@ async def test_cap_xp_thu_cong(
     body: TestCapXP,
     user_id: str = Depends(lay_user_id),
 ):
-    """
-    Chỉ dùng để test — cộng XP tương đương số giờ nghe thủ công.
-    Không để trong production build.
-    """
-    tank_id = await _lay_tank_id_cua_user(user_id)
+    tid = await _lay_tank_id_cua_user(user_id)
 
     ca = (
         supabase_admin.table("fish")
         .select("id, level, xp")
         .eq("id", ca_id)
-        .eq("tank_id", tank_id)
+        .eq("tank_id", tid)
         .single()
         .execute()
     )

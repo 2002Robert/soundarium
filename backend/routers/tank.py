@@ -6,19 +6,75 @@ from models.tank import CapNhatTank
 
 router = APIRouter(prefix="/api/tank", tags=["tank"])
 
+MAX_TANKS = 3
+
+
+@router.get("/danh-sach")
+async def lay_danh_sach_tank(user_id: str = Depends(lay_user_id)):
+    """Danh sách tất cả hồ của user (không bao gồm cá)."""
+    ket_qua = (
+        supabase_admin.table("tanks")
+        .select("id, ten, nen_ho, la_cong_khai")
+        .eq("user_id", user_id)
+        .execute()
+    )
+    return {"tanks": ket_qua.data or []}
+
 
 @router.get("/cua-toi")
 async def lay_tank_cua_toi(user_id: str = Depends(lay_user_id)):
+    """Lấy hồ mặc định (đầu tiên) kèm toàn bộ cá."""
     ket_qua = (
         supabase_admin.table("tanks")
         .select("*, fish(*)")
         .eq("user_id", user_id)
-        .single()
+        .limit(1)
         .execute()
     )
     if not ket_qua.data:
         raise HTTPException(status_code=404, detail="Không tìm thấy hồ cá")
-    return {"tank": ket_qua.data}
+    return {"tank": ket_qua.data[0]}
+
+
+@router.get("/theo-id/{tank_id}")
+async def lay_tank_theo_id(tank_id: str, user_id: str = Depends(lay_user_id)):
+    """Lấy hồ cụ thể theo ID (phải thuộc user)."""
+    ket_qua = (
+        supabase_admin.table("tanks")
+        .select("*, fish(*)")
+        .eq("id", tank_id)
+        .eq("user_id", user_id)
+        .execute()
+    )
+    if not ket_qua.data:
+        raise HTTPException(status_code=404, detail="Không tìm thấy hồ cá")
+    return {"tank": ket_qua.data[0]}
+
+
+@router.post("/tao-moi")
+async def tao_tank_moi(user_id: str = Depends(lay_user_id)):
+    """Tạo hồ mới. Tối đa 3 hồ mỗi người."""
+    existing = (
+        supabase_admin.table("tanks")
+        .select("id")
+        .eq("user_id", user_id)
+        .execute()
+    )
+    so_ho = len(existing.data or [])
+    if so_ho >= MAX_TANKS:
+        raise HTTPException(status_code=400, detail=f"Tối đa {MAX_TANKS} hồ")
+
+    tank_moi = (
+        supabase_admin.table("tanks")
+        .insert({
+            "user_id": user_id,
+            "ten": f"Hồ {so_ho + 1}",
+            "la_cong_khai": False,
+            "nen_ho": "ocean-shallow",
+        })
+        .execute()
+    )
+    return {"tank": tank_moi.data[0]}
 
 
 @router.get("/xem/{username}")
@@ -39,7 +95,7 @@ async def xem_tank_cong_khai(username: str):
         .select("*, fish(*)")
         .eq("user_id", profile.data["id"])
         .eq("la_cong_khai", True)
-        .single()
+        .limit(1)
         .execute()
     )
     if not tank.data:
@@ -47,7 +103,7 @@ async def xem_tank_cong_khai(username: str):
 
     return {
         "owner": profile.data,
-        "tank": tank.data,
+        "tank": tank.data[0],
     }
 
 

@@ -101,3 +101,24 @@ async def cap_nhat_avatar(
         .execute()
     )
     return {"profile": ket_qua.data[0]}
+
+
+@router.post("/thu-ngoc")
+async def thu_ngoc_trai(user_id: str = Depends(lay_user_id)):
+    """Người dùng bắt sứa → nhận 1 ngọc trai."""
+    profile = (
+        supabase_admin.table("profiles")
+        .select("ngoc_trai")
+        .eq("id", user_id)
+        .single()
+        .execute()
+    )
+    if not profile.data:
+        raise HTTPException(status_code=404, detail="Không tìm thấy profile")
+
+    ngoc_moi = (profile.data.get("ngoc_trai") or 0) + 1
+    supabase_admin.table("profiles").update(
+        {"ngoc_trai": ngoc_moi}
+    ).eq("id", user_id).execute()
+
+    return {"ngoc_trai": ngoc_moi}

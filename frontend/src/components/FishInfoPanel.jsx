@@ -29,6 +29,7 @@ export default function FishInfoPanel({
   onXoa,
   onDong,
   onMoQuanLyCa,
+  onCoinGain,
 }) {
   const [cheDoSua, setCheDoSua]       = useState(false)
   const [nickname, setNickname]       = useState(ca.nickname || '')
@@ -85,6 +86,7 @@ export default function FishInfoPanel({
     try {
       const res = await API.choAnCa(ca.id)
       onCapNhat?.(res.ca)
+      onCoinGain?.(res.coins_hien_tai)
       localStorage.setItem(`snd_an_${ca.id}`, String(Date.now()))
       setCdMs(DELAY_AN_MS)
     } catch {}

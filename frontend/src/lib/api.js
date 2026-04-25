@@ -64,7 +64,8 @@ export const API = {
       body: JSON.stringify({ youtube_url: youtubeUrl, nickname, loai_ca: loaiCa }),
     }),
 
-  layDanhSachCa: () => goiApi('/api/fish/danh-sach'),
+  layDanhSachCa: (tankId) =>
+    goiApi(`/api/fish/danh-sach${tankId ? `?tank_id=${tankId}` : ''}`),
 
   chinhSuaCa: (caId, data) =>
     goiApi(`/api/fish/chinh-sua/${caId}`, {
@@ -90,8 +91,14 @@ export const API = {
       body: JSON.stringify({ so_gio: soGio }),
     }),
 
+  // Pearl
+  thuNgoc: () => goiApi('/api/profile/thu-ngoc', { method: 'POST' }),
+
   // Tank
+  layDanhSachTank: () => goiApi('/api/tank/danh-sach'),
   layTankCuaToi: () => goiApi('/api/tank/cua-toi'),
+  layTankTheoId: (tankId) => goiApi(`/api/tank/theo-id/${tankId}`),
+  taoTankMoi: () => goiApi('/api/tank/tao-moi', { method: 'POST' }),
 
   xemTankNguoiKhac: (username) => goiApi(`/api/tank/xem/${username}`),
 

@@ -14,6 +14,8 @@ import ProfileCard from '../components/ProfileCard'
 import FishManagerModal from '../components/FishManagerModal'
 import ShopPanel from '../components/ShopPanel'
 import ExplorePanel from '../components/ExplorePanel'
+import TankSwitcher from '../components/TankSwitcher'
+import { tinhLevelNguoiChoi } from '../constants/playerLevel'
 
 function roundRect(ctx, x, y, w, h, r) {
   ctx.beginPath()
@@ -83,6 +85,11 @@ export default function Home() {
   const [videoIdDangPhat, setVideoIdDangPhat] = useState(null)
   const [ytPlayer, setYtPlayer]               = useState(null)
   const [profileData, setProfileData]         = useState(null)
+  const [suaGai, setSuaGai]                   = useState([])
+  const [ngocTrai, setNgocTrai]               = useState(0)
+  const [danhSachTank, setDanhSachTank]       = useState([])
+  const [selectedTankId, setSelectedTankId]   = useState(null)
+  const [dangTaoTank, setDangTaoTank]         = useState(false)
 
   const [nenHo, setNenHoState] = useState(() => localStorage.getItem('snd_nen') || 'ocean-shallow')
   const [dayHo, setDayHoState] = useState(() => localStorage.getItem('snd_day') || 'cat_trang')
@@ -110,7 +117,7 @@ export default function Home() {
   }, [ytPlayer])
 
   const { dangPhat, phatCa, dungPhat } = useAudio()
-  const { coins, thuHoach }            = useCoins()
+  const { coins, thuHoach, setCoins }  = useCoins()
 
   const caDangPhat = danhSachCa.find(c => c.id === dangPhat) ?? null
 
@@ -124,12 +131,35 @@ export default function Home() {
 
   async function khoiDong() {
     try {
-      const [tankRes] = await Promise.all([API.layTankCuaToi(), thuHoach()])
-      setDanhSachCa(tankRes.tank.fish || [])
+      const [tankListRes] = await Promise.all([API.layDanhSachTank(), thuHoach()])
+      const tanks = tankListRes.tanks || []
+      setDanhSachTank(tanks)
+      if (tanks.length > 0) {
+        const tid = tanks[0].id
+        setSelectedTankId(tid)
+        const fishRes = await API.layDanhSachCa(tid)
+        setDanhSachCa(fishRes.danh_sach_ca || [])
+      }
     } catch {
       hienToast('Không kết nối được server', 'loi')
     }
   }
+
+  // Spawn sứa ngẫu nhiên (tối đa 3, cứ 45s một con)
+  useEffect(() => {
+    const id = setInterval(() => {
+      setSuaGai(prev => {
+        if (prev.length >= 3) return prev
+        return [...prev, {
+          id: Date.now().toString(),
+          x: 0.12 + Math.random() * 0.76,
+          y: 0.1  + Math.random() * 0.55,
+          pha: Math.random() * Math.PI * 2,
+        }]
+      })
+    }, 45000)
+    return () => clearInterval(id)
+  }, [])
 
   function hienToast(thongBao, loai = 'info') { setToast({ thongBao, loai }) }
 
@@ -170,6 +200,41 @@ export default function Home() {
     hienToast(`${ca.nickname || ca.ten_bai} đã vào hồ!`, 'thanhCong')
   }
 
+  async function bietSua(suaId) {
+    setSuaGai(prev => prev.filter(s => s.id !== suaId))
+    try {
+      const res = await API.thuNgoc()
+      setNgocTrai(res.ngoc_trai)
+      hienToast(`💎 +1 ngọc trai! (tổng: ${res.ngoc_trai})`, 'thanhCong')
+    } catch {}
+  }
+
+  async function doiTank(tankId) {
+    if (tankId === selectedTankId) return
+    setSelectedTankId(tankId)
+    setInfoCa(null)
+    try {
+      const res = await API.layDanhSachCa(tankId)
+      setDanhSachCa(res.danh_sach_ca || [])
+    } catch {
+      hienToast('Không tải được hồ', 'loi')
+    }
+  }
+
+  async function taoTankMoi() {
+    setDangTaoTank(true)
+    try {
+      const res = await API.taoTankMoi()
+      setDanhSachTank(prev => [...prev, res.tank])
+      doiTank(res.tank.id)
+      hienToast(`Đã tạo ${res.tank.ten}!`, 'thanhCong')
+    } catch (err) {
+      hienToast(err.message || 'Tối đa 3 hồ', 'loi')
+    } finally {
+      setDangTaoTank(false)
+    }
+  }
+
   function khiKetThucBai() {
     if (loopMode === 'one') {
       // Phát lại bài hiện tại
@@ -200,8 +265,7 @@ export default function Home() {
     ctx.drawImage(src, 0, 0)
 
     if (profileData) {
-      const tongXP  = danhSachCa.reduce((s, c) => s + (c.xp || 0), 0)
-      const levelHo = Math.max(1, Math.floor(tongXP / 100))
+      const levelHo = tinhLevelNguoiChoi(profileData.tong_gio_nghe || 0)
       const BOX_W = 210, BOX_H = 72, PAD = 14, R = 12
 
       ctx.save()
@@ -280,6 +344,8 @@ export default function Home() {
         dayHo={dayHo}
         onClickCa={clickCa}
         caLevelUp={caLevelUp}
+        suaGai={suaGai}
+        onClickSua={bietSua}
       />
 
       {danhSachCa.length === 0 && (
@@ -296,8 +362,22 @@ export default function Home() {
 
       {/* Header */}
       <div className="absolute top-0 left-0 right-0 flex items-center justify-between px-4 pt-4">
-        <ProfileCard danhSachCa={danhSachCa} coins={coins} onProfileLoad={setProfileData} />
+        <ProfileCard
+          danhSachCa={danhSachCa}
+          coins={coins}
+          ngocTrai={ngocTrai}
+          onProfileLoad={p => { setProfileData(p); setNgocTrai(p.ngoc_trai || 0) }}
+        />
         <div className="flex items-center gap-2">
+          {danhSachTank.length > 0 && (
+            <TankSwitcher
+              danhSachTank={danhSachTank}
+              selectedId={selectedTankId}
+              onChon={doiTank}
+              onTaoMoi={taoTankMoi}
+              dangTao={dangTaoTank}
+            />
+          )}
           <IconBtn onClick={chiaSe} title="Chia sẻ hồ">🔗</IconBtn>
           <IconBtn onClick={chupAnhHo} title="Chụp ảnh hồ">📷</IconBtn>
           <IconBtn onClick={() => setHienExplore(true)} title="Khám phá">🧭</IconBtn>
@@ -339,6 +419,7 @@ export default function Home() {
           onXoa={xoaCa}
           onDong={() => setInfoCa(null)}
           onMoQuanLyCa={() => setHienFishManager(true)}
+          onCoinGain={setCoins}
         />
       )}
 
