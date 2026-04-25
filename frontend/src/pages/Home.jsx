@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { supabase } from '../lib/supabase'
 import { API } from '../lib/api'
@@ -91,6 +91,7 @@ export default function Home() {
   const [selectedTankId, setSelectedTankId]   = useState(null)
   const [dangTaoTank, setDangTaoTank]         = useState(false)
   const [playerBarHeight, setPlayerBarHeight] = useState(0)
+  const playerBarRef = useRef(null)
   const [dangKhoiDong, setDangKhoiDong]       = useState(true)
   const [loiKetNoi, setLoiKetNoi]             = useState(false)
   const [soLanThu, setSoLanThu]               = useState(1)
@@ -130,6 +131,17 @@ export default function Home() {
       khoiDong()
     })
   }, [navigate])
+
+  // Đo chiều cao player bar để canvas né
+  useEffect(() => {
+    const el = playerBarRef.current
+    if (!el) return
+    const obs = new ResizeObserver(() => {
+      setPlayerBarHeight(el.offsetHeight)
+    })
+    obs.observe(el)
+    return () => obs.disconnect()
+  }, [])
 
   async function khoiDong(lan = 1) {
     setSoLanThu(lan)
@@ -435,19 +447,20 @@ export default function Home() {
         onEnded={khiKetThucBai}
       />
 
-      <MusicPlayerBar
-        caDangPhat={caDangPhat}
-        danhSachCa={danhSachCa}
-        dangPhat={!!dangPhat}
-        player={ytPlayer}
-        onToggle={togglePhatCaHienTai}
-        onChuyenCa={chuyenCa}
-        repeatMode={repeatMode}
-        onRepeatMode={doiRepeatMode}
-        volume={volume}
-        onVolume={doiVolume}
-        onHeightChange={setPlayerBarHeight}
-      />
+      <div ref={playerBarRef} className="fixed bottom-0 left-0 right-0 z-[100]">
+        <MusicPlayerBar
+          caDangPhat={caDangPhat}
+          danhSachCa={danhSachCa}
+          dangPhat={!!dangPhat}
+          player={ytPlayer}
+          onToggle={togglePhatCaHienTai}
+          onChuyenCa={chuyenCa}
+          repeatMode={repeatMode}
+          onRepeatMode={doiRepeatMode}
+          volume={volume}
+          onVolume={doiVolume}
+        />
+      </div>
 
       {infoCa && (
         <FishInfoPanel

@@ -336,7 +336,7 @@ function veCa(ctx, ca, trang, dangPhat, hHieuQua) {
   const w = ctx.canvas.width
   const h = hHieuQua ?? ctx.canvas.height    // dùng vùng hiệu quả nếu có
   if (trang.x < kt || trang.x > w - kt) trang.huongX *= -1
-  trang.y = Math.max(kt * 0.5, Math.min(h - kt * 0.5, trang.y))
+  trang.y = Math.max(kt * 0.5, Math.min(h - 60, trang.y))
 
   const gocDuoi = Math.sin(trang.pha * 2) * 0.28
 
@@ -510,7 +510,7 @@ export default function AquariumCanvas({
     }
 
     const dayMau = DAY_HO_MAU[dayHo] || '#c8b89a'
-    const dayH = Math.max(50, h * 0.08)
+    const dayH = 40
     const dayY = h - dayH
     const dayGrad = ctx.createLinearGradient(0, dayY, 0, h)
     dayGrad.addColorStop(0, dayMau + '00')
@@ -649,7 +649,7 @@ export default function AquariumCanvas({
   return (
     <canvas
       ref={canvasRef}
-      className="fixed inset-0 w-full z-0"
+      className="fixed top-0 left-0 right-0 z-0"
       style={{ cursor: 'pointer', height: `calc(100vh - ${bottomPad}px)` }}
       onClick={xuLyClick}
       onMouseDown={xuLyMouseDown}

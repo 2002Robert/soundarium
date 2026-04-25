@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef, useLayoutEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 
 function formatThoiGian(giay) {
   if (!giay || isNaN(giay) || giay < 0) return '0:00'
@@ -38,7 +38,6 @@ export default function MusicPlayerBar({
   onRepeatMode,
   volume = 70,
   onVolume,
-  onHeightChange,
 }) {
   const [thoiGian, setThoiGian]   = useState(0)
   const [tongGio, setTongGio]     = useState(0)
@@ -48,18 +47,6 @@ export default function MusicPlayerBar({
   const intervalRef   = useRef(null)
   const songRef       = useRef(null)
   const containerRef  = useRef(null)
-  const barRef        = useRef(null)
-
-  // Báo chiều cao cho parent để canvas né
-  useLayoutEffect(() => {
-    const el = barRef.current
-    if (!el) return
-    const obs = new ResizeObserver(entries => {
-      onHeightChange?.(entries[0].borderBoxSize?.[0]?.blockSize ?? entries[0].contentRect.height)
-    })
-    obs.observe(el)
-    return () => obs.disconnect()
-  }, [])
 
   useEffect(() => {
     if (!caDangPhat) return
@@ -137,8 +124,6 @@ export default function MusicPlayerBar({
 
   return (
     <div
-      ref={barRef}
-      className="fixed bottom-0 left-0 right-0 z-[100]"
       style={{
         background:    'linear-gradient(to bottom, transparent, rgba(0,0,0,0.72))',
         backdropFilter:'blur(20px)',
