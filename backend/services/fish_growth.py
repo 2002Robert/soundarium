@@ -17,6 +17,7 @@ GIA_CA = {
     "ca_koi": 150,
     "ca_chep": 150,
     "ca_dia": 500,
+    "sua_gai": 500,
 }
 
 LOAI_CA = list(GIA_CA.keys())
@@ -74,9 +75,16 @@ def tinh_do_mo(lan_nghe_cuoi: str) -> float:
 
 def tao_ca_ngau_nhien(loai_ca: str = None) -> dict:
     """Random màu và vị trí khi tạo cá. Dùng loai_ca được chọn nếu hợp lệ."""
+    loai = loai_ca if loai_ca in GIA_CA else random.choice(LOAI_CA)
+    # Sứa gai nổi ở vùng trên hồ
+    vi_tri_y = (
+        round(random.uniform(0.1, 0.48), 2)
+        if loai == "sua_gai"
+        else round(random.uniform(0.2, 0.8), 2)
+    )
     return {
-        "loai_ca": loai_ca if loai_ca in GIA_CA else random.choice(LOAI_CA),
+        "loai_ca": loai,
         "mau_ca": random.choice(MAU_CA),
-        "vi_tri_x": round(random.uniform(0.1, 0.9), 2),
-        "vi_tri_y": round(random.uniform(0.2, 0.8), 2),
+        "vi_tri_x": round(random.uniform(0.12, 0.88), 2),
+        "vi_tri_y": vi_tri_y,
     }

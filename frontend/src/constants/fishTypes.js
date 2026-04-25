@@ -49,6 +49,9 @@ export const LOAI_CA = {
     tyLeDuoi: 0.4,
     baoGomVay: false,
   },
+  sua_gai: {
+    ten: 'Sứa Gai',
+  },
 }
 
 export const KICH_THUOC_THEO_LEVEL = { 1: 40, 2: 52, 3: 64, 4: 72, 5: 80 }

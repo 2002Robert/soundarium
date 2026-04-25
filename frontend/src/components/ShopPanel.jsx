@@ -207,16 +207,14 @@ export default function ShopPanel({
   coins = 0,
   playerLevel = 1,
   onCoinsUpdate,
-  onThemSua,
   onThemConTrai,
   conTrai = [],
 }) {
-  const [tab, setTab]               = useState('ca')
-  const [modal, setModal]           = useState(null)
-  const [tuKhoa, setTuKhoa]         = useState('')
-  const [dangMuaSua, setDangMuaSua] = useState(false)
-  const [dangMuaCT,  setDangMuaCT]  = useState(false)
-  const cardRefs                    = useRef({})
+  const [tab, setTab]              = useState('ca')
+  const [modal, setModal]          = useState(null)
+  const [tuKhoa, setTuKhoa]        = useState('')
+  const [dangMuaCT, setDangMuaCT]  = useState(false)
+  const cardRefs                   = useRef({})
 
   useEffect(() => {
     if (!tuKhoa || tab !== 'ca') return
@@ -230,19 +228,6 @@ export default function ShopPanel({
     onThemCa(ca)
     if (coinsConLai != null) onCoinsUpdate?.(coinsConLai)
     setModal(null)
-  }
-
-  async function khiMuaSua() {
-    setDangMuaSua(true)
-    try {
-      const res = await API.muaSua()
-      onCoinsUpdate?.(res.coins_con_lai)
-      onThemSua?.()
-    } catch (err) {
-      alert(err.message || 'Không mua được sứa')
-    } finally {
-      setDangMuaSua(false)
-    }
   }
 
   async function khiMuaConTrai() {
@@ -333,8 +318,12 @@ export default function ShopPanel({
                     levelYeuCau={item.levelYeuCau || 0}
                     coins={coins}
                     playerLevel={playerLevel}
-                    onMua={item.id === 'sua_gai' ? khiMuaSua : khiMuaConTrai}
-                    dangMua={item.id === 'sua_gai' ? dangMuaSua : dangMuaCT}
+                    onMua={
+                      item.id === 'sua_gai'
+                        ? () => setModal({ loai_ca: 'sua_gai', ten: 'Sứa Gai' })
+                        : khiMuaConTrai
+                    }
+                    dangMua={item.id === 'ngoc_trai' ? dangMuaCT : false}
                     isDisabled={item.id === 'ngoc_trai' && conTrai.length > 0}
                   />
                 ))}

@@ -85,15 +85,6 @@ export default function Home() {
   const [videoIdDangPhat, setVideoIdDangPhat] = useState(null)
   const [ytPlayer, setYtPlayer]               = useState(null)
   const [profileData, setProfileData]         = useState(null)
-  const [suaGai, setSuaGai]                   = useState(() => {
-    const n = Math.max(0, parseInt(localStorage.getItem('snd_so_sua') || '0'))
-    return Array.from({ length: n }, (_, i) => ({
-      id: `sua_${i}`,
-      x: 0.15 + Math.random() * 0.7,
-      y: 0.1  + Math.random() * 0.5,
-      pha: (i * 2.1) % (Math.PI * 2),
-    }))
-  })
   const [ngocTrai, setNgocTrai]               = useState(0)
   const [conTrai, setConTrai]                 = useState(() => {
     try {
@@ -140,6 +131,9 @@ export default function Home() {
 
   const { dangPhat, phatCa, dungPhat } = useAudio()
   const { coins, thuHoach, setCoins }  = useCoins()
+
+  const danhSachSua      = danhSachCa.filter(c => c.loai_ca === 'sua_gai')
+  const danhSachCaThuong = danhSachCa.filter(c => c.loai_ca !== 'sua_gai')
 
   const caDangPhat = danhSachCa.find(c => c.id === dangPhat) ?? null
 
@@ -423,13 +417,13 @@ export default function Home() {
       )}
 
       <AquariumCanvas
-        danhSachCa={danhSachCa}
+        danhSachCa={danhSachCaThuong}
         dangPhat={dangPhat}
         nenHo={nenHo}
         dayHo={dayHo}
         onClickCa={clickCa}
         caLevelUp={caLevelUp}
-        suaGai={suaGai}
+        suaGai={danhSachSua}
         conTrai={conTrai}
         onClickConTrai={nhatNgocConTrai}
         bottomPad={playerBarHeight}
@@ -522,21 +516,6 @@ export default function Home() {
           playerLevel={tinhLevelNguoiChoi(profileData?.tong_gio_nghe || 0)}
           onCoinsUpdate={setCoins}
           conTrai={conTrai}
-          onThemSua={() => {
-            setSuaGai(prev => {
-              const newSua = {
-                id: `sua_${Date.now()}`,
-                x: 0.15 + Math.random() * 0.7,
-                y: 0.1  + Math.random() * 0.5,
-                pha: Math.random() * Math.PI * 2,
-              }
-              const next = [...prev, newSua]
-              localStorage.setItem('snd_so_sua', String(next.length))
-              return next
-            })
-            hienToast('🪼 Sứa hồng tím đã vào hồ!', 'thanhCong')
-            setHienShop(false)
-          }}
           onThemConTrai={() => {
             const now = Date.now()
             const newConTrai = Array.from({ length: 5 }, (_, i) => ({

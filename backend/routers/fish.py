@@ -16,6 +16,17 @@ router = APIRouter(prefix="/api/fish", tags=["fish"])
 
 COINS_KHI_CHO_AN = 3  # coins thưởng mỗi lần cho ăn
 
+_NGUONG_LEVEL = [0, 2, 8, 25, 75, 200, 500]
+_LEVEL_SUA_GAI = 3
+
+
+def _tinh_level_nguoi_choi(gio_nghe: float) -> int:
+    level = 1
+    for i, nguong in enumerate(_NGUONG_LEVEL):
+        if gio_nghe >= nguong:
+            level = i + 1
+    return level
+
 
 async def _lay_tank_id_cua_user(user_id: str, tank_id: Optional[str] = None) -> str:
     """Lấy tank_id của user. Nếu tank_id được chỉ định, xác thực nó thuộc user."""
@@ -72,15 +83,25 @@ async def them_ca_moi(
 
     coins_hien_co = 0
     if gia > 0:
+        fields = "coins,tong_gio_nghe" if loai_ca == "sua_gai" else "coins"
         profile = (
             supabase_admin.table("profiles")
-            .select("coins")
+            .select(fields)
             .eq("id", user_id)
             .single()
             .execute()
         )
         if not profile.data:
             raise HTTPException(status_code=404, detail="Không tìm thấy profile")
+
+        if loai_ca == "sua_gai":
+            level = _tinh_level_nguoi_choi(profile.data.get("tong_gio_nghe") or 0)
+            if level < _LEVEL_SUA_GAI:
+                raise HTTPException(
+                    status_code=403,
+                    detail=f"Cần Lv.{_LEVEL_SUA_GAI} để mua Sứa (hiện tại Lv.{level})"
+                )
+
         coins_hien_co = profile.data.get("coins", 0)
         if coins_hien_co < gia:
             raise HTTPException(status_code=402, detail=f"Không đủ coins (cần {gia})")

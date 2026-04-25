@@ -608,6 +608,7 @@ export default function AquariumCanvas({
   const longPressedRef = useRef(false)
   const suaGaiRef      = useRef(suaGai)
   suaGaiRef.current    = suaGai
+  const suaPosRef      = useRef({})
   const conTraiRef     = useRef(conTrai)
   conTraiRef.current   = conTrai
   const conTraiPosRef  = useRef({})
@@ -688,15 +689,18 @@ export default function AquariumCanvas({
       }
     })
 
-    // Vẽ sứa hồng tím (passive, không click)
+    // Vẽ sứa gai (DB objects — có nhạc, có thể click)
     const suaList = suaGaiRef.current
     if (suaList.length > 0) {
       const t = frameRef.current * 0.02
       suaList.forEach(sua => {
-        const rx = sua.x * w
-        const ry = sua.y * h + Math.sin(t * 0.7 + sua.pha) * 12
-        const sr = Math.min(w, h) * 0.038
-        veSua(ctx, rx, ry, sr, sua.pha, t)
+        // Pha xác định từ id (ổn định qua các frame)
+        const pha = sua.id.split('').reduce((a, c) => a + c.charCodeAt(0), 0) * 0.037 % (Math.PI * 2)
+        const rx  = sua.vi_tri_x * w
+        const ry  = Math.min(sua.vi_tri_y, 0.52) * h + Math.sin(t * 0.7 + pha) * 12
+        const sr  = Math.min(w, h) * 0.038
+        veSua(ctx, rx, ry, sr, pha, t)
+        suaPosRef.current[sua.id] = { x: rx, y: ry, r: sr, obj: sua }
       })
     }
 
@@ -764,6 +768,15 @@ export default function AquariumCanvas({
       if (dx * dx + dy * dy < (pos.r * 2.2) ** 2) {
         const ct = conTraiRef.current.find(c => c.id === ctId)
         if (ct?.isOpen) { onClickConTrai?.(ctId); return }
+      }
+    }
+
+    // Check jellyfish (rendered on top of fish)
+    for (const [, pos] of Object.entries(suaPosRef.current)) {
+      const dx = mx - pos.x, dy = my - pos.y
+      if (dx * dx + dy * dy < (pos.r * 1.8) ** 2) {
+        onClickCa?.(pos.obj, pos.x, pos.y)
+        return
       }
     }
 
