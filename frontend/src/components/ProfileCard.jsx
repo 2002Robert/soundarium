@@ -1,5 +1,6 @@
 import { useState, useEffect, useRef } from 'react'
 import { API } from '../lib/api'
+import { supabase } from '../lib/supabase'
 import FishIcon from './FishIcon'
 
 const LOAI_CA = [
@@ -41,7 +42,25 @@ export default function ProfileCard({ danhSachCa, coins, onProfileLoad, compact 
           onProfileLoad?.(res.profile)
         }
       })
-      .catch(() => {})
+      .catch(async () => {
+        // Backend down hoặc column chưa có → fallback về auth session
+        try {
+          const { data } = await supabase.auth.getUser()
+          if (data?.user) {
+            const fallback = {
+              username: data.user.user_metadata?.full_name
+                || data.user.email?.split('@')[0]
+                || 'Người chơi',
+              coins: 0,
+              tong_gio_nghe: 0,
+              avatar_loai_ca: 'ca_vang',
+              da_doi_username: false,
+            }
+            setProfile(fallback)
+            onProfileLoad?.(fallback)
+          }
+        } catch {}
+      })
   }, [])
 
   useEffect(() => {

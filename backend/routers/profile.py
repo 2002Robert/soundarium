@@ -43,7 +43,7 @@ class CapNhatAvatar(BaseModel):
 async def lay_profile(user_id: str = Depends(lay_user_id)):
     ket_qua = (
         supabase_admin.table("profiles")
-        .select("id, username, coins, tong_gio_nghe, avatar_loai_ca, da_doi_username")
+        .select("*")
         .eq("id", user_id)
         .single()
         .execute()
