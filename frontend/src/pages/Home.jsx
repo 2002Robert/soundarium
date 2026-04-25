@@ -412,7 +412,11 @@ export default function Home() {
           ngocTrai={ngocTrai}
           onProfileLoad={p => { setProfileData(p); setNgocTrai(p.ngoc_trai || 0) }}
         />
-        <div className="flex items-center gap-1.5 mt-2">
+        <div className="flex flex-col gap-1.5 mt-2">
+          <IconBtn onClick={chiaSe} title="Chia sẻ hồ">🔗</IconBtn>
+          <IconBtn onClick={chupAnhHo} title="Chụp ảnh hồ">📷</IconBtn>
+          <IconBtn onClick={() => setHienExplore(true)} title="Khám phá">🔍</IconBtn>
+          <IconBtn onClick={() => setHienShop(true)} title="Cửa hàng">🛒</IconBtn>
           <TankSwitcher
             danhSachTank={danhSachTank}
             selectedId={selectedTankId}
@@ -420,10 +424,6 @@ export default function Home() {
             onTaoMoi={taoTankMoi}
             dangTao={dangTaoTank}
           />
-          <IconBtn onClick={chiaSe} title="Chia sẻ hồ">🔗</IconBtn>
-          <IconBtn onClick={chupAnhHo} title="Chụp ảnh hồ">📷</IconBtn>
-          <IconBtn onClick={() => setHienExplore(true)} title="Khám phá">🔍</IconBtn>
-          <IconBtn onClick={() => setHienShop(true)} title="Cửa hàng">🛒</IconBtn>
           <IconBtn onClick={() => setHienLogout(true)} title="Đăng xuất" className="text-ho-anh/40">🚪</IconBtn>
         </div>
       </div>

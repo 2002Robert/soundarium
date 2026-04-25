@@ -484,13 +484,13 @@ export default function AquariumCanvas({
     if (!canvas) return
     const ctx = canvas.getContext('2d')
 
-    if (canvas.width !== window.innerWidth || canvas.height !== window.innerHeight) {
+    const effectiveH = window.innerHeight - bottomPadRef.current
+    if (canvas.width !== window.innerWidth || canvas.height !== effectiveH) {
       canvas.width  = window.innerWidth
-      canvas.height = window.innerHeight
+      canvas.height = effectiveH
     }
 
     const w = canvas.width, h = canvas.height
-    const hHieuQua = h - bottomPadRef.current   // vùng cá được bơi (trừ player bar)
     const nen = NEN_HO[nenHo] || NEN_HO['ocean-shallow']
 
     const grad = ctx.createLinearGradient(0, 0, 0, h)
@@ -509,21 +509,20 @@ export default function AquariumCanvas({
       ctx.fillRect(0, 0, w, h)
     }
 
-    // Đáy hồ — dùng hHieuQua để cát luôn hiện trên player bar
     const dayMau = DAY_HO_MAU[dayHo] || '#c8b89a'
-    const dayH = Math.max(50, hHieuQua * 0.08)
-    const dayY = hHieuQua - dayH
-    const dayGrad = ctx.createLinearGradient(0, dayY, 0, hHieuQua)
+    const dayH = Math.max(50, h * 0.08)
+    const dayY = h - dayH
+    const dayGrad = ctx.createLinearGradient(0, dayY, 0, h)
     dayGrad.addColorStop(0, dayMau + '00')
     dayGrad.addColorStop(0.35, dayMau + 'bb')
     dayGrad.addColorStop(1, dayMau + 'ff')
     ctx.fillStyle = dayGrad
     ctx.beginPath()
-    ctx.moveTo(0, hHieuQua)
+    ctx.moveTo(0, h)
     for (let x = 0; x <= w; x += 18) {
       ctx.lineTo(x, dayY + Math.sin(x * 0.04 + thoiGian * 0.4) * 5)
     }
-    ctx.lineTo(w, hHieuQua)
+    ctx.lineTo(w, h)
     ctx.closePath()
     ctx.fill()
 
@@ -532,7 +531,7 @@ export default function AquariumCanvas({
     danhSachCa.forEach(ca => {
       const trang = trangThaiChuyen.get(ca.id)
       if (!trang) return
-      veCa(ctx, ca, trang, dangPhat === ca.id, hHieuQua)
+      veCa(ctx, ca, trang, dangPhat === ca.id, h)
 
       const ten = ca.nickname || ca.ten_bai || ''
       if (ten) {
@@ -558,8 +557,8 @@ export default function AquariumCanvas({
       const t = frameRef.current * 0.02
       suaList.forEach(sua => {
         const rx = sua.x * w
-        const ry = sua.y * hHieuQua + Math.sin(t * 0.7 + sua.pha) * 12
-        const sr = Math.min(w, hHieuQua) * 0.038
+        const ry = sua.y * h + Math.sin(t * 0.7 + sua.pha) * 12
+        const sr = Math.min(w, h) * 0.038
         veSua(ctx, rx, ry, sr, sua.pha, t)
         suaGaiPosRef.current[sua.id] = { x: rx, y: ry, r: sr }
       })
@@ -650,8 +649,8 @@ export default function AquariumCanvas({
   return (
     <canvas
       ref={canvasRef}
-      className="fixed inset-0 w-full h-full z-0"
-      style={{ cursor: 'pointer' }}
+      className="fixed inset-0 w-full z-0"
+      style={{ cursor: 'pointer', height: `calc(100vh - ${bottomPad}px)` }}
       onClick={xuLyClick}
       onMouseDown={xuLyMouseDown}
       onMouseUp={xuLyMouseUp}

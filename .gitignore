@@ -1,5 +1,6 @@
 # Không bao giờ đẩy file này lên GitHub
 .env
+.claude/
 backend/.env
 frontend/.env
 
