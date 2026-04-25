@@ -103,6 +103,51 @@ async def cap_nhat_avatar(
     return {"profile": ket_qua.data[0]}
 
 
+_NGUONG_LEVEL = [0, 2, 8, 25, 75, 200, 500]
+_GIA_SUA = 100
+_YEU_CAU_LEVEL_SUA = 3
+
+
+def _tinh_level(gio_nghe: float) -> int:
+    level = 1
+    for i, nguong in enumerate(_NGUONG_LEVEL):
+        if gio_nghe >= nguong:
+            level = i + 1
+    return level
+
+
+@router.post("/mua-sua")
+async def mua_sua_gai(user_id: str = Depends(lay_user_id)):
+    """Mua sứa gai bằng coins. Yêu cầu Lv.3."""
+    profile = (
+        supabase_admin.table("profiles")
+        .select("coins, tong_gio_nghe")
+        .eq("id", user_id)
+        .single()
+        .execute()
+    )
+    if not profile.data:
+        raise HTTPException(status_code=404, detail="Không tìm thấy profile")
+
+    level = _tinh_level(profile.data.get("tong_gio_nghe") or 0)
+    if level < _YEU_CAU_LEVEL_SUA:
+        raise HTTPException(
+            status_code=403,
+            detail=f"Cần Lv.{_YEU_CAU_LEVEL_SUA} để mua Sứa (hiện tại Lv.{level})"
+        )
+
+    coins = profile.data.get("coins", 0)
+    if coins < _GIA_SUA:
+        raise HTTPException(status_code=402, detail=f"Không đủ coins (cần {_GIA_SUA})")
+
+    coins_con_lai = coins - _GIA_SUA
+    supabase_admin.table("profiles").update(
+        {"coins": coins_con_lai}
+    ).eq("id", user_id).execute()
+
+    return {"coins_con_lai": coins_con_lai}
+
+
 @router.post("/thu-ngoc")
 async def thu_ngoc_trai(user_id: str = Depends(lay_user_id)):
     """Người dùng bắt sứa → nhận 1 ngọc trai."""

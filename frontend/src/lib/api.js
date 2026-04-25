@@ -101,8 +101,9 @@ export const API = {
       body: JSON.stringify({ so_gio: soGio }),
     }),
 
-  // Pearl
+  // Pearl & Jellyfish
   thuNgoc: () => goiApi('/api/profile/thu-ngoc', { method: 'POST' }),
+  muaSua:  () => goiApi('/api/profile/mua-sua',  { method: 'POST' }),
 
   // Tank
   layDanhSachTank: () => goiApi('/api/tank/danh-sach'),

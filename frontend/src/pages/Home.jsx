@@ -487,6 +487,22 @@ export default function Home() {
           onDong={() => setHienShop(false)}
           nenHo={nenHo} dayHo={dayHo}
           onChonNen={chonNen} onChonDay={chonDay}
+          coins={coins}
+          playerLevel={tinhLevelNguoiChoi(profileData?.tong_gio_nghe || 0)}
+          onCoinsUpdate={setCoins}
+          onThemSua={() => {
+            setSuaGai(prev => {
+              if (prev.length >= 3) return prev
+              return [...prev, {
+                id: Date.now().toString(),
+                x: 0.12 + Math.random() * 0.76,
+                y: 0.1  + Math.random() * 0.55,
+                pha: Math.random() * Math.PI * 2,
+              }]
+            })
+            hienToast('🪼 Sứa đã vào hồ!', 'thanhCong')
+            setHienShop(false)
+          }}
         />
       )}
 

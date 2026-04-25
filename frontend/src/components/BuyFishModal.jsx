@@ -30,8 +30,8 @@ export default function BuyFishModal({ loaiCa, tenLoai, onXong, onDong }) {
     setDangThem(true)
     setLoi('')
     try {
-      const { ca } = await API.themCa(url, nickname.trim() || undefined, loaiCa)
-      onXong(ca)
+      const res = await API.themCa(url, nickname.trim() || undefined, loaiCa)
+      onXong(res.ca, res.coins_con_lai)
     } catch (err) {
       setLoi(err.message || 'Có lỗi xảy ra')
     } finally {

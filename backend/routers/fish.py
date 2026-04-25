@@ -8,6 +8,7 @@ from services.fish_growth import (
     tinh_xp_tu_phut_nghe,
     kiem_tra_len_level,
     tao_ca_ngau_nhien,
+    GIA_CA,
 )
 from datetime import datetime, timezone
 
@@ -65,8 +66,27 @@ async def them_ca_moi(
     if trung_lap.data:
         raise HTTPException(status_code=409, detail="Bài nhạc này đã có trong hồ rồi")
 
+    # Kiểm tra giá và coins
+    loai_ca = body.loai_ca if body.loai_ca in GIA_CA else None
+    gia = GIA_CA.get(loai_ca, 0) if loai_ca else 0
+
+    coins_hien_co = 0
+    if gia > 0:
+        profile = (
+            supabase_admin.table("profiles")
+            .select("coins")
+            .eq("id", user_id)
+            .single()
+            .execute()
+        )
+        if not profile.data:
+            raise HTTPException(status_code=404, detail="Không tìm thấy profile")
+        coins_hien_co = profile.data.get("coins", 0)
+        if coins_hien_co < gia:
+            raise HTTPException(status_code=402, detail=f"Không đủ coins (cần {gia})")
+
     thong_tin = await lay_thong_tin_video(video_id)
-    thuoc_tinh_ngau_nhien = tao_ca_ngau_nhien()
+    thuoc_tinh = tao_ca_ngau_nhien(loai_ca)
 
     ca_moi = {
         "tank_id": tid,
@@ -75,11 +95,19 @@ async def them_ca_moi(
         "ten_bai": thong_tin["ten_bai"],
         "ten_kenh": thong_tin["ten_kenh"],
         "nickname": body.nickname,
-        **thuoc_tinh_ngau_nhien,
+        **thuoc_tinh,
     }
 
     ket_qua = supabase_admin.table("fish").insert(ca_moi).execute()
-    return {"ca": ket_qua.data[0], "da_len_level": False}
+
+    coins_con_lai = None
+    if gia > 0:
+        coins_con_lai = coins_hien_co - gia
+        supabase_admin.table("profiles").update(
+            {"coins": coins_con_lai}
+        ).eq("id", user_id).execute()
+
+    return {"ca": ket_qua.data[0], "da_len_level": False, "coins_con_lai": coins_con_lai}
 
 
 @router.get("/danh-sach")

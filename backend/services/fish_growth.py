@@ -8,11 +8,19 @@ _LEVEL_TOI_DA = 5
 # Kích thước render (px) theo level
 KICH_THUOC_THEO_LEVEL = {1: 40, 2: 52, 3: 64, 4: 72, 5: 80}
 
-# Danh sách loài và màu để random khi tạo cá mới
-LOAI_CA = [
-    "ca_vang", "ca_neon", "ca_betta", "ca_clownfish",
-    "ca_tang", "ca_angel", "ca_guppy", "ca_tetra",
-]
+GIA_CA = {
+    "ca_vang": 0,
+    "ca_neon": 0,
+    "ca_betta": 50,
+    "ca_clownfish": 50,
+    "ca_tang": 50,
+    "ca_koi": 150,
+    "ca_chep": 150,
+    "ca_dia": 500,
+}
+
+LOAI_CA = list(GIA_CA.keys())
+
 MAU_CA = [
     "#ff6b6b", "#ffd93d", "#6bcb77", "#4d96ff",
     "#ff922b", "#cc5de8", "#20c997", "#f06595",
@@ -64,10 +72,10 @@ def tinh_do_mo(lan_nghe_cuoi: str) -> float:
     return 1.0 - (so_ngay - 7) / 23 * 0.8
 
 
-def tao_ca_ngau_nhien() -> dict:
-    """Random loài và màu khi người dùng thêm cá mới."""
+def tao_ca_ngau_nhien(loai_ca: str = None) -> dict:
+    """Random màu và vị trí khi tạo cá. Dùng loai_ca được chọn nếu hợp lệ."""
     return {
-        "loai_ca": random.choice(LOAI_CA),
+        "loai_ca": loai_ca if loai_ca in GIA_CA else random.choice(LOAI_CA),
         "mau_ca": random.choice(MAU_CA),
         "vi_tri_x": round(random.uniform(0.1, 0.9), 2),
         "vi_tri_y": round(random.uniform(0.2, 0.8), 2),
