@@ -69,8 +69,18 @@ export default function PublicTank() {
   }
 
   if (dang404) return (
-    <div className="min-h-screen flex items-center justify-center bg-ho-sau text-ho-anh/60">
-      Không tìm thấy hồ này
+    <div className="min-h-screen flex flex-col items-center justify-center bg-ho-sau px-6 text-center">
+      <div className="text-7xl mb-5 opacity-60">🌊</div>
+      <h1 className="text-white font-bold text-xl mb-2">Hồ này chưa công khai</h1>
+      <p className="text-ho-anh/50 text-sm mb-7 max-w-xs">
+        Hồ của <span className="text-ho-anh/80 font-medium">{username}</span> chưa được chia sẻ hoặc không tồn tại.
+      </p>
+      <a
+        href="/"
+        className="bg-ho-anh hover:bg-ho-accent text-ho-sau font-semibold px-6 py-3 rounded-xl transition text-sm"
+      >
+        Tạo hồ của bạn →
+      </a>
     </div>
   )
 

@@ -425,6 +425,50 @@ function veSua(ctx, x, y, r, pha, t) {
   ctx.arc(x, y, rp, Math.PI, 0)
   ctx.stroke()
 
+  // Mặt cute chibi
+  const ey = y - rp * 0.12   // vị trí y của mắt
+  const ex = rp * 0.27        // khoảng cách x từ tâm
+  const er = rp * 0.12        // bán kính mắt
+
+  // Má hồng (vẽ trước mắt để nằm dưới)
+  ctx.globalAlpha = 0.38
+  ctx.fillStyle = 'rgba(255,140,170,1)'
+  ctx.beginPath()
+  ctx.ellipse(x - rp * 0.38, ey + rp * 0.14, rp * 0.18, rp * 0.10, 0, 0, Math.PI * 2)
+  ctx.fill()
+  ctx.beginPath()
+  ctx.ellipse(x + rp * 0.38, ey + rp * 0.14, rp * 0.18, rp * 0.10, 0, 0, Math.PI * 2)
+  ctx.fill()
+  ctx.globalAlpha = 1
+
+  // Mắt trái
+  ctx.fillStyle = '#1a0820'
+  ctx.beginPath()
+  ctx.arc(x - ex, ey, er, 0, Math.PI * 2)
+  ctx.fill()
+  ctx.fillStyle = 'rgba(255,255,255,0.92)'
+  ctx.beginPath()
+  ctx.arc(x - ex + er * 0.32, ey - er * 0.35, er * 0.32, 0, Math.PI * 2)
+  ctx.fill()
+
+  // Mắt phải
+  ctx.fillStyle = '#1a0820'
+  ctx.beginPath()
+  ctx.arc(x + ex, ey, er, 0, Math.PI * 2)
+  ctx.fill()
+  ctx.fillStyle = 'rgba(255,255,255,0.92)'
+  ctx.beginPath()
+  ctx.arc(x + ex + er * 0.32, ey - er * 0.35, er * 0.32, 0, Math.PI * 2)
+  ctx.fill()
+
+  // Miệng cười chữ U nhỏ
+  ctx.strokeStyle = 'rgba(160,40,140,0.75)'
+  ctx.lineWidth = rp * 0.09
+  ctx.lineCap = 'round'
+  ctx.beginPath()
+  ctx.arc(x, ey + rp * 0.06, rp * 0.16, 0.15 * Math.PI, 0.85 * Math.PI)
+  ctx.stroke()
+
   // Xúc tu bezier tím hồng
   ctx.lineWidth = 1.5
   for (let i = 0; i < 7; i++) {

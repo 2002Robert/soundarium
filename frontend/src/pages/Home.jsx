@@ -441,8 +441,8 @@ export default function Home() {
         </div>
       )}
 
-      {/* Header — góc trên trái, buttons ngay dưới profile card */}
-      <div className="absolute top-0 left-0 px-4 pt-4 z-[100]">
+      {/* Header — góc trên trái, ẩn trên mobile khi panel mở */}
+      <div className={`absolute top-0 left-0 px-4 pt-4 z-[100] ${(hienShop || hienExplore || hienFishManager) ? 'hidden sm:block' : ''}`}>
         <ProfileCard
           danhSachCa={danhSachCa}
           coins={coins}

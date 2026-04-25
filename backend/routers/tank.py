@@ -80,29 +80,50 @@ async def tao_tank_moi(user_id: str = Depends(lay_user_id)):
 @router.get("/xem/{username}")
 async def xem_tank_cong_khai(username: str):
     """Xem hồ người khác — không cần đăng nhập."""
-    profile = (
+    profile_data = None
+
+    # Thử tìm theo username
+    ket_qua = (
         supabase_admin.table("profiles")
         .select("id, username, tong_gio_nghe")
         .eq("username", username)
-        .single()
+        .limit(1)
         .execute()
     )
-    if not profile.data:
-        raise HTTPException(status_code=404, detail="Không tìm thấy người dùng này")
+    if ket_qua.data:
+        profile_data = ket_qua.data[0]
+
+    # Fallback: tìm theo nickname
+    if not profile_data:
+        try:
+            ket_qua2 = (
+                supabase_admin.table("profiles")
+                .select("id, username, tong_gio_nghe")
+                .eq("nickname", username)
+                .limit(1)
+                .execute()
+            )
+            if ket_qua2.data:
+                profile_data = ket_qua2.data[0]
+        except Exception:
+            pass
+
+    if not profile_data:
+        raise HTTPException(status_code=404, detail="Hồ này chưa công khai")
 
     tank = (
         supabase_admin.table("tanks")
         .select("*, fish(*)")
-        .eq("user_id", profile.data["id"])
+        .eq("user_id", profile_data["id"])
         .eq("la_cong_khai", True)
         .limit(1)
         .execute()
     )
     if not tank.data:
-        raise HTTPException(status_code=404, detail="Hồ này không công khai")
+        raise HTTPException(status_code=404, detail="Hồ này chưa công khai")
 
     return {
-        "owner": profile.data,
+        "owner": profile_data,
         "tank": tank.data[0],
     }
 
