@@ -102,8 +102,10 @@ export const API = {
     }),
 
   // Pearl & Jellyfish
-  thuNgoc: () => goiApi('/api/profile/thu-ngoc', { method: 'POST' }),
-  muaSua:  () => goiApi('/api/profile/mua-sua',  { method: 'POST' }),
+  thuNgoc:    () => goiApi('/api/profile/thu-ngoc',     { method: 'POST' }),
+  muaSua:     () => goiApi('/api/profile/mua-sua',      { method: 'POST' }),
+  muaConTrai: () => goiApi('/api/profile/mua-con-trai', { method: 'POST' }),
+  nhatNgoc:   () => goiApi('/api/profile/nhat-ngoc',    { method: 'POST' }),
 
   // Tank
   layDanhSachTank: () => goiApi('/api/tank/danh-sach'),

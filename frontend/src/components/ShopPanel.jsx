@@ -1,4 +1,4 @@
-import { useState, useRef, useEffect } from 'react'
+import { useState, useRef, useEffect, forwardRef } from 'react'
 import BuyFishModal from './BuyFishModal'
 import FishIcon from './FishIcon'
 import { API } from '../lib/api'
@@ -11,14 +11,14 @@ const HIEM = {
 }
 
 const LOAI_CA_SHOP = [
-  { loai_ca: 'ca_vang',      ma: '#CA001', ten: 'Cá Vàng',  mo_ta: 'Hiền lành, dễ nuôi',     hiem: 'common',    gia: 0   },
-  { loai_ca: 'ca_neon',      ma: '#CA002', ten: 'Cá Neon',  mo_ta: 'Sọc xanh đỏ rực rỡ',    hiem: 'common',    gia: 0   },
-  { loai_ca: 'ca_betta',     ma: '#CA003', ten: 'Cá Betta', mo_ta: 'Đuôi dài, màu đẹp',      hiem: 'rare',      gia: 50  },
-  { loai_ca: 'ca_clownfish', ma: '#CA004', ten: 'Cá Hề',    mo_ta: 'Cam trắng quen thuộc',   hiem: 'rare',      gia: 50  },
-  { loai_ca: 'ca_tang',      ma: '#CA005', ten: 'Cá Tang',  mo_ta: 'Tròn trĩnh, xanh dương', hiem: 'rare',      gia: 50  },
-  { loai_ca: 'ca_koi',       ma: '#CA006', ten: 'Cá Koi',   mo_ta: 'Dài, đốm cam trắng',     hiem: 'epic',      gia: 150 },
-  { loai_ca: 'ca_chep',      ma: '#CA007', ten: 'Cá Chép',  mo_ta: 'Vảy bạc, to khỏe',       hiem: 'epic',      gia: 150 },
-  { loai_ca: 'ca_dia',       ma: '#CA008', ten: 'Cá Đĩa',   mo_ta: 'Tròn dẹt, kẻ sọc',       hiem: 'legendary', gia: 500 },
+  { loai_ca: 'ca_vang',      ma: '#CA001', ten: 'Cá Vàng',  hiem: 'common',    gia: 0   },
+  { loai_ca: 'ca_neon',      ma: '#CA002', ten: 'Cá Neon',  hiem: 'common',    gia: 0   },
+  { loai_ca: 'ca_betta',     ma: '#CA003', ten: 'Cá Betta', hiem: 'rare',      gia: 50  },
+  { loai_ca: 'ca_clownfish', ma: '#CA004', ten: 'Cá Hề',    hiem: 'rare',      gia: 50  },
+  { loai_ca: 'ca_tang',      ma: '#CA005', ten: 'Cá Tang',  hiem: 'rare',      gia: 50  },
+  { loai_ca: 'ca_koi',       ma: '#CA006', ten: 'Cá Koi',   hiem: 'epic',      gia: 150 },
+  { loai_ca: 'ca_chep',      ma: '#CA007', ten: 'Cá Chép',  hiem: 'epic',      gia: 150 },
+  { loai_ca: 'ca_dia',       ma: '#CA008', ten: 'Cá Đĩa',   hiem: 'legendary', gia: 500 },
 ]
 
 const BACKGROUNDS = [
@@ -46,29 +46,159 @@ const TRANG_TRI = [
   { id: 'hai_quy',    ten: 'Hải quỳ',    icon: '🌺' },
 ]
 
+// ── SVG icons for special shop items ─────────────────────────────
+function JellyfishShopIcon({ size = 52 }) {
+  return (
+    <svg width={size} height={size} viewBox="0 0 100 100" fill="none">
+      <defs>
+        <radialGradient id="jfBell" cx="38%" cy="32%">
+          <stop offset="0%"   stopColor="#ffb3f0" />
+          <stop offset="45%"  stopColor="#d246ff" />
+          <stop offset="100%" stopColor="#b464ff" stopOpacity="0.4" />
+        </radialGradient>
+        <radialGradient id="jfGlow" cx="50%" cy="40%">
+          <stop offset="0%"   stopColor="rgba(210,70,255,0.28)" />
+          <stop offset="100%" stopColor="rgba(210,70,255,0)" />
+        </radialGradient>
+      </defs>
+      <circle cx="50" cy="38" r="44" fill="url(#jfGlow)" />
+      <path d="M 8 42 Q 8 6 50 6 Q 92 6 92 42 Q 92 58 50 54 Q 8 58 8 42Z" fill="url(#jfBell)" />
+      <path d="M 8 42 Q 8 6 50 6 Q 92 6 92 42" stroke="rgba(255,180,245,0.65)" strokeWidth="2" />
+      <ellipse cx="36" cy="25" rx="16" ry="9" fill="rgba(255,255,255,0.3)" transform="rotate(-15,36,25)" />
+      <path d="M 22 54 Q 17 68 22 82" stroke="rgba(210,80,255,0.85)" strokeWidth="2" strokeLinecap="round" />
+      <path d="M 34 55 Q 28 70 34 86" stroke="rgba(255,100,210,0.85)" strokeWidth="2" strokeLinecap="round" />
+      <path d="M 50 56 Q 47 72 51 87" stroke="rgba(210,80,255,0.85)" strokeWidth="2" strokeLinecap="round" />
+      <path d="M 66 55 Q 72 70 66 86" stroke="rgba(255,100,210,0.85)" strokeWidth="2" strokeLinecap="round" />
+      <path d="M 78 54 Q 83 68 78 82" stroke="rgba(210,80,255,0.85)" strokeWidth="2" strokeLinecap="round" />
+    </svg>
+  )
+}
+
+function OysterShopIcon({ size = 52 }) {
+  return (
+    <svg width={size} height={size} viewBox="0 0 100 100" fill="none">
+      <defs>
+        <radialGradient id="osPearl" cx="35%" cy="35%">
+          <stop offset="0%"   stopColor="#ffffff" />
+          <stop offset="40%"  stopColor="#dde8ff" />
+          <stop offset="100%" stopColor="#9bb5d8" />
+        </radialGradient>
+        <radialGradient id="osPearlGlow" cx="50%" cy="50%">
+          <stop offset="0%"   stopColor="rgba(180,210,255,0.6)" />
+          <stop offset="100%" stopColor="rgba(180,210,255,0)" />
+        </radialGradient>
+        <radialGradient id="osTop" cx="50%" cy="65%">
+          <stop offset="0%"   stopColor="#b8c4cc" />
+          <stop offset="100%" stopColor="#7a8a92" />
+        </radialGradient>
+        <radialGradient id="osBot" cx="50%" cy="28%">
+          <stop offset="0%"   stopColor="#9ca3af" />
+          <stop offset="100%" stopColor="#6b7280" />
+        </radialGradient>
+      </defs>
+      <ellipse cx="50" cy="57" rx="24" ry="18" fill="url(#osPearlGlow)" />
+      {/* Bottom shell */}
+      <path d="M 10 68 Q 12 52 50 50 Q 88 52 90 68 Q 88 82 50 84 Q 12 82 10 68Z" fill="url(#osBot)" />
+      <line x1="28" y1="78" x2="33" y2="55" stroke="rgba(255,255,255,0.2)" strokeWidth="1.2" strokeLinecap="round" />
+      <line x1="50" y1="82" x2="50" y2="53" stroke="rgba(255,255,255,0.2)" strokeWidth="1.2" strokeLinecap="round" />
+      <line x1="72" y1="78" x2="67" y2="55" stroke="rgba(255,255,255,0.2)" strokeWidth="1.2" strokeLinecap="round" />
+      {/* Top shell (open) */}
+      <path d="M 10 46 Q 10 14 50 12 Q 90 14 90 46 Q 88 54 50 50 Q 12 54 10 46Z" fill="url(#osTop)" />
+      <line x1="28" y1="30" x2="35" y2="50" stroke="rgba(255,255,255,0.18)" strokeWidth="1.2" strokeLinecap="round" />
+      <line x1="50" y1="18" x2="50" y2="50" stroke="rgba(255,255,255,0.18)" strokeWidth="1.2" strokeLinecap="round" />
+      <line x1="72" y1="30" x2="65" y2="50" stroke="rgba(255,255,255,0.18)" strokeWidth="1.2" strokeLinecap="round" />
+      <ellipse cx="50" cy="50" rx="6" ry="4" fill="#4b5563" />
+      {/* Pearl */}
+      <circle cx="50" cy="59" r="13" fill="url(#osPearl)" />
+      <ellipse cx="44" cy="53" rx="4" ry="2.5" fill="rgba(255,255,255,0.72)" transform="rotate(-25,44,53)" />
+    </svg>
+  )
+}
+
+const SHOP_SPECIAL_ITEMS = [
+  {
+    id:          'sua_gai',
+    ten:         'Sứa Gai',
+    hiem:        'epic',
+    gia:         500,
+    levelYeuCau: 3,
+    Icon:        JellyfishShopIcon,
+    tooltip:     'Bơi trong hồ, hiệu ứng hồng tím đẹp',
+  },
+  {
+    id:          'ngoc_trai',
+    ten:         'Ngọc Trai',
+    hiem:        'rare',
+    gia:         700,
+    levelYeuCau: 0,
+    Icon:        OysterShopIcon,
+    tooltip:     '5 con trai đáy hồ, mở mỗi 15 phút → +10 🪙',
+  },
+]
+
 function phuHop(item, q) {
   if (!q) return true
   const k = q.toLowerCase()
   return item.ten.toLowerCase().includes(k) || item.ma?.toLowerCase().includes(k)
 }
 
-function NhanHiem({ hiem }) {
-  const cfg = HIEM[hiem]
-  return (
-    <span
-      className="text-[10px] font-semibold px-1.5 py-0.5 rounded-full"
-      style={{ color: cfg.mau, background: cfg.mau + '22', border: `1px solid ${cfg.mau}44` }}
-    >
-      {cfg.nhan}
-    </span>
-  )
-}
+// ── Unified card (4-column) ───────────────────────────────────────
+const ShopCard = forwardRef(function ShopCard(
+  { Icon, ten, hiem, gia, levelYeuCau, coins, playerLevel, onMua, dangMua, isDisabled, isHighlighted, dimmed },
+  ref,
+) {
+  const duCoins  = gia === 0 || coins >= gia
+  const duLevel  = !levelYeuCau || playerLevel >= levelYeuCau
+  const coTheMua = duCoins && duLevel && !isDisabled && !dangMua
+  const hiemMau  = HIEM[hiem]?.mau || '#6b7280'
 
-function HienGia({ gia, hiem }) {
-  if (gia === 0) return <span className="text-green-400 text-xs font-semibold">Miễn phí</span>
-  const mau = HIEM[hiem]?.mau || '#60a5fa'
-  return <span className="text-xs font-bold" style={{ color: mau }}>🪙 {gia}</span>
-}
+  let btnLabel
+  if (dangMua)         btnLabel = '…'
+  else if (isDisabled) btnLabel = 'Đã có'
+  else if (!duLevel)   btnLabel = `Lv.${playerLevel}/${levelYeuCau}`
+  else if (!duCoins)   btnLabel = `${gia}🪙`
+  else if (gia === 0)  btnLabel = 'Chọn'
+  else                 btnLabel = 'Mua'
+
+  const tooltip = !duLevel
+    ? `Cần Lv.${levelYeuCau} (đang Lv.${playerLevel})`
+    : !duCoins
+    ? `Cần ${gia} coins (đang có ${coins})`
+    : ''
+
+  return (
+    <div
+      ref={ref}
+      title={tooltip}
+      className="flex flex-col items-center bg-ho-nong border rounded-2xl px-2 py-3 gap-1 transition-all duration-300"
+      style={{
+        borderColor: isHighlighted ? hiemMau + 'bb' : hiemMau + '35',
+        opacity:     dimmed ? 0.25 : 1,
+        boxShadow:   isHighlighted ? `0 0 16px 3px ${hiemMau}33` : 'none',
+      }}
+    >
+      <div className={duCoins && duLevel ? '' : 'opacity-50'}>{Icon}</div>
+      <div className="text-white text-[10px] font-semibold text-center leading-tight w-full truncate px-0.5">{ten}</div>
+      <div>
+        {gia === 0
+          ? <span className="text-green-400 text-[10px] font-semibold">Miễn phí</span>
+          : <span className="text-[10px] font-bold" style={{ color: hiemMau }}>🪙 {gia}</span>
+        }
+      </div>
+      <button
+        onClick={e => { e.stopPropagation(); if (coTheMua) onMua() }}
+        disabled={!coTheMua}
+        className={`w-full py-1 rounded-lg text-[10px] font-semibold transition mt-0.5 ${
+          coTheMua
+            ? 'bg-ho-anh hover:bg-ho-accent text-ho-sau cursor-pointer'
+            : 'bg-ho-nong/60 text-ho-anh/30 cursor-not-allowed'
+        }`}
+      >
+        {btnLabel}
+      </button>
+    </div>
+  )
+})
 
 export default function ShopPanel({
   onThemCa, onDong,
@@ -78,12 +208,15 @@ export default function ShopPanel({
   playerLevel = 1,
   onCoinsUpdate,
   onThemSua,
+  onThemConTrai,
+  conTrai = [],
 }) {
-  const [tab, setTab]         = useState('ca')
-  const [modal, setModal]     = useState(null)
-  const [tuKhoa, setTuKhoa]   = useState('')
+  const [tab, setTab]               = useState('ca')
+  const [modal, setModal]           = useState(null)
+  const [tuKhoa, setTuKhoa]         = useState('')
   const [dangMuaSua, setDangMuaSua] = useState(false)
-  const cardRefs              = useRef({})
+  const [dangMuaCT,  setDangMuaCT]  = useState(false)
+  const cardRefs                    = useRef({})
 
   useEffect(() => {
     if (!tuKhoa || tab !== 'ca') return
@@ -112,6 +245,19 @@ export default function ShopPanel({
     }
   }
 
+  async function khiMuaConTrai() {
+    setDangMuaCT(true)
+    try {
+      const res = await API.muaConTrai()
+      onCoinsUpdate?.(res.coins_con_lai)
+      onThemConTrai?.()
+    } catch (err) {
+      alert(err.message || 'Không mua được ngọc trai')
+    } finally {
+      setDangMuaCT(false)
+    }
+  }
+
   const coTimKiem = tuKhoa.trim().length > 0
 
   const TABS = [
@@ -119,9 +265,6 @@ export default function ShopPanel({
     { id: 'nen',       label: '🌊 Nền' },
     { id: 'trang_tri', label: '✨ Trang trí' },
   ]
-
-  const suaCanMua = playerLevel < 3
-  const suaDuCoins = coins >= 500
 
   return (
     <>
@@ -162,41 +305,7 @@ export default function ShopPanel({
 
           {/* ── Tab: Cá ── */}
           {tab === 'ca' && (
-            <div className="px-4 pb-6">
-
-              {/* Sứa gai */}
-              <div className="mt-3 mb-4 bg-ho-nong border border-ho-anh/15 rounded-2xl px-4 py-3 flex items-center gap-3">
-                <div className="text-3xl shrink-0">🪼</div>
-                <div className="flex-1 min-w-0">
-                  <div className="flex items-center gap-2 flex-wrap">
-                    <span className="text-white font-semibold text-sm">Sứa Gai</span>
-                    <span className="text-[10px] font-semibold px-1.5 py-0.5 rounded-full"
-                      style={{ color: '#a78bfa', background: '#a78bfa22', border: '1px solid #a78bfa44' }}>
-                      Lv.3 unlock
-                    </span>
-                  </div>
-                  <div className="text-ho-anh/50 text-xs mt-0.5">Bơi trong hồ, click để nhận ngọc trai</div>
-                </div>
-                <div className="shrink-0 text-right">
-                  <div className="text-purple-400 text-xs font-bold mb-1.5">🪙 500</div>
-                  <button
-                    onClick={khiMuaSua}
-                    disabled={dangMuaSua || suaCanMua || !suaDuCoins}
-                    title={
-                      suaCanMua ? `Cần Lv.3 (đang Lv.${playerLevel})` :
-                      !suaDuCoins ? 'Cần 500 coins' : ''
-                    }
-                    className={`px-3 py-1.5 rounded-xl text-xs font-semibold transition ${
-                      suaCanMua || !suaDuCoins
-                        ? 'bg-ho-nong/50 text-ho-anh/30 cursor-not-allowed'
-                        : 'bg-purple-600 hover:bg-purple-500 text-white'
-                    }`}
-                  >
-                    {dangMuaSua ? '…' : suaCanMua ? `Lv.${playerLevel}/3` : !suaDuCoins ? 'Thiếu coin' : 'Mua'}
-                  </button>
-                </div>
-              </div>
-
+            <div className="px-4 pb-6 pt-3">
               {/* Search */}
               <div className="relative mb-3">
                 <span className="absolute left-3 top-1/2 -translate-y-1/2 text-ho-anh/35 text-sm pointer-events-none">🔍</span>
@@ -212,51 +321,42 @@ export default function ShopPanel({
                 )}
               </div>
 
-              <div className="grid grid-cols-2 gap-3">
-                {LOAI_CA_SHOP.map(item => {
-                  const matched    = coTimKiem && phuHop(item, tuKhoa)
-                  const notMatch   = coTimKiem && !phuHop(item, tuKhoa)
-                  const duCoins    = coins >= item.gia
-                  const coTheMua   = duCoins
-                  const tooltip    = !duCoins ? `Cần ${item.gia} coins (đang có ${coins})` : ''
+              <div className="grid grid-cols-4 gap-2">
+                {/* Special items — hidden during fish search */}
+                {!coTimKiem && SHOP_SPECIAL_ITEMS.map(item => (
+                  <ShopCard
+                    key={item.id}
+                    Icon={<item.Icon size={48} />}
+                    ten={item.ten}
+                    hiem={item.hiem}
+                    gia={item.gia}
+                    levelYeuCau={item.levelYeuCau || 0}
+                    coins={coins}
+                    playerLevel={playerLevel}
+                    onMua={item.id === 'sua_gai' ? khiMuaSua : khiMuaConTrai}
+                    dangMua={item.id === 'sua_gai' ? dangMuaSua : dangMuaCT}
+                    isDisabled={item.id === 'ngoc_trai' && conTrai.length > 0}
+                  />
+                ))}
 
+                {/* Fish */}
+                {LOAI_CA_SHOP.map(item => {
+                  const matched  = coTimKiem && phuHop(item, tuKhoa)
+                  const notMatch = coTimKiem && !phuHop(item, tuKhoa)
                   return (
-                    <div
+                    <ShopCard
                       key={item.loai_ca}
                       ref={el => { cardRefs.current[item.loai_ca] = el }}
-                      className="flex flex-col items-center bg-ho-nong border rounded-2xl px-3 py-4 transition-all duration-300"
-                      style={{
-                        borderColor: matched
-                          ? 'rgba(96,165,250,0.7)'
-                          : HIEM[item.hiem].mau + '33',
-                        opacity:   notMatch ? 0.3 : 1,
-                        boxShadow: matched ? `0 0 18px 4px ${HIEM[item.hiem].mau}33` : 'none',
-                      }}
-                    >
-                      <div className={coTheMua ? '' : 'opacity-60'}>
-                        <FishIcon loaiCa={item.loai_ca} size={68} />
-                      </div>
-                      <div className="font-semibold text-white text-sm text-center mt-1 leading-tight">{item.ten}</div>
-                      <div className="text-ho-anh/35 text-[11px] font-mono mt-0.5">{item.ma}</div>
-                      <div className="mt-1.5 mb-2">
-                        <NhanHiem hiem={item.hiem} />
-                      </div>
-                      <div className="mb-2.5">
-                        <HienGia gia={item.gia} hiem={item.hiem} />
-                      </div>
-                      <button
-                        onClick={() => coTheMua && setModal({ loai_ca: item.loai_ca, ten: item.ten })}
-                        disabled={!coTheMua}
-                        title={tooltip}
-                        className={`w-full font-semibold py-1.5 rounded-xl text-xs transition ${
-                          coTheMua
-                            ? 'bg-ho-anh hover:bg-ho-accent text-ho-sau cursor-pointer'
-                            : 'bg-ho-nong/60 text-ho-anh/30 cursor-not-allowed'
-                        }`}
-                      >
-                        {!duCoins ? `Cần ${item.gia} 🪙` : item.gia === 0 ? 'Chọn' : 'Mua'}
-                      </button>
-                    </div>
+                      Icon={<FishIcon loaiCa={item.loai_ca} size={48} />}
+                      ten={item.ten}
+                      hiem={item.hiem}
+                      gia={item.gia}
+                      coins={coins}
+                      playerLevel={playerLevel}
+                      onMua={() => setModal({ loai_ca: item.loai_ca, ten: item.ten })}
+                      isHighlighted={matched}
+                      dimmed={notMatch}
+                    />
                   )
                 })}
               </div>

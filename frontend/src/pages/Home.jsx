@@ -95,6 +95,17 @@ export default function Home() {
     }))
   })
   const [ngocTrai, setNgocTrai]               = useState(0)
+  const [conTrai, setConTrai]                 = useState(() => {
+    try {
+      const saved = JSON.parse(localStorage.getItem('snd_con_trai') || 'null')
+      if (!Array.isArray(saved) || saved.length === 0) return []
+      const now = Date.now()
+      return saved.map(ct => ({
+        ...ct,
+        isOpen: ct.isOpen || (!ct.lastOpened || now - ct.lastOpened >= 15 * 60 * 1000),
+      }))
+    } catch { return [] }
+  })
   const [danhSachTank, setDanhSachTank]       = useState([])
   const [selectedTankId, setSelectedTankId]   = useState(null)
   const [dangTaoTank, setDangTaoTank]         = useState(false)
@@ -139,6 +150,41 @@ export default function Home() {
       khoiDong()
     })
   }, [navigate])
+
+  // Persist con trai to localStorage whenever it changes
+  useEffect(() => {
+    localStorage.setItem('snd_con_trai', JSON.stringify(conTrai))
+  }, [conTrai])
+
+  // Oyster timer: check every 60s if any should open
+  useEffect(() => {
+    if (conTrai.length === 0) return
+    const interval = setInterval(() => {
+      const now = Date.now()
+      setConTrai(prev => {
+        const next = prev.map(ct => {
+          if (ct.isOpen) return ct
+          if (now - (ct.lastOpened || 0) >= 15 * 60 * 1000) return { ...ct, isOpen: true }
+          return ct
+        })
+        return next.some((ct, i) => ct.isOpen !== prev[i].isOpen) ? next : prev
+      })
+    }, 60000)
+    return () => clearInterval(interval)
+  }, [conTrai.length])
+
+  async function nhatNgocConTrai(ctId) {
+    try {
+      const res = await API.nhatNgoc()
+      setCoins(res.coins)
+      setConTrai(prev => prev.map(ct =>
+        ct.id === ctId ? { ...ct, isOpen: false, lastOpened: Date.now() } : ct
+      ))
+      hienToast(`+${res.coins_nhan} 🪙 Nhặt ngọc trai!`, 'thanhCong')
+    } catch (err) {
+      hienToast(err.message || 'Lỗi nhặt ngọc', 'loi')
+    }
+  }
 
   // Đo chiều cao player bar để canvas né
   useEffect(() => {
@@ -384,6 +430,8 @@ export default function Home() {
         onClickCa={clickCa}
         caLevelUp={caLevelUp}
         suaGai={suaGai}
+        conTrai={conTrai}
+        onClickConTrai={nhatNgocConTrai}
         bottomPad={playerBarHeight}
       />
 
@@ -473,6 +521,7 @@ export default function Home() {
           coins={coins}
           playerLevel={tinhLevelNguoiChoi(profileData?.tong_gio_nghe || 0)}
           onCoinsUpdate={setCoins}
+          conTrai={conTrai}
           onThemSua={() => {
             setSuaGai(prev => {
               const newSua = {
@@ -486,6 +535,19 @@ export default function Home() {
               return next
             })
             hienToast('🪼 Sứa hồng tím đã vào hồ!', 'thanhCong')
+            setHienShop(false)
+          }}
+          onThemConTrai={() => {
+            const now = Date.now()
+            const newConTrai = Array.from({ length: 5 }, (_, i) => ({
+              id:         `ct_${now}_${i}`,
+              x:          0.1 + i * 0.2,
+              isOpen:     true,
+              lastOpened: 0,
+              createdAt:  now,
+            }))
+            setConTrai(newConTrai)
+            hienToast('🦪 5 con trai đã xuống đáy hồ!', 'thanhCong')
             setHienShop(false)
           }}
         />

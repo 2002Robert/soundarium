@@ -447,6 +447,117 @@ function veSua(ctx, x, y, r, pha, t) {
   ctx.restore()
 }
 
+// ─── Vẽ con trai (oyster) ────────────────────────────────────────
+function veConTrai(ctx, x, y, r, isOpen) {
+  ctx.save()
+  ctx.translate(x, y)
+
+  if (isOpen) {
+    // Pearl glow aura
+    const pearlGlow = ctx.createRadialGradient(0, r * 0.1, 0, 0, r * 0.1, r * 1.4)
+    pearlGlow.addColorStop(0, 'rgba(200,230,255,0.55)')
+    pearlGlow.addColorStop(1, 'rgba(200,230,255,0)')
+    ctx.fillStyle = pearlGlow
+    ctx.beginPath()
+    ctx.ellipse(0, r * 0.1, r * 1.4, r, 0, 0, Math.PI * 2)
+    ctx.fill()
+
+    // Top shell (open — rotated back)
+    ctx.save()
+    ctx.rotate(-0.6)
+    ctx.fillStyle = '#9ca3af'
+    ctx.beginPath()
+    ctx.arc(0, 0, r, Math.PI, 0)
+    ctx.closePath()
+    ctx.fill()
+    ctx.strokeStyle = 'rgba(255,255,255,0.18)'
+    ctx.lineWidth = 0.8
+    for (let i = -1; i <= 1; i++) {
+      ctx.beginPath()
+      ctx.moveTo(i * r * 0.4, 0)
+      ctx.lineTo(i * r * 0.55, -r * 0.88)
+      ctx.stroke()
+    }
+    ctx.restore()
+
+    // Bottom shell (fixed)
+    ctx.fillStyle = '#7a8a92'
+    ctx.beginPath()
+    ctx.arc(0, 0, r, 0, Math.PI)
+    ctx.closePath()
+    ctx.fill()
+    ctx.strokeStyle = 'rgba(255,255,255,0.2)'
+    ctx.lineWidth = 0.8
+    for (let i = -1; i <= 1; i++) {
+      ctx.beginPath()
+      ctx.moveTo(i * r * 0.35, 0)
+      ctx.lineTo(i * r * 0.5, r * 0.85)
+      ctx.stroke()
+    }
+
+    // Pearl
+    const pg = ctx.createRadialGradient(-r * 0.15, -r * 0.15, 0, 0, 0, r * 0.42)
+    pg.addColorStop(0, '#ffffff')
+    pg.addColorStop(0.4, '#dde8ff')
+    pg.addColorStop(1, '#9bb5d8')
+    ctx.fillStyle = pg
+    ctx.beginPath()
+    ctx.arc(0, 0, r * 0.42, 0, Math.PI * 2)
+    ctx.fill()
+
+    // Pearl shine
+    ctx.fillStyle = 'rgba(255,255,255,0.72)'
+    ctx.beginPath()
+    ctx.ellipse(-r * 0.13, -r * 0.14, r * 0.13, r * 0.08, -0.5, 0, Math.PI * 2)
+    ctx.fill()
+
+    // Dashed "click me" ring
+    ctx.strokeStyle = 'rgba(200,230,255,0.55)'
+    ctx.lineWidth = 1.2
+    ctx.setLineDash([3, 5])
+    ctx.beginPath()
+    ctx.arc(0, 0, r * 0.65, 0, Math.PI * 2)
+    ctx.stroke()
+    ctx.setLineDash([])
+
+  } else {
+    // Closed shell
+    ctx.fillStyle = '#6b7280'
+    ctx.beginPath()
+    ctx.ellipse(0, 0, r, r * 0.42, 0, 0, Math.PI * 2)
+    ctx.fill()
+
+    // Seam
+    ctx.strokeStyle = 'rgba(180,190,200,0.45)'
+    ctx.lineWidth = 0.8
+    ctx.beginPath()
+    ctx.ellipse(0, 0, r, r * 0.06, 0, 0, Math.PI * 2)
+    ctx.stroke()
+
+    // Texture lines
+    ctx.strokeStyle = 'rgba(255,255,255,0.14)'
+    ctx.lineWidth = 0.7
+    for (let i = -1; i <= 1; i++) {
+      ctx.beginPath()
+      ctx.moveTo(i * r * 0.38, -r * 0.38)
+      ctx.lineTo(i * r * 0.52, r * 0.38)
+      ctx.stroke()
+    }
+
+    // Faint inner glow hinting at pearl
+    ctx.globalAlpha = 0.18
+    const innerGlow = ctx.createRadialGradient(0, 0, 0, 0, 0, r * 0.55)
+    innerGlow.addColorStop(0, 'rgba(200,230,255,1)')
+    innerGlow.addColorStop(1, 'rgba(200,230,255,0)')
+    ctx.fillStyle = innerGlow
+    ctx.beginPath()
+    ctx.ellipse(0, 0, r * 0.72, r * 0.3, 0, 0, Math.PI * 2)
+    ctx.fill()
+  }
+
+  ctx.restore()
+}
+
 function veBongBong(ctx, bongBubbles) {
   bongBubbles.forEach((b, i) => {
     b.y -= b.tocDo
@@ -472,13 +583,15 @@ function veBongBong(ctx, bongBubbles) {
 export default function AquariumCanvas({
   danhSachCa,
   dangPhat,
-  nenHo     = 'ocean-shallow',
-  dayHo     = 'cat_trang',
+  nenHo          = 'ocean-shallow',
+  dayHo          = 'cat_trang',
   onClickCa,
   onGiuCa,
-  caLevelUp = null,
-  suaGai    = [],
-  bottomPad = 0,
+  caLevelUp      = null,
+  suaGai         = [],
+  conTrai        = [],
+  onClickConTrai,
+  bottomPad      = 0,
 }) {
   const canvasRef      = useRef(null)
   const frameRef       = useRef(0)
@@ -495,6 +608,9 @@ export default function AquariumCanvas({
   const longPressedRef = useRef(false)
   const suaGaiRef      = useRef(suaGai)
   suaGaiRef.current    = suaGai
+  const conTraiRef     = useRef(conTrai)
+  conTraiRef.current   = conTrai
+  const conTraiPosRef  = useRef({})
   const bottomPadRef   = useRef(bottomPad)
   bottomPadRef.current = bottomPad
 
@@ -584,6 +700,18 @@ export default function AquariumCanvas({
       })
     }
 
+    // Vẽ con trai đáy hồ
+    const ctList = conTraiRef.current
+    if (ctList.length > 0) {
+      const oysterR = Math.min(w * 0.048, 28)
+      const oysterY = h - 40 - oysterR * 0.5
+      ctList.forEach(ct => {
+        const ox = ct.x * w
+        veConTrai(ctx, ox, oysterY, oysterR, ct.isOpen)
+        conTraiPosRef.current[ct.id] = { x: ox, y: oysterY, r: oysterR }
+      })
+    }
+
     if (caLevelUp) {
       const trang = trangThaiChuyen.get(caLevelUp)
       if (trang) {
@@ -630,9 +758,18 @@ export default function AquariumCanvas({
     const mx = e.clientX - rect.left
     const my = e.clientY - rect.top
 
+    // Check open oysters first
+    for (const [ctId, pos] of Object.entries(conTraiPosRef.current)) {
+      const dx = mx - pos.x, dy = my - pos.y
+      if (dx * dx + dy * dy < (pos.r * 2.2) ** 2) {
+        const ct = conTraiRef.current.find(c => c.id === ctId)
+        if (ct?.isOpen) { onClickConTrai?.(ctId); return }
+      }
+    }
+
     const hit = timCa(mx, my)
     if (hit) onClickCa?.(hit.ca, hit.x, hit.y)
-  }, [danhSachCa, onClickCa])
+  }, [danhSachCa, onClickCa, onClickConTrai])
 
   const xuLyMouseDown = useCallback((e) => {
     if (!onGiuCa) return  // không cần timer nếu không có handler

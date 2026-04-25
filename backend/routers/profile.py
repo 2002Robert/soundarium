@@ -167,3 +167,54 @@ async def thu_ngoc_trai(user_id: str = Depends(lay_user_id)):
     ).eq("id", user_id).execute()
 
     return {"ngoc_trai": ngoc_moi}
+
+
+_GIA_CON_TRAI = 700
+_SO_CON_TRAI  = 5
+_COINS_NGOC   = 10
+
+
+@router.post("/mua-con-trai")
+async def mua_con_trai(user_id: str = Depends(lay_user_id)):
+    """Mua bộ 5 con trai bằng coins."""
+    profile = (
+        supabase_admin.table("profiles")
+        .select("coins")
+        .eq("id", user_id)
+        .single()
+        .execute()
+    )
+    if not profile.data:
+        raise HTTPException(status_code=404, detail="Không tìm thấy profile")
+
+    coins = profile.data.get("coins", 0)
+    if coins < _GIA_CON_TRAI:
+        raise HTTPException(status_code=402, detail=f"Không đủ coins (cần {_GIA_CON_TRAI})")
+
+    coins_con_lai = coins - _GIA_CON_TRAI
+    supabase_admin.table("profiles").update(
+        {"coins": coins_con_lai}
+    ).eq("id", user_id).execute()
+
+    return {"coins_con_lai": coins_con_lai, "so_con_trai": _SO_CON_TRAI}
+
+
+@router.post("/nhat-ngoc")
+async def nhat_ngoc(user_id: str = Depends(lay_user_id)):
+    """Người dùng nhặt ngọc từ con trai mở → +10 coins."""
+    profile = (
+        supabase_admin.table("profiles")
+        .select("coins")
+        .eq("id", user_id)
+        .single()
+        .execute()
+    )
+    if not profile.data:
+        raise HTTPException(status_code=404, detail="Không tìm thấy profile")
+
+    coins_moi = (profile.data.get("coins") or 0) + _COINS_NGOC
+    supabase_admin.table("profiles").update(
+        {"coins": coins_moi}
+    ).eq("id", user_id).execute()
+
+    return {"coins": coins_moi, "coins_nhan": _COINS_NGOC}
