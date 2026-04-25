@@ -368,57 +368,82 @@ function veCa(ctx, ca, trang, dangPhat, hHieuQua) {
   ctx.restore()
 }
 
-// ─── Vẽ sứa ────────────────────────────────────────────────────
+// ─── Vẽ sứa hồng tím ────────────────────────────────────────────
 function veSua(ctx, x, y, r, pha, t) {
   const pulse = 1 + Math.sin(t * 2.5 + pha) * 0.12
   const rp = r * pulse
   ctx.save()
-  ctx.globalAlpha = 0.72
 
-  // Thân chuông
-  const grad = ctx.createRadialGradient(x, y - rp * 0.3, rp * 0.1, x, y, rp)
-  grad.addColorStop(0, 'rgba(220,160,255,0.9)')
-  grad.addColorStop(0.6, 'rgba(180,80,240,0.6)')
-  grad.addColorStop(1, 'rgba(140,40,200,0.1)')
-  ctx.fillStyle = grad
+  // Vùng sáng buff (dashed circle 150px)
+  ctx.globalAlpha = 0.06
+  ctx.beginPath()
+  ctx.arc(x, y, 150, 0, Math.PI * 2)
+  ctx.strokeStyle = 'rgba(255,150,240,1)'
+  ctx.lineWidth = 1
+  ctx.setLineDash([6, 10])
+  ctx.stroke()
+  ctx.setLineDash([])
+  ctx.globalAlpha = 1
+
+  // Glow ngoài
+  const glow = ctx.createRadialGradient(x, y, rp * 0.2, x, y, rp * 2.4)
+  glow.addColorStop(0, 'rgba(220,100,255,0.28)')
+  glow.addColorStop(1, 'rgba(255,100,200,0)')
+  ctx.fillStyle = glow
+  ctx.beginPath()
+  ctx.arc(x, y, rp * 2.4, 0, Math.PI * 2)
+  ctx.fill()
+
+  // Thân chuông: hồng tím gradient
+  const bell = ctx.createRadialGradient(x, y - rp * 0.2, rp * 0.08, x, y, rp)
+  bell.addColorStop(0,    'rgba(255,160,240,0.97)')
+  bell.addColorStop(0.35, 'rgba(210, 80,255,0.88)')
+  bell.addColorStop(0.72, 'rgba(180,100,255,0.80)')
+  bell.addColorStop(1,    'rgba(255,100,200,0.28)')
+  ctx.fillStyle = bell
   ctx.beginPath()
   ctx.arc(x, y, rp, Math.PI, 0)
   ctx.bezierCurveTo(x + rp, y, x + rp * 0.7, y + rp * 0.65, x, y + rp * 0.35)
   ctx.bezierCurveTo(x - rp * 0.7, y + rp * 0.65, x - rp, y, x - rp, y)
   ctx.fill()
 
-  // Viền phát sáng
-  ctx.strokeStyle = 'rgba(230,180,255,0.6)'
-  ctx.lineWidth = 1
+  // Highlight trong thân
+  ctx.globalAlpha = 0.42
+  const shine = ctx.createRadialGradient(x - rp * 0.25, y - rp * 0.3, 0, x - rp * 0.2, y - rp * 0.2, rp * 0.55)
+  shine.addColorStop(0, 'rgba(255,255,255,0.96)')
+  shine.addColorStop(1, 'rgba(255,255,255,0)')
+  ctx.fillStyle = shine
+  ctx.beginPath()
+  ctx.ellipse(x - rp * 0.14, y - rp * 0.24, rp * 0.38, rp * 0.22, -0.3, 0, Math.PI * 2)
+  ctx.fill()
+  ctx.globalAlpha = 1
+
+  // Viền rim phát sáng
+  ctx.strokeStyle = 'rgba(255,180,245,0.72)'
+  ctx.lineWidth = 1.2
   ctx.beginPath()
   ctx.arc(x, y, rp, Math.PI, 0)
   ctx.stroke()
 
-  // Xúc tu
-  ctx.globalAlpha = 0.38
-  ctx.lineWidth = 1.2
-  for (let i = 0; i < 6; i++) {
-    const tx = x + (i - 2.5) * rp * 0.35
-    const swing = Math.sin(t * 1.4 + pha + i * 0.8) * 7
+  // Xúc tu bezier tím hồng
+  ctx.lineWidth = 1.5
+  for (let i = 0; i < 7; i++) {
+    const tx    = x + (i - 3) * rp * 0.29
+    const swing = Math.sin(t * 1.4 + pha + i * 0.75) * 9
+    ctx.globalAlpha = 0.52
     ctx.beginPath()
     ctx.moveTo(tx, y + rp * 0.3)
     ctx.bezierCurveTo(
-      tx + swing,       y + rp,
-      tx - swing * 0.5, y + rp * 1.7,
-      tx + swing * 0.3, y + rp * 2.3,
+      tx + swing,        y + rp,
+      tx - swing * 0.5,  y + rp * 1.75,
+      tx + swing * 0.3,  y + rp * 2.5,
     )
-    ctx.strokeStyle = `rgba(${200 + i * 5},120,255,0.55)`
+    ctx.strokeStyle = i % 2 === 0
+      ? 'rgba(210,80,255,0.78)'
+      : 'rgba(255,100,210,0.78)'
     ctx.stroke()
   }
-
-  // Bong bóng nhỏ trong thân
-  ctx.globalAlpha = 0.25
-  ctx.fillStyle = 'rgba(255,255,255,0.8)'
-  for (let i = 0; i < 3; i++) {
-    ctx.beginPath()
-    ctx.arc(x + (i - 1) * rp * 0.25, y - rp * 0.15, rp * 0.07, 0, Math.PI * 2)
-    ctx.fill()
-  }
+  ctx.globalAlpha = 1
   ctx.restore()
 }
 
@@ -453,7 +478,6 @@ export default function AquariumCanvas({
   onGiuCa,
   caLevelUp = null,
   suaGai    = [],
-  onClickSua,
   bottomPad = 0,
 }) {
   const canvasRef      = useRef(null)
@@ -470,10 +494,7 @@ export default function AquariumCanvas({
   const giuRef         = useRef(null)
   const longPressedRef = useRef(false)
   const suaGaiRef      = useRef(suaGai)
-  const onClickSuaRef  = useRef(onClickSua)
   suaGaiRef.current    = suaGai
-  onClickSuaRef.current = onClickSua
-  const suaGaiPosRef   = useRef({})
   const bottomPadRef   = useRef(bottomPad)
   bottomPadRef.current = bottomPad
 
@@ -551,7 +572,7 @@ export default function AquariumCanvas({
       }
     })
 
-    // Vẽ sứa (trong vùng hiệu quả)
+    // Vẽ sứa hồng tím (passive, không click)
     const suaList = suaGaiRef.current
     if (suaList.length > 0) {
       const t = frameRef.current * 0.02
@@ -560,7 +581,6 @@ export default function AquariumCanvas({
         const ry = sua.y * h + Math.sin(t * 0.7 + sua.pha) * 12
         const sr = Math.min(w, h) * 0.038
         veSua(ctx, rx, ry, sr, sua.pha, t)
-        suaGaiPosRef.current[sua.id] = { x: rx, y: ry, r: sr }
       })
     }
 
@@ -609,18 +629,6 @@ export default function AquariumCanvas({
     const rect = canvasRef.current.getBoundingClientRect()
     const mx = e.clientX - rect.left
     const my = e.clientY - rect.top
-
-    // Kiểm tra click vào sứa trước
-    if (onClickSuaRef.current) {
-      for (const sua of suaGaiRef.current) {
-        const pos = suaGaiPosRef.current[sua.id]
-        if (!pos) continue
-        if ((mx - pos.x) ** 2 + (my - pos.y) ** 2 < (pos.r * 1.6) ** 2) {
-          onClickSuaRef.current(sua.id)
-          return
-        }
-      }
-    }
 
     const hit = timCa(mx, my)
     if (hit) onClickCa?.(hit.ca, hit.x, hit.y)

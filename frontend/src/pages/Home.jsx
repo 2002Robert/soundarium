@@ -85,7 +85,15 @@ export default function Home() {
   const [videoIdDangPhat, setVideoIdDangPhat] = useState(null)
   const [ytPlayer, setYtPlayer]               = useState(null)
   const [profileData, setProfileData]         = useState(null)
-  const [suaGai, setSuaGai]                   = useState([])
+  const [suaGai, setSuaGai]                   = useState(() => {
+    const n = Math.max(0, parseInt(localStorage.getItem('snd_so_sua') || '0'))
+    return Array.from({ length: n }, (_, i) => ({
+      id: `sua_${i}`,
+      x: 0.15 + Math.random() * 0.7,
+      y: 0.1  + Math.random() * 0.5,
+      pha: (i * 2.1) % (Math.PI * 2),
+    }))
+  })
   const [ngocTrai, setNgocTrai]               = useState(0)
   const [danhSachTank, setDanhSachTank]       = useState([])
   const [selectedTankId, setSelectedTankId]   = useState(null)
@@ -170,21 +178,6 @@ export default function Home() {
     }
   }
 
-  // Spawn sứa ngẫu nhiên (tối đa 3, cứ 45s một con)
-  useEffect(() => {
-    const id = setInterval(() => {
-      setSuaGai(prev => {
-        if (prev.length >= 3) return prev
-        return [...prev, {
-          id: Date.now().toString(),
-          x: 0.12 + Math.random() * 0.76,
-          y: 0.1  + Math.random() * 0.55,
-          pha: Math.random() * Math.PI * 2,
-        }]
-      })
-    }, 45000)
-    return () => clearInterval(id)
-  }, [])
 
   function hienToast(thongBao, loai = 'info') { setToast({ thongBao, loai }) }
 
@@ -223,15 +216,6 @@ export default function Home() {
   function themCaVaoHo(ca) {
     setDanhSachCa(prev => [...prev, ca])
     hienToast(`${ca.nickname || ca.ten_bai} đã vào hồ!`, 'thanhCong')
-  }
-
-  async function bietSua(suaId) {
-    setSuaGai(prev => prev.filter(s => s.id !== suaId))
-    try {
-      const res = await API.thuNgoc()
-      setNgocTrai(res.ngoc_trai)
-      hienToast(`💎 +1 ngọc trai! (tổng: ${res.ngoc_trai})`, 'thanhCong')
-    } catch {}
   }
 
   async function doiTank(tankId) {
@@ -400,7 +384,6 @@ export default function Home() {
         onClickCa={clickCa}
         caLevelUp={caLevelUp}
         suaGai={suaGai}
-        onClickSua={bietSua}
         bottomPad={playerBarHeight}
       />
 
@@ -492,15 +475,17 @@ export default function Home() {
           onCoinsUpdate={setCoins}
           onThemSua={() => {
             setSuaGai(prev => {
-              if (prev.length >= 3) return prev
-              return [...prev, {
-                id: Date.now().toString(),
-                x: 0.12 + Math.random() * 0.76,
-                y: 0.1  + Math.random() * 0.55,
+              const newSua = {
+                id: `sua_${Date.now()}`,
+                x: 0.15 + Math.random() * 0.7,
+                y: 0.1  + Math.random() * 0.5,
                 pha: Math.random() * Math.PI * 2,
-              }]
+              }
+              const next = [...prev, newSua]
+              localStorage.setItem('snd_so_sua', String(next.length))
+              return next
             })
-            hienToast('🪼 Sứa đã vào hồ!', 'thanhCong')
+            hienToast('🪼 Sứa hồng tím đã vào hồ!', 'thanhCong')
             setHienShop(false)
           }}
         />

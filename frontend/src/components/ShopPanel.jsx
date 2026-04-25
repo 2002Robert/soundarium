@@ -121,7 +121,7 @@ export default function ShopPanel({
   ]
 
   const suaCanMua = playerLevel < 3
-  const suaDuCoins = coins >= 100
+  const suaDuCoins = coins >= 500
 
   return (
     <>
@@ -178,13 +178,13 @@ export default function ShopPanel({
                   <div className="text-ho-anh/50 text-xs mt-0.5">Bơi trong hồ, click để nhận ngọc trai</div>
                 </div>
                 <div className="shrink-0 text-right">
-                  <div className="text-purple-400 text-xs font-bold mb-1.5">🪙 100</div>
+                  <div className="text-purple-400 text-xs font-bold mb-1.5">🪙 500</div>
                   <button
                     onClick={khiMuaSua}
                     disabled={dangMuaSua || suaCanMua || !suaDuCoins}
                     title={
                       suaCanMua ? `Cần Lv.3 (đang Lv.${playerLevel})` :
-                      !suaDuCoins ? 'Cần 100 coins' : ''
+                      !suaDuCoins ? 'Cần 500 coins' : ''
                     }
                     className={`px-3 py-1.5 rounded-xl text-xs font-semibold transition ${
                       suaCanMua || !suaDuCoins

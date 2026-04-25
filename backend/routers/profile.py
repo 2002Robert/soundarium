@@ -104,7 +104,7 @@ async def cap_nhat_avatar(
 
 
 _NGUONG_LEVEL = [0, 2, 8, 25, 75, 200, 500]
-_GIA_SUA = 100
+_GIA_SUA = 500
 _YEU_CAU_LEVEL_SUA = 3
 
 
