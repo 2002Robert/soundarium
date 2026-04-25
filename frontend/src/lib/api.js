@@ -14,7 +14,7 @@ async function layHeader() {
 async function goiApi(path, options = {}) {
   const headers = await layHeader()
   const ctrl = new AbortController()
-  const tid  = setTimeout(() => ctrl.abort(), 15000)  // 15s — đủ cho Render cold start
+  const tid  = setTimeout(() => ctrl.abort(), 20000)  // 20s mỗi lần, retry 4 lần = 80s cover
   let resp
   try {
     resp = await fetch(`${BASE}${path}`, { ...options, headers, signal: ctrl.signal })

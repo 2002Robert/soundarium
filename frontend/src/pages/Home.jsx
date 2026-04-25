@@ -93,6 +93,7 @@ export default function Home() {
   const [playerBarHeight, setPlayerBarHeight] = useState(0)
   const [dangKhoiDong, setDangKhoiDong]       = useState(true)
   const [loiKetNoi, setLoiKetNoi]             = useState(false)
+  const [soLanThu, setSoLanThu]               = useState(1)
 
   const [nenHo, setNenHoState] = useState(() => localStorage.getItem('snd_nen') || 'ocean-shallow')
   const [dayHo, setDayHoState] = useState(() => localStorage.getItem('snd_day') || 'cat_trang')
@@ -130,11 +131,12 @@ export default function Home() {
     })
   }, [navigate])
 
-  async function khoiDong() {
+  async function khoiDong(lan = 1) {
+    setSoLanThu(lan)
     setDangKhoiDong(true)
     setLoiKetNoi(false)
     try {
-      thuHoach().catch(() => {})   // fire-and-forget, không chặn load hồ
+      thuHoach().catch(() => {})
       const tankListRes = await API.layDanhSachTank()
       const tanks = tankListRes.tanks || []
       setDanhSachTank(tanks)
@@ -146,8 +148,13 @@ export default function Home() {
       }
       setDangKhoiDong(false)
     } catch {
-      setDangKhoiDong(false)
-      setLoiKetNoi(true)
+      if (lan < 4) {
+        // Auto-retry: lần 1 timeout 15s xong → server Render đã kịp thức → lần 2 thường ok
+        setTimeout(() => khoiDong(lan + 1), 1500)
+      } else {
+        setDangKhoiDong(false)
+        setLoiKetNoi(true)
+      }
     }
   }
 
@@ -344,7 +351,11 @@ export default function Home() {
             <>
               <div className="text-4xl mb-4 animate-bounce">🐠</div>
               <p className="text-white/70 text-sm">Đang kết nối server…</p>
-              <p className="text-white/35 text-xs mt-1">Server đang thức dậy, vài giây nhé</p>
+              <p className="text-white/35 text-xs mt-1">
+                {soLanThu === 1
+                  ? 'Server đang thức dậy, vài giây nhé'
+                  : `Thử lại lần ${soLanThu}/4…`}
+              </p>
             </>
           ) : (
             <>
