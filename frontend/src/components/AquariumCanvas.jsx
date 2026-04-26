@@ -699,7 +699,7 @@ export default function AquariumCanvas({
     if (lastTimeRef.current === null) lastTimeRef.current = timestamp
     const rawDt = timestamp - lastTimeRef.current
     lastTimeRef.current = timestamp
-    const dt = Math.min(rawDt, 50)   // cap 50ms tránh jump khi tab bị ẩn
+    const dt = Math.min(rawDt, 50)   // cap 50ms chỉ cho trường hợp tab bị ẩn
     elapsedRef.current += dt
     const t = elapsedRef.current / 1000   // giây thực
 
@@ -869,13 +869,17 @@ export default function AquariumCanvas({
     genRef.current++
     const myGen = genRef.current
     lastTimeRef.current = null
+    console.log(`[Anim] loop gen ${myGen} start`)
     function tick(ts) {
-      if (genRef.current !== myGen) return   // thế hệ cũ → dừng ngay
+      if (genRef.current !== myGen) {
+        console.log(`[Anim] loop gen ${myGen} stopped (current=${genRef.current})`)
+        return
+      }
       animLoopRef.current(ts)
       requestAnimationFrame(tick)
     }
     requestAnimationFrame(tick)
-    return () => { genRef.current++ }        // vô hiệu hóa thế hệ này
+    return () => { genRef.current++; console.log(`[Anim] loop gen ${myGen} cleanup`) }
   }, []) // eslint-disable-line react-hooks/exhaustive-deps
 
   // Spawn thức ăn khi feedSignal tăng
