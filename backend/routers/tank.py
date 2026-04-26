@@ -33,7 +33,6 @@ async def lay_tank_cua_toi(user_id: str = Depends(lay_user_id)):
         supabase_admin.table("tanks")
         .select("*, fish(*)")
         .eq("user_id", user_id)
-        .limit(1)
         .execute()
     )
     if not ket_qua.data:
@@ -122,7 +121,6 @@ async def xem_tank_cong_khai(username: str):
         supabase_admin.table("profiles")
         .select("id, username, tong_gio_nghe")
         .eq("username", username)
-        .limit(1)
         .execute()
     )
     if ket_qua.data:
@@ -135,7 +133,6 @@ async def xem_tank_cong_khai(username: str):
                 supabase_admin.table("profiles")
                 .select("id, username, tong_gio_nghe")
                 .eq("nickname", username)
-                .limit(1)
                 .execute()
             )
             if ket_qua2.data:
@@ -151,7 +148,6 @@ async def xem_tank_cong_khai(username: str):
         .select("*, fish(*)")
         .eq("user_id", profile_data["id"])
         .eq("la_cong_khai", True)
-        .limit(1)
         .execute()
     )
     if not tank.data:

@@ -47,7 +47,6 @@ async def _lay_tank_id_cua_user(user_id: str, tank_id: Optional[str] = None) -> 
             supabase_admin.table("tanks")
             .select("id")
             .eq("user_id", user_id)
-            .limit(1)
             .execute()
         )
         data = ket_qua.data[0] if ket_qua.data else None
