@@ -11,7 +11,7 @@ function khoiTaoChuyen(ca) {
     y:      ca.vi_tri_y * window.innerHeight,
     huongX: Math.random() > 0.5 ? 1 : -1,
     huongY: (Math.random() - 0.5) * 0.3,
-    tocDo:  40 + Math.random() * 20,       // px/sec (40-60)
+    tocDo:  40,   // px/sec — loop cập nhật mỗi frame theo trạng thái phát
     pha:    Math.random() * Math.PI * 2,
   })
 }
@@ -705,7 +705,7 @@ export default function AquariumCanvas({
     const { danhSachCa: dsCa, dangPhat: dpId, nenHo: nenKey, dayHo: dayKey, caLevelUp: clu } = depsRef.current
 
     const canvas = canvasRef.current
-    if (!canvas) { frameRef.current = requestAnimationFrame(ts => animLoopRef.current(ts)); return }
+    if (!canvas) return
     const ctx = canvas.getContext('2d')
 
     const effectiveH = window.innerHeight - bottomPadRef.current
@@ -758,6 +758,9 @@ export default function AquariumCanvas({
     dsCa.forEach(ca => {
       const trang = trangThaiChuyen.get(ca.id)
       if (!trang) return
+
+      // Tốc độ theo trạng thái phát nhạc: 80 px/s khi đang phát, 40 px/s khi không
+      trang.tocDo = (ca.id === dpId) ? 80 : 40
 
       // Food-chasing AI for hungry fish
       let foodTarget = null
@@ -857,14 +860,19 @@ export default function AquariumCanvas({
       }
     }
 
-    frameRef.current = requestAnimationFrame(ts => animLoopRef.current(ts))
   }
 
-  // Loop khởi động một lần duy nhất — không restart khi re-render
+  // active flag đảm bảo chỉ 1 loop tồn tại — cleanup phá vỡ loop ngay lập tức
   useEffect(() => {
     lastTimeRef.current = null
-    frameRef.current = requestAnimationFrame(ts => animLoopRef.current(ts))
-    return () => cancelAnimationFrame(frameRef.current)
+    let active = true
+    const tick = (ts) => {
+      if (!active) return        // cleanup đã chạy → dừng hoàn toàn
+      animLoopRef.current(ts)   // render frame
+      frameRef.current = requestAnimationFrame(tick)
+    }
+    frameRef.current = requestAnimationFrame(tick)
+    return () => { active = false; cancelAnimationFrame(frameRef.current) }
   }, []) // eslint-disable-line react-hooks/exhaustive-deps
 
   // Spawn thức ăn khi feedSignal tăng
