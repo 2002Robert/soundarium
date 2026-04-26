@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from 'react'
+import { useState, useEffect, useRef, useCallback } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { supabase } from '../lib/supabase'
 import { API } from '../lib/api'
@@ -15,7 +15,7 @@ import FishManagerModal from '../components/FishManagerModal'
 import ShopPanel from '../components/ShopPanel'
 import ExplorePanel from '../components/ExplorePanel'
 import TankSwitcher from '../components/TankSwitcher'
-import { tinhLevelNguoiChoi } from '../constants/playerLevel'
+import { tinhLevelNguoiChoi, TIEU_DE_LEVEL } from '../constants/playerLevel'
 
 function roundRect(ctx, x, y, w, h, r) {
   ctx.beginPath()
@@ -105,6 +105,9 @@ export default function Home() {
   const playerBarRef  = useRef(null)
   const playerExpRef  = useRef(0)
   const feedCoolRef   = useRef({})
+  const gioNgheRef    = useRef(0)
+
+  const [playerLevelUp, setPlayerLevelUp] = useState(null)
   const [dangKhoiDong, setDangKhoiDong]       = useState(true)
   const [loiKetNoi, setLoiKetNoi]             = useState(false)
   const [soLanThu, setSoLanThu]               = useState(1)
@@ -132,7 +135,24 @@ export default function Home() {
     try { ytPlayer.setVolume?.(volume) } catch {}
   }, [ytPlayer])
 
-  const { dangPhat, phatCa, dungPhat } = useAudio()
+  const khiNgheCapNhat = useCallback((caId, res) => {
+    setDanhSachCa(prev => prev.map(c =>
+      c.id === caId ? { ...c, level: res.level_moi, xp: res.xp_moi } : c
+    ))
+    if (res.da_len_level) {
+      setCaLevelUp(caId)
+      setTimeout(() => setCaLevelUp(null), 2500)
+    }
+    const lvCu = tinhLevelNguoiChoi(gioNgheRef.current)
+    gioNgheRef.current += 5 / 60
+    const lvMoi = tinhLevelNguoiChoi(gioNgheRef.current)
+    if (lvMoi > lvCu) {
+      setPlayerLevelUp(lvMoi)
+      setTimeout(() => setPlayerLevelUp(null), 4500)
+    }
+  }, [])
+
+  const { dangPhat, phatCa, dungPhat } = useAudio({ onNgheCapNhat: khiNgheCapNhat })
   const { coins, thuHoach, setCoins }  = useCoins()
 
   const danhSachSua      = danhSachCa.filter(c => c.loai_ca === 'sua_gai')
@@ -532,7 +552,7 @@ export default function Home() {
           danhSachCa={danhSachCa}
           coins={coins}
           ngocTrai={ngocTrai}
-          onProfileLoad={p => { setProfileData(p); setNgocTrai(p.ngoc_trai || 0) }}
+          onProfileLoad={p => { setProfileData(p); setNgocTrai(p.ngoc_trai || 0); gioNgheRef.current = p.tong_gio_nghe || 0 }}
         />
         <div className="flex flex-col gap-1.5 mt-2">
           <IconBtn onClick={chiaSe} title="Chia sẻ hồ">🔗</IconBtn>
@@ -622,6 +642,22 @@ export default function Home() {
 
       {hienLogout && (
         <LogoutConfirm onXacNhan={xacNhanDangXuat} onHuy={() => setHienLogout(false)} />
+      )}
+
+      {playerLevelUp && (
+        <div className="fixed inset-0 pointer-events-none z-[200] flex items-center justify-center">
+          <div className="len-cap-player text-center select-none">
+            <div className="text-5xl mb-3">🌊</div>
+            <div
+              className="rounded-2xl px-8 py-5"
+              style={{ background: 'rgba(10,22,40,0.85)', border: '1px solid rgba(96,165,250,0.25)', backdropFilter: 'blur(14px)' }}
+            >
+              <div className="text-ho-anh/60 text-sm mb-1 tracking-wide uppercase">Lên cấp!</div>
+              <div className="text-3xl font-bold text-white">Lv.{playerLevelUp}</div>
+              <div className="text-ho-anh text-base mt-1">{TIEU_DE_LEVEL[playerLevelUp]}</div>
+            </div>
+          </div>
+        </div>
       )}
 
       {toast && <Toast thongBao={toast.thongBao} loai={toast.loai} onHet={() => setToast(null)} />}

@@ -52,6 +52,15 @@ export default function FishInfoPanel({
   const tenLoai = LOAI_CA[ca.loai_ca]?.ten || ca.loai_ca || 'Cá'
   const tenHienThi = ca.nickname || ca.ten_bai || tenLoai
 
+  const XP_NGUONG = [0, 0, 60, 180, 420, 900]
+  const xpHienTai = ca.xp || 0
+  const level     = ca.level || 1
+  const xpDauLv   = XP_NGUONG[level] ?? 0
+  const xpSauLv   = level < 5 ? (XP_NGUONG[level + 1] ?? null) : null
+  const phanTramXP = xpSauLv
+    ? Math.min(100, Math.round(((xpHienTai - xpDauLv) / (xpSauLv - xpDauLv)) * 100))
+    : 100
+
   // Giữ panel trong màn hình
   const panelX = Math.min(x, window.innerWidth - 260)
   const panelY = Math.min(y + 10, window.innerHeight - 300)
@@ -111,7 +120,25 @@ export default function FishInfoPanel({
       <div className="px-4 pb-3">
         <div className="text-ho-anh/60 text-xs truncate">🎵 {ca.ten_bai}</div>
         {ca.ten_kenh && <div className="text-ho-anh/40 text-xs truncate">{ca.ten_kenh}</div>}
-        <div className="text-ho-anh/30 text-xs mt-1">Lv.{ca.level} · {Math.round(ca.xp)} XP</div>
+        <div className="mt-1.5 space-y-1">
+          <div className="flex items-center gap-1.5">
+            <span className="text-ho-anh/40 text-xs">Lv.{level}</span>
+            {ca.truong_thanh && (
+              <span className="text-[10px] bg-amber-400/15 text-amber-300/90 border border-amber-400/25 rounded px-1 leading-[1.5]">
+                ★ Trưởng thành
+              </span>
+            )}
+            <span className="text-ho-anh/25 text-[10px] ml-auto">{Math.round(xpHienTai)} XP</span>
+          </div>
+          {xpSauLv && (
+            <div className="h-[3px] bg-white/5 rounded-full overflow-hidden">
+              <div
+                className="h-full rounded-full transition-all duration-700"
+                style={{ width: `${phanTramXP}%`, background: 'rgba(96,165,250,0.55)' }}
+              />
+            </div>
+          )}
+        </div>
       </div>
 
       {!cheDoSua ? (

@@ -684,10 +684,11 @@ export default function AquariumCanvas({
   const conTraiPosRef  = useRef({})
   const bottomPadRef   = useRef(bottomPad)
   bottomPadRef.current = bottomPad
-  const thucAnRef      = useRef([])
-  const feedSignalRef  = useRef(feedSignal)
-  const onCaAnRef      = useRef(onCaAnThucAn)
-  onCaAnRef.current    = onCaAnThucAn
+  const thucAnRef          = useRef([])
+  const feedSignalRef      = useRef(feedSignal)
+  const onCaAnRef          = useRef(onCaAnThucAn)
+  onCaAnRef.current        = onCaAnThucAn
+  const caLevelUpStartRef  = useRef(null)
 
   danhSachCa.forEach(khoiTaoChuyen)
 
@@ -844,18 +845,41 @@ export default function AquariumCanvas({
     }
 
     if (clu) {
+      if (caLevelUpStartRef.current === null) caLevelUpStartRef.current = elapsedRef.current
       const trang = trangThaiChuyen.get(clu)
       if (trang) {
-        for (let i = 0; i < 8; i++) {
-          const goc = (i / 8) * Math.PI * 2
+        const ageMs = elapsedRef.current - caLevelUpStartRef.current
+        const DUR = 2000
+        const p   = Math.min(ageMs / DUR, 1)   // 0→1 over 2s
+        const fade = p < 0.7 ? 1 : 1 - (p - 0.7) / 0.3
+
+        // Vòng nổ tung — 12 hạt, bán kính tăng dần
+        for (let i = 0; i < 12; i++) {
+          const goc = (i / 12) * Math.PI * 2
+          const r   = 10 + p * 55
+          const sz  = 4 * (1 - p * 0.5)
+          const hue = 40 + i * 8
+          ctx.save()
+          ctx.globalAlpha = fade * 0.85
           ctx.beginPath()
-          ctx.arc(trang.x + Math.cos(goc) * 30, trang.y + Math.sin(goc) * 30, 4, 0, Math.PI * 2)
-          ctx.fillStyle = 'rgba(255,220,100,0.7)'; ctx.fill()
+          ctx.arc(trang.x + Math.cos(goc) * r, trang.y + Math.sin(goc) * r, sz, 0, Math.PI * 2)
+          ctx.fillStyle = `hsl(${hue},100%,65%)`
+          ctx.fill()
+          ctx.restore()
         }
-        ctx.font = '14px sans-serif'
+
+        // Chữ +1 LVL nổi lên
+        const textY = trang.y - 40 - p * 20
+        ctx.save()
+        ctx.globalAlpha = fade
+        ctx.font = `bold ${14 + Math.round(p * 4)}px sans-serif`
+        ctx.textAlign = 'center'
         ctx.fillStyle = '#ffd700'
-        ctx.fillText('+1 LVL', trang.x - 20, trang.y - 40)
+        ctx.fillText('▲ LVL UP!', trang.x, textY)
+        ctx.restore()
       }
+    } else {
+      caLevelUpStartRef.current = null
     }
 
   }
