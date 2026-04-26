@@ -664,6 +664,7 @@ export default function AquariumCanvas({
   const elapsedRef     = useRef(0)
   const animLoopRef    = useRef(null)
   const depsRef        = useRef({})
+  const genRef         = useRef(0)
   const bongRef        = useRef(
     Array.from({ length: 30 }, () => ({
       x: Math.random() * window.innerWidth,
@@ -862,17 +863,19 @@ export default function AquariumCanvas({
 
   }
 
-  // active flag đảm bảo chỉ 1 loop tồn tại — cleanup phá vỡ loop ngay lập tức
+  // Generation counter: chỉ loop có genRef.current === myGen mới được chạy
+  // → khi cleanup tăng genRef.current, mọi loop cũ dừng dứt khoát
   useEffect(() => {
+    genRef.current++
+    const myGen = genRef.current
     lastTimeRef.current = null
-    let active = true
-    const tick = (ts) => {
-      if (!active) return        // cleanup đã chạy → dừng hoàn toàn
-      animLoopRef.current(ts)   // render frame
-      frameRef.current = requestAnimationFrame(tick)
+    function tick(ts) {
+      if (genRef.current !== myGen) return   // thế hệ cũ → dừng ngay
+      animLoopRef.current(ts)
+      requestAnimationFrame(tick)
     }
-    frameRef.current = requestAnimationFrame(tick)
-    return () => { active = false; cancelAnimationFrame(frameRef.current) }
+    requestAnimationFrame(tick)
+    return () => { genRef.current++ }        // vô hiệu hóa thế hệ này
   }, []) // eslint-disable-line react-hooks/exhaustive-deps
 
   // Spawn thức ăn khi feedSignal tăng
