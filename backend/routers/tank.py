@@ -1,5 +1,6 @@
 import random
-from fastapi import APIRouter, Depends, HTTPException
+from typing import Optional
+from fastapi import APIRouter, Depends, HTTPException, Query
 from database import supabase_admin
 from auth import lay_user_id
 from models.tank import CapNhatTank
@@ -166,17 +167,19 @@ async def xem_tank_cong_khai(username: str):
 async def cap_nhat_tank(
     body: CapNhatTank,
     user_id: str = Depends(lay_user_id),
+    tank_id: Optional[str] = Query(None),
 ):
     cap_nhat = body.model_dump(exclude_none=True)
     if not cap_nhat:
         raise HTTPException(status_code=400, detail="Không có gì để cập nhật")
 
-    ket_qua = (
-        supabase_admin.table("tanks")
-        .update(cap_nhat)
-        .eq("user_id", user_id)
-        .execute()
-    )
+    query = supabase_admin.table("tanks").update(cap_nhat).eq("user_id", user_id)
+    if tank_id:
+        query = query.eq("id", tank_id)
+    ket_qua = query.execute()
+
+    if not ket_qua.data:
+        raise HTTPException(status_code=404, detail="Không tìm thấy hồ cá")
     return {"tank": ket_qua.data[0]}
 
 

@@ -437,12 +437,23 @@ export default function Home() {
   }
 
   async function chiaSe() {
+    // Bật public cho hồ đang chọn nếu chưa public
+    const currentTank = danhSachTank.find(t => t.id === selectedTankId)
+    if (currentTank && !currentTank.la_cong_khai) {
+      try {
+        await API.capNhatTank({ la_cong_khai: true }, selectedTankId)
+        setDanhSachTank(prev => prev.map(t =>
+          t.id === selectedTankId ? { ...t, la_cong_khai: true } : t
+        ))
+      } catch {}
+    }
+
     const { data } = await supabase.auth.getUser()
     const { data: profile } = await supabase
       .from('profiles').select('username').eq('id', data.user.id).single()
     const username = profile?.username || data?.user?.email?.split('@')[0]
     await navigator.clipboard.writeText(`${window.location.origin}/u/${username}`)
-    hienToast('Đã copy link hồ!', 'thanhCong')
+    hienToast('Đã copy link hồ! Hồ đã được công khai 🔗', 'thanhCong')
   }
 
   async function xacNhanDangXuat() {

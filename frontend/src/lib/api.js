@@ -14,7 +14,7 @@ async function layHeader() {
 async function goiApi(path, options = {}) {
   const headers = await layHeader()
   const ctrl = new AbortController()
-  const tid  = setTimeout(() => ctrl.abort(), 20000)  // 20s mỗi lần, retry 4 lần = 80s cover
+  const tid  = setTimeout(() => ctrl.abort(), 35000)  // 35s — đủ cho Render cold start (~30s)
   let resp
   try {
     resp = await fetch(`${BASE}${path}`, { ...options, headers, signal: ctrl.signal })
@@ -118,8 +118,8 @@ export const API = {
 
   xemTankNguoiKhac: (username) => goiApi(`/api/tank/xem/${username}`),
 
-  capNhatTank: (data) =>
-    goiApi('/api/tank/cap-nhat', {
+  capNhatTank: (data, tankId) =>
+    goiApi(`/api/tank/cap-nhat${tankId ? `?tank_id=${tankId}` : ''}`, {
       method: 'PATCH',
       body: JSON.stringify(data),
     }),
