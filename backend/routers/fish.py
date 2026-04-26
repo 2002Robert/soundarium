@@ -108,7 +108,7 @@ async def them_ca_moi(
         if coins_hien_co < gia:
             raise HTTPException(status_code=402, detail=f"Không đủ coins (cần {gia})")
 
-    thong_tin = await lay_thong_tin_video(video_id)
+    thong_tin = lay_thong_tin_video(video_id)
     thuoc_tinh = tao_ca_ngau_nhien(loai_ca)
 
     ca_moi = {
@@ -185,7 +185,7 @@ async def chinh_sua_ca(
         video_id_moi = trich_video_id(body.youtube_url)
         if not video_id_moi:
             raise HTTPException(status_code=400, detail="Link YouTube không hợp lệ")
-        thong_tin = await lay_thong_tin_video(video_id_moi)
+        thong_tin = lay_thong_tin_video(video_id_moi)
         cap_nhat.update({
             "youtube_url": body.youtube_url,
             "video_id": video_id_moi,

@@ -1,5 +1,5 @@
 import re
-import httpx
+import requests
 from typing import Optional
 
 
@@ -18,21 +18,25 @@ def trich_video_id(youtube_url: str) -> Optional[str]:
     return None
 
 
-async def lay_thong_tin_video(video_id: str) -> dict:
+def lay_thong_tin_video(video_id: str) -> dict:
     """
-    Lấy tên bài và tên kênh từ YouTube oEmbed API.
-    oEmbed không cần API key, giới hạn thấp nên ổn cho MVP.
+    Lấy tên bài và tên kênh từ YouTube oEmbed API (không cần API key).
     """
-    url = f"https://www.youtube.com/oembed?url=https://www.youtube.com/watch?v={video_id}&format=json"
+    url = (
+        f"https://www.youtube.com/oembed"
+        f"?url=https://www.youtube.com/watch?v={video_id}"
+        f"&format=json"
+    )
     try:
-        async with httpx.AsyncClient(timeout=5.0) as client:
-            resp = await client.get(url)
-            if resp.status_code == 200:
-                data = resp.json()
-                return {
-                    "ten_bai": data.get("title", "Bài nhạc không tên"),
-                    "ten_kenh": data.get("author_name", ""),
-                }
-    except Exception:
-        pass
+        resp = requests.get(url, timeout=8)
+        print(f"[YouTube oEmbed] video_id={video_id} status={resp.status_code}")
+        if resp.status_code == 200:
+            data = resp.json()
+            return {
+                "ten_bai": data.get("title") or "Bài nhạc không tên",
+                "ten_kenh": data.get("author_name") or "",
+            }
+        print(f"[YouTube oEmbed] body={resp.text[:200]}")
+    except Exception as e:
+        print(f"[YouTube oEmbed] error: {e}")
     return {"ten_bai": "Bài nhạc không tên", "ten_kenh": ""}
