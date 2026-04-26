@@ -25,8 +25,15 @@ async function goiApi(path, options = {}, _retry = true) {
     clearTimeout(tid)
     if (err.name === 'AbortError') throw new Error('Server đang khởi động, thử lại sau')
     if (_retry) {
-      // Render free-tier TCP-resets during cold start — wait then retry once
-      await new Promise(r => setTimeout(r, 22000))
+      // Render free-tier TCP-resets during cold start (~30-50s)
+      // Poll /health until server wakes up, then retry
+      for (let i = 0; i < 12; i++) {
+        await new Promise(r => setTimeout(r, 5000))
+        try {
+          const ping = await fetch(`${BASE}/health`)
+          if (ping.ok) break
+        } catch {}
+      }
       return goiApi(path, options, false)
     }
     throw new Error('Không kết nối được server')

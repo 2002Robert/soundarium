@@ -11,7 +11,7 @@ function khoiTaoChuyen(ca) {
     y:      ca.vi_tri_y * window.innerHeight,
     huongX: Math.random() > 0.5 ? 1 : -1,
     huongY: (Math.random() - 0.5) * 0.3,
-    tocDo:  0.3 + Math.random() * 0.4,
+    tocDo:  0.25 + Math.random() * 0.25,
     pha:    Math.random() * Math.PI * 2,
   })
 }
@@ -327,28 +327,28 @@ const HUNGER_MS = 45 * 60 * 1000
 
 // ─── Frame chính ─────────────────────────────────────────────
 // foodTarget = { ref: pelletObj, x, y, eatCb } | null
-function veCa(ctx, ca, trang, dangPhat, hHieuQua, foodTarget) {
+function veCa(ctx, ca, trang, dangPhat, hHieuQua, foodTarget, dt = 1) {
   const kt       = KICH_THUOC_THEO_LEVEL[ca.level] || 40
   const sizeMult = (ca.truong_thanh == null || ca.truong_thanh === true) ? 1.3 : 0.8
   const doMo     = tinhDoMo(ca.lan_nghe_cuoi)
   const r        = (kt * sizeMult) / 2
 
-  trang.pha += 0.05
+  trang.pha += 0.05 * dt
 
   if (foodTarget && !foodTarget.ref.eaten) {
     const dx   = foodTarget.x - trang.x
     const dy   = foodTarget.y - trang.y
     const dist = Math.sqrt(dx * dx + dy * dy) || 1
     trang.huongX = dx >= 0 ? 1 : -1
-    trang.x += (dx / dist) * trang.tocDo * 2.8
-    trang.y += (dy / dist) * trang.tocDo * 1.8
+    trang.x += (dx / dist) * trang.tocDo * 1.5 * dt
+    trang.y += (dy / dist) * trang.tocDo * 1.0 * dt
     if (dist < r * 1.6 && !foodTarget.ref.eaten) {
       foodTarget.ref.eaten = true
       foodTarget.eatCb?.(ca.id)
     }
   } else {
-    trang.x += trang.huongX * trang.tocDo
-    trang.y += Math.sin(trang.pha) * 0.3
+    trang.x += trang.huongX * trang.tocDo * dt
+    trang.y += Math.sin(trang.pha) * 0.3 * dt
   }
 
   const w = ctx.canvas.width
@@ -620,11 +620,11 @@ function veConTrai(ctx, x, y, r, isOpen) {
   ctx.restore()
 }
 
-function veBongBong(ctx, bongBubbles) {
+function veBongBong(ctx, bongBubbles, dt = 1) {
   bongBubbles.forEach((b, i) => {
-    b.y -= b.tocDo
-    b.x += Math.sin(b.y * 0.05) * 0.3
-    b.doMo = Math.max(0, b.doMo - 0.003)
+    b.y -= b.tocDo * dt
+    b.x += Math.sin(b.y * 0.05) * 0.3 * dt
+    b.doMo = Math.max(0, b.doMo - 0.003 * dt)
     if (b.y < 0 || b.doMo <= 0) {
       bongBubbles[i] = {
         x: Math.random() * ctx.canvas.width,
@@ -659,6 +659,7 @@ export default function AquariumCanvas({
 }) {
   const canvasRef      = useRef(null)
   const frameRef       = useRef(0)
+  const lastTimeRef    = useRef(0)
   const bongRef        = useRef(
     Array.from({ length: 30 }, () => ({
       x: Math.random() * window.innerWidth,
@@ -685,10 +686,14 @@ export default function AquariumCanvas({
 
   danhSachCa.forEach(khoiTaoChuyen)
 
-  const veFrame = useCallback(() => {
+  const veFrame = useCallback((timestamp = 0) => {
     const canvas = canvasRef.current
     if (!canvas) return
     const ctx = canvas.getContext('2d')
+
+    // Delta-time: cap at 2.5× to avoid jumps after tab blur/focus
+    const dt = lastTimeRef.current ? Math.min((timestamp - lastTimeRef.current) / 16.67, 2.5) : 1
+    lastTimeRef.current = timestamp
 
     const effectiveH = window.innerHeight - bottomPadRef.current
     if (canvas.width !== window.innerWidth || canvas.height !== effectiveH) {
@@ -705,7 +710,7 @@ export default function AquariumCanvas({
     ctx.fillStyle = grad
     ctx.fillRect(0, 0, w, h)
 
-    const thoiGian = frameRef.current * 0.02
+    const thoiGian = timestamp * 0.0012
     for (let i = 0; i < 5; i++) {
       const xAnh = (Math.sin(thoiGian + i * 1.2) * 0.5 + 0.5) * w
       const gAnh = ctx.createRadialGradient(xAnh, 0, 0, xAnh, h * 0.5, w * 0.4)
@@ -732,7 +737,7 @@ export default function AquariumCanvas({
     ctx.closePath()
     ctx.fill()
 
-    veBongBong(ctx, bongRef.current)
+    veBongBong(ctx, bongRef.current, dt)
 
     const thucAnActive = thucAnRef.current.filter(f => !f.eaten)
     const eatCb = onCaAnRef.current
@@ -757,7 +762,7 @@ export default function AquariumCanvas({
         }
       }
 
-      veCa(ctx, ca, trang, dangPhat === ca.id, h, foodTarget)
+      veCa(ctx, ca, trang, dangPhat === ca.id, h, foodTarget, dt)
 
       const ten = ca.nickname || ca.ten_bai || ''
       if (ten) {
@@ -779,7 +784,7 @@ export default function AquariumCanvas({
     // Vẽ sứa gai (DB objects — có nhạc, có thể click)
     const suaList = suaGaiRef.current
     if (suaList.length > 0) {
-      const t = frameRef.current * 0.02
+      const t = thoiGian
       suaList.forEach(sua => {
         // Pha xác định từ id (ổn định qua các frame)
         const pha = sua.id.split('').reduce((a, c) => a + c.charCodeAt(0), 0) * 0.037 % (Math.PI * 2)
@@ -806,9 +811,9 @@ export default function AquariumCanvas({
     // Cập nhật và vẽ thức ăn rơi
     thucAnRef.current.forEach(f => {
       if (f.eaten) return
-      f.y  += f.vy
-      f.vy  = Math.min(f.vy + 0.06, 3.5)
-      f.x  += Math.sin(f.y * 0.04) * 0.45
+      f.y  += f.vy * dt
+      f.vy  = Math.min(f.vy + 0.06 * dt, 3.5)
+      f.x  += Math.sin(f.y * 0.04) * 0.45 * dt
       if (f.y > h + 20) { f.eaten = true; return }
       ctx.save()
       ctx.beginPath()
@@ -841,7 +846,6 @@ export default function AquariumCanvas({
       }
     }
 
-    frameRef.current++
     requestAnimationFrame(veFrame)
   }, [danhSachCa, dangPhat, nenHo, dayHo, caLevelUp])
 
