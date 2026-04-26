@@ -11,7 +11,7 @@ function khoiTaoChuyen(ca) {
     y:      ca.vi_tri_y * window.innerHeight,
     huongX: Math.random() > 0.5 ? 1 : -1,
     huongY: (Math.random() - 0.5) * 0.3,
-    tocDo:  0.25 + Math.random() * 0.25,
+    tocDo:  40 + Math.random() * 20,       // px/sec (40-60)
     pha:    Math.random() * Math.PI * 2,
   })
 }
@@ -327,28 +327,29 @@ const HUNGER_MS = 45 * 60 * 1000
 
 // ─── Frame chính ─────────────────────────────────────────────
 // foodTarget = { ref: pelletObj, x, y, eatCb } | null
-function veCa(ctx, ca, trang, dangPhat, hHieuQua, foodTarget) {
+function veCa(ctx, ca, trang, dangPhat, hHieuQua, foodTarget, dt) {
   const kt       = KICH_THUOC_THEO_LEVEL[ca.level] || 40
   const sizeMult = (ca.truong_thanh == null || ca.truong_thanh === true) ? 1.3 : 0.8
   const doMo     = tinhDoMo(ca.lan_nghe_cuoi)
   const r        = (kt * sizeMult) / 2
 
-  trang.pha += 0.05
+  trang.pha += 2.5 * (dt / 1000)   // ~2.5 rad/sec → ~0.4 Hz tail wag
 
   if (foodTarget && !foodTarget.ref.eaten) {
     const dx   = foodTarget.x - trang.x
     const dy   = foodTarget.y - trang.y
     const dist = Math.sqrt(dx * dx + dy * dy) || 1
     trang.huongX = dx >= 0 ? 1 : -1
-    trang.x += (dx / dist) * trang.tocDo * 1.5
-    trang.y += (dy / dist) * trang.tocDo * 1.0
+    const spd  = 90 * (dt / 1000)  // 90 px/sec chase speed
+    trang.x += (dx / dist) * spd
+    trang.y += (dy / dist) * spd * 0.85
     if (dist < r * 1.6 && !foodTarget.ref.eaten) {
       foodTarget.ref.eaten = true
       foodTarget.eatCb?.(ca.id)
     }
   } else {
-    trang.x += trang.huongX * trang.tocDo
-    trang.y += Math.sin(trang.pha) * 0.3
+    trang.x += trang.huongX * trang.tocDo * (dt / 1000)
+    trang.y += Math.sin(trang.pha) * 15 * (dt / 1000)  // ±15 px/sec vertical wobble
   }
 
   const w = ctx.canvas.width
@@ -388,7 +389,7 @@ function veCa(ctx, ca, trang, dangPhat, hHieuQua, foodTarget) {
 
 // ─── Vẽ sứa hồng tím ────────────────────────────────────────────
 function veSua(ctx, x, y, r, pha, t) {
-  const pulse = 1 + Math.sin(t * 2.5 + pha) * 0.12
+  const pulse = 1 + Math.sin(t * 3.0 + pha) * 0.12
   const rp = r * pulse
   ctx.save()
 
@@ -491,7 +492,7 @@ function veSua(ctx, x, y, r, pha, t) {
   ctx.lineWidth = 1.5
   for (let i = 0; i < 7; i++) {
     const tx    = x + (i - 3) * rp * 0.29
-    const swing = Math.sin(t * 1.4 + pha + i * 0.75) * 9
+    const swing = Math.sin(t * 1.68 + pha + i * 0.75) * 9
     ctx.globalAlpha = 0.52
     ctx.beginPath()
     ctx.moveTo(tx, y + rp * 0.3)
@@ -620,17 +621,17 @@ function veConTrai(ctx, x, y, r, isOpen) {
   ctx.restore()
 }
 
-function veBongBong(ctx, bongBubbles) {
+function veBongBong(ctx, bongBubbles, dt) {
   bongBubbles.forEach((b, i) => {
-    b.y -= b.tocDo
+    b.y -= b.tocDo * (dt / 1000)
     b.x += Math.sin(b.y * 0.05) * 0.3
-    b.doMo = Math.max(0, b.doMo - 0.003)
+    b.doMo = Math.max(0, b.doMo - 0.02 * (dt / 1000))
     if (b.y < 0 || b.doMo <= 0) {
       bongBubbles[i] = {
         x: Math.random() * ctx.canvas.width,
         y: ctx.canvas.height + 10,
         r: 1 + Math.random() * 3,
-        tocDo: 0.2 + Math.random() * 0.5,
+        tocDo: 20 + Math.random() * 40,   // px/sec
         doMo:  0.1 + Math.random() * 0.3,
       }
     }
@@ -659,12 +660,16 @@ export default function AquariumCanvas({
 }) {
   const canvasRef      = useRef(null)
   const frameRef       = useRef(0)
+  const lastTimeRef    = useRef(null)
+  const elapsedRef     = useRef(0)
+  const animLoopRef    = useRef(null)
+  const depsRef        = useRef({})
   const bongRef        = useRef(
     Array.from({ length: 30 }, () => ({
       x: Math.random() * window.innerWidth,
       y: Math.random() * window.innerHeight,
       r: 1 + Math.random() * 3,
-      tocDo: 0.2 + Math.random() * 0.5,
+      tocDo: 20 + Math.random() * 40,    // px/sec
       doMo:  0.1 + Math.random() * 0.3,
     }))
   )
@@ -685,9 +690,22 @@ export default function AquariumCanvas({
 
   danhSachCa.forEach(khoiTaoChuyen)
 
-  const veFrame = useCallback(() => {
+  // Cập nhật deps mỗi render — loop đọc qua ref, không restart
+  depsRef.current = { danhSachCa, dangPhat, nenHo, dayHo, caLevelUp }
+
+  // Gán hàm loop mỗi render để luôn có closure mới nhất
+  animLoopRef.current = (timestamp) => {
+    if (lastTimeRef.current === null) lastTimeRef.current = timestamp
+    const rawDt = timestamp - lastTimeRef.current
+    lastTimeRef.current = timestamp
+    const dt = Math.min(rawDt, 50)   // cap 50ms tránh jump khi tab bị ẩn
+    elapsedRef.current += dt
+    const t = elapsedRef.current / 1000   // giây thực
+
+    const { danhSachCa: dsCa, dangPhat: dpId, nenHo: nenKey, dayHo: dayKey, caLevelUp: clu } = depsRef.current
+
     const canvas = canvasRef.current
-    if (!canvas) return
+    if (!canvas) { frameRef.current = requestAnimationFrame(ts => animLoopRef.current(ts)); return }
     const ctx = canvas.getContext('2d')
 
     const effectiveH = window.innerHeight - bottomPadRef.current
@@ -697,17 +715,17 @@ export default function AquariumCanvas({
     }
 
     const w = canvas.width, h = canvas.height
-    const nen = NEN_HO[nenHo] || NEN_HO['ocean-shallow']
+    const nenCfg = NEN_HO[nenKey] || NEN_HO['ocean-shallow']
 
     const grad = ctx.createLinearGradient(0, 0, 0, h)
-    grad.addColorStop(0, nen.tren)
-    grad.addColorStop(1, nen.duoi)
+    grad.addColorStop(0, nenCfg.tren)
+    grad.addColorStop(1, nenCfg.duoi)
     ctx.fillStyle = grad
     ctx.fillRect(0, 0, w, h)
 
-    const thoiGian = frameRef.current * 0.02
+    // Tia sáng — tần số giữ nguyên so với version cũ (thoiGian tăng 1.2/giây)
     for (let i = 0; i < 5; i++) {
-      const xAnh = (Math.sin(thoiGian + i * 1.2) * 0.5 + 0.5) * w
+      const xAnh = (Math.sin(t * 1.2 + i * 1.2) * 0.5 + 0.5) * w
       const gAnh = ctx.createRadialGradient(xAnh, 0, 0, xAnh, h * 0.5, w * 0.4)
       gAnh.addColorStop(0, 'rgba(126,200,227,0.04)')
       gAnh.addColorStop(1, 'rgba(0,0,0,0)')
@@ -715,7 +733,7 @@ export default function AquariumCanvas({
       ctx.fillRect(0, 0, w, h)
     }
 
-    const dayMau = DAY_HO_MAU[dayHo] || '#c8b89a'
+    const dayMau = DAY_HO_MAU[dayKey] || '#c8b89a'
     const dayH = 40
     const dayY = h - dayH
     const dayGrad = ctx.createLinearGradient(0, dayY, 0, h)
@@ -726,18 +744,18 @@ export default function AquariumCanvas({
     ctx.beginPath()
     ctx.moveTo(0, h)
     for (let x = 0; x <= w; x += 18) {
-      ctx.lineTo(x, dayY + Math.sin(x * 0.04 + thoiGian * 0.4) * 5)
+      ctx.lineTo(x, dayY + Math.sin(x * 0.04 + t * 0.48) * 5)
     }
     ctx.lineTo(w, h)
     ctx.closePath()
     ctx.fill()
 
-    veBongBong(ctx, bongRef.current)
+    veBongBong(ctx, bongRef.current, dt)
 
     const thucAnActive = thucAnRef.current.filter(f => !f.eaten)
     const eatCb = onCaAnRef.current
 
-    danhSachCa.forEach(ca => {
+    dsCa.forEach(ca => {
       const trang = trangThaiChuyen.get(ca.id)
       if (!trang) return
 
@@ -757,7 +775,7 @@ export default function AquariumCanvas({
         }
       }
 
-      veCa(ctx, ca, trang, dangPhat === ca.id, h, foodTarget)
+      veCa(ctx, ca, trang, dpId === ca.id, h, foodTarget, dt)
 
       const ten = ca.nickname || ca.ten_bai || ''
       if (ten) {
@@ -776,15 +794,13 @@ export default function AquariumCanvas({
       }
     })
 
-    // Vẽ sứa gai (DB objects — có nhạc, có thể click)
+    // Vẽ sứa gai
     const suaList = suaGaiRef.current
     if (suaList.length > 0) {
-      const t = thoiGian
       suaList.forEach(sua => {
-        // Pha xác định từ id (ổn định qua các frame)
         const pha = sua.id.split('').reduce((a, c) => a + c.charCodeAt(0), 0) * 0.037 % (Math.PI * 2)
         const rx  = sua.vi_tri_x * w
-        const ry  = Math.min(sua.vi_tri_y, 0.52) * h + Math.sin(t * 0.7 + pha) * 12
+        const ry  = Math.min(sua.vi_tri_y, 0.52) * h + Math.sin(t * 0.84 + pha) * 12
         const sr  = Math.min(w, h) * 0.038
         veSua(ctx, rx, ry, sr, pha, t)
         suaPosRef.current[sua.id] = { x: rx, y: ry, r: sr, obj: sua }
@@ -803,12 +819,12 @@ export default function AquariumCanvas({
       })
     }
 
-    // Cập nhật và vẽ thức ăn rơi
+    // Thức ăn rơi — dùng delta time, 80-100 px/giây
     thucAnRef.current.forEach(f => {
       if (f.eaten) return
-      f.y  += f.vy
-      f.vy  = Math.min(f.vy + 0.06, 3.5)
-      f.x  += Math.sin(f.y * 0.04) * 0.45
+      f.y  += f.vy * (dt / 1000)
+      f.vy  = Math.min(f.vy + 80 * (dt / 1000), 90)  // trọng lực 80 px/s², tối đa 90 px/s
+      f.x  += Math.sin(f.y * 0.04) * 0.45             // wobble nhẹ sang trái phải
       if (f.y > h + 20) { f.eaten = true; return }
       ctx.save()
       ctx.beginPath()
@@ -826,8 +842,8 @@ export default function AquariumCanvas({
       thucAnRef.current = thucAnRef.current.filter(f => !f.eaten)
     }
 
-    if (caLevelUp) {
-      const trang = trangThaiChuyen.get(caLevelUp)
+    if (clu) {
+      const trang = trangThaiChuyen.get(clu)
       if (trang) {
         for (let i = 0; i < 8; i++) {
           const goc = (i / 8) * Math.PI * 2
@@ -841,14 +857,15 @@ export default function AquariumCanvas({
       }
     }
 
-    frameRef.current++
-    requestAnimationFrame(veFrame)
-  }, [danhSachCa, dangPhat, nenHo, dayHo, caLevelUp])
+    frameRef.current = requestAnimationFrame(ts => animLoopRef.current(ts))
+  }
 
+  // Loop khởi động một lần duy nhất — không restart khi re-render
   useEffect(() => {
-    const id = requestAnimationFrame(veFrame)
-    return () => cancelAnimationFrame(id)
-  }, [veFrame])
+    lastTimeRef.current = null
+    frameRef.current = requestAnimationFrame(ts => animLoopRef.current(ts))
+    return () => cancelAnimationFrame(frameRef.current)
+  }, []) // eslint-disable-line react-hooks/exhaustive-deps
 
   // Spawn thức ăn khi feedSignal tăng
   useEffect(() => {
@@ -860,7 +877,7 @@ export default function AquariumCanvas({
       id:    `f${Date.now()}${i}`,
       x:     w * (0.15 + Math.random() * 0.7),
       y:     -8 - i * 18,
-      vy:    0.8 + Math.random() * 0.7,
+      vy:    20 + Math.random() * 20,     // px/sec (tăng tốc đến max 90)
       eaten: false,
     }))
     thucAnRef.current = [...thucAnRef.current, ...newPellets]
