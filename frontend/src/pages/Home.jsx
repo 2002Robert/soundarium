@@ -91,8 +91,15 @@ export default function Home() {
       const saved = JSON.parse(localStorage.getItem('snd_con_trai') || 'null')
       if (!Array.isArray(saved) || saved.length === 0) return []
       const now = Date.now()
+      // Migration: gộp nhiều con thành 1 con bự ở giữa
+      if (saved.length > 1) {
+        const anyOpen   = saved.some(ct => ct.isOpen || (!ct.lastOpened || now - ct.lastOpened >= 15 * 60 * 1000))
+        const lastOpened = saved.reduce((m, ct) => Math.max(m, ct.lastOpened || 0), 0)
+        return [{ id: `ct_${now}_0`, x: 0.5, isOpen: anyOpen, lastOpened, createdAt: now }]
+      }
       return saved.map(ct => ({
         ...ct,
+        x: 0.5,
         isOpen: ct.isOpen || (!ct.lastOpened || now - ct.lastOpened >= 15 * 60 * 1000),
       }))
     } catch { return [] }

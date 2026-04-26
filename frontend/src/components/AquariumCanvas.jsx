@@ -520,11 +520,13 @@ function veConTrai(ctx, x, y, r, isOpen) {
     const t     = Date.now() / 1000
     const pulse = 0.76 + Math.sin(t * 2.8) * 0.24   // 0.52 → 1.0
 
-    const shellR  = r * 1.4    // bán kính cánh quạt
-    const SPREAD  = Math.PI * 0.47   // ~85° mỗi cánh (tổng ~170°)
-    const UP      = -Math.PI / 2     // thẳng lên
-    const RIBS    = 6                // số gân vỏ
-    const NS      = 0.78             // nacre scale
+    const shellR  = r * 1.35   // bán kính cánh quạt
+    // SPREAD = 108°: cánh trải sang ngang rồi hơi xuống dưới (như ảnh reference)
+    // tổng mở: 216° — đỉnh cánh xuống đến ~0.37r bên dưới bản lề
+    const SPREAD  = Math.PI * 0.60
+    const UP      = -Math.PI / 2     // trục đối xứng: thẳng lên
+    const RIBS    = 6
+    const NS      = 0.78
     const STEPS   = 48
 
     // Hàm dựng path hình quạt có mép scallop
@@ -944,7 +946,8 @@ export default function AquariumCanvas({
     const ctList = conTraiRef.current
     if (ctList.length > 0) {
       const oysterR = Math.min(w * 0.072, ctList.length === 1 ? 46 : 28)
-      const oysterY = h - 40 - oysterR * 0.5
+      // Đẩy tâm vẽ lên cao hơn để cánh dưới (SPREAD > 90°) không bị cắt bởi đáy
+      const oysterY = h - 40 - oysterR * 1.1
       ctList.forEach(ct => {
         const ox = ct.x * w
         veConTrai(ctx, ox, oysterY, oysterR, ct.isOpen)
