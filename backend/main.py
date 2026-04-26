@@ -1,6 +1,8 @@
 import os
-from fastapi import FastAPI
+import traceback
+from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import JSONResponse
 from dotenv import load_dotenv
 from routers import fish, tank, coins, profile
 
@@ -12,20 +14,28 @@ app = FastAPI(
     version="1.0.0",
 )
 
-_frontend_url = os.getenv("FRONTEND_URL", "http://localhost:5173")
-
 app.add_middleware(
     CORSMiddleware,
     allow_origins=[
+        "https://soundarium.pages.dev",
+        "https://www.soundarium.pages.dev",
         "http://localhost:5173",
         "http://localhost:3000",
-        "https://soundarium.pages.dev",
-        _frontend_url,
     ],
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+# Global handler: đảm bảo mọi unhandled exception vẫn trả JSON có CORS header
+@app.exception_handler(Exception)
+async def global_exception_handler(request: Request, exc: Exception):
+    tb = traceback.format_exc()
+    print(f"[500] {request.method} {request.url}\n{tb}")
+    return JSONResponse(
+        status_code=500,
+        content={"detail": f"Lỗi server: {type(exc).__name__}: {exc}"},
+    )
 
 app.include_router(fish.router)
 app.include_router(tank.router)
@@ -40,5 +50,4 @@ async def root():
 
 @app.get("/health")
 async def health():
-    """Endpoint cho GitHub Actions keep-alive và Railway health check."""
     return {"ok": True}

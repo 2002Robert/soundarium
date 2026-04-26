@@ -122,7 +122,15 @@ async def them_ca_moi(
         **thuoc_tinh,
     }
 
-    ket_qua = supabase_admin.table("fish").insert(ca_moi).execute()
+    try:
+        ket_qua = supabase_admin.table("fish").insert(ca_moi).execute()
+    except Exception as e:
+        import traceback
+        print(f"[INSERT fish ERROR] {e}\n{traceback.format_exc()}")
+        raise HTTPException(status_code=500, detail=f"Lỗi lưu cá: {e}")
+
+    if not ket_qua.data:
+        raise HTTPException(status_code=500, detail="Insert thành công nhưng không có data trả về")
 
     coins_con_lai = None
     if gia > 0:
