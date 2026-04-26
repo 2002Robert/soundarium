@@ -108,6 +108,7 @@ export default function Home() {
   const [selectedTankId, setSelectedTankId]   = useState(null)
   const [dangTaoTank, setDangTaoTank]         = useState(false)
   const [feedSignal, setFeedSignal]           = useState(0)
+  const [coinHarvestSignal, setCoinHarvestSignal] = useState(0)
   const [playerBarHeight, setPlayerBarHeight] = useState(0)
   const playerBarRef  = useRef(null)
   const playerExpRef  = useRef(0)
@@ -188,6 +189,7 @@ export default function Home() {
         const res = await API.thuHoachCaNo(selectedTankId)
         if (res.coins_nhan > 0) {
           setCoins(res.coins_hien_tai)
+          setCoinHarvestSignal(s => s + 1)
           hienToast(`+${res.coins_nhan} 🪙 ${res.ca_no} cá no thưởng!`, 'thanhCong')
         }
       } catch {}
@@ -226,8 +228,10 @@ export default function Home() {
     feedCoolRef.current[caId] = now
 
     // Optimistic: đánh dấu no ngay để cá ngừng đuổi thức ăn
+    const fedAt = new Date().toISOString()
+    localStorage.setItem(`snd_an_${caId}`, String(now))
     setDanhSachCa(prev => prev.map(c =>
-      c.id === caId ? { ...c, lan_cho_an_cuoi: new Date().toISOString() } : c
+      c.id === caId ? { ...c, lan_cho_an_cuoi: fedAt } : c
     ))
 
     try {
@@ -539,6 +543,7 @@ export default function Home() {
         bottomPad={playerBarHeight}
         feedSignal={feedSignal}
         onCaAnThucAn={khiCaAnThucAn}
+        coinHarvestSignal={coinHarvestSignal}
       />
 
       {danhSachCa.length === 0 && (
@@ -611,7 +616,6 @@ export default function Home() {
           onXoa={xoaCa}
           onDong={() => setInfoCa(null)}
           onMoQuanLyCa={() => setHienFishManager(true)}
-          onCoinGain={setCoins}
         />
       )}
 

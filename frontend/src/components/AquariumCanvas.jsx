@@ -788,8 +788,9 @@ export default function AquariumCanvas({
   conTrai        = [],
   onClickConTrai,
   bottomPad      = 0,
-  feedSignal     = 0,
+  feedSignal        = 0,
   onCaAnThucAn,
+  coinHarvestSignal = 0,
 }) {
   const canvasRef      = useRef(null)
   const frameRef       = useRef(0)
@@ -822,6 +823,9 @@ export default function AquariumCanvas({
   const onCaAnRef          = useRef(onCaAnThucAn)
   onCaAnRef.current        = onCaAnThucAn
   const caLevelUpStartRef  = useRef(null)
+  const coinRef            = useRef([])
+  const fishPosRef         = useRef(new Map())
+  const coinHarvestSigRef  = useRef(0)
 
   danhSachCa.forEach(khoiTaoChuyen)
 
@@ -889,6 +893,7 @@ export default function AquariumCanvas({
 
     const thucAnActive = thucAnRef.current.filter(f => !f.eaten)
     const eatCb = onCaAnRef.current
+    const nowTs = Date.now()
 
     dsCa.forEach(ca => {
       const trang = trangThaiChuyen.get(ca.id)
@@ -897,10 +902,13 @@ export default function AquariumCanvas({
       // Tốc độ theo trạng thái phát nhạc: 80 px/s khi đang phát, 40 px/s khi không
       trang.tocDo = (ca.id === dpId) ? 80 : 40
 
-      // Food-chasing AI for hungry fish
-      // Cá luôn đuổi mồi khi có thức ăn — hunger check ở backend khi ăn thật
+      // Food-chasing AI — chỉ khi đói (>45 phút chưa ăn)
+      const lastFedProp  = ca.lan_cho_an_cuoi ? new Date(ca.lan_cho_an_cuoi).getTime() : 0
+      const lastFedLocal = Number(localStorage.getItem(`snd_an_${ca.id}`)) || 0
+      const lastFed      = Math.max(lastFedProp, lastFedLocal)
+      const isHungry     = !lastFed || (nowTs - lastFed > HUNGER_MS)
       let foodTarget = null
-      if (thucAnActive.length > 0) {
+      if (isHungry && thucAnActive.length > 0) {
         let nearF = null, nearD2 = Infinity
         thucAnActive.forEach(f => {
           if (f.eaten) return
@@ -911,6 +919,7 @@ export default function AquariumCanvas({
       }
 
       veCa(ctx, ca, trang, dpId === ca.id, h, foodTarget, dt)
+      fishPosRef.current.set(ca.id, { x: trang.x, y: trang.y })
 
       const ten = ca.nickname || ca.ten_bai || ''
       if (ten) {
@@ -977,6 +986,25 @@ export default function AquariumCanvas({
     if (thucAnRef.current.some(f => f.eaten)) {
       thucAnRef.current = thucAnRef.current.filter(f => !f.eaten)
     }
+
+    // Coin drip animation
+    const nowCoin = Date.now()
+    coinRef.current = coinRef.current.filter(c => nowCoin - c.spawnMs < 1400)
+    coinRef.current.forEach(c => {
+      const p  = (nowCoin - c.spawnMs) / 1400
+      const cy = c.y - p * 42
+      ctx.save()
+      ctx.globalAlpha = Math.max(0, 1 - p * 1.2)
+      ctx.beginPath()
+      ctx.arc(c.x, cy, 6, 0, Math.PI * 2)
+      ctx.fillStyle = '#F59E0B'
+      ctx.fill()
+      ctx.font = 'bold 11px sans-serif'
+      ctx.textAlign = 'center'
+      ctx.fillStyle = '#FBBF24'
+      ctx.fillText('+1', c.x, cy - 10)
+      ctx.restore()
+    })
 
     if (clu) {
       if (caLevelUpStartRef.current === null) caLevelUpStartRef.current = elapsedRef.current
@@ -1048,6 +1076,22 @@ export default function AquariumCanvas({
     }))
     thucAnRef.current = [...thucAnRef.current, ...newPellets]
   }, [feedSignal])
+
+  // Spawn coin animation khi thu hoạch cá no
+  useEffect(() => {
+    if (coinHarvestSignal === coinHarvestSigRef.current) return
+    coinHarvestSigRef.current = coinHarvestSignal
+    const nowTs = Date.now()
+    depsRef.current.danhSachCa.forEach(ca => {
+      const lastFedProp  = ca.lan_cho_an_cuoi ? new Date(ca.lan_cho_an_cuoi).getTime() : 0
+      const lastFedLocal = Number(localStorage.getItem(`snd_an_${ca.id}`)) || 0
+      const lastFed      = Math.max(lastFedProp, lastFedLocal)
+      if (lastFed && nowTs - lastFed <= HUNGER_MS) {
+        const pos = fishPosRef.current.get(ca.id)
+        if (pos) coinRef.current.push({ x: pos.x, y: pos.y - 20, spawnMs: nowTs })
+      }
+    })
+  }, [coinHarvestSignal])
 
   // Tìm cá tại vị trí (mx, my) — dùng vị trí HIỆN TẠI của cá
   function timCa(mx, my) {
