@@ -22,6 +22,17 @@ GIA_CA = {
 
 LOAI_CA = list(GIA_CA.keys())
 
+RARITY_MAP = {
+    "ca_vang": "common",  "ca_neon": "common",
+    "ca_betta": "rare",   "ca_clownfish": "rare", "ca_tang": "rare",
+    "ca_koi": "rare",     "ca_chep": "rare",
+    "ca_dia": "epic",     "sua_gai": "epic",
+}
+
+EXP_TRUONG_THANH = {"common": 10, "rare": 13, "epic": 17, "legendary": 22}
+
+HUNGER_MINUTES = 45
+
 MAU_CA = [
     "#ff6b6b", "#ffd93d", "#6bcb77", "#4d96ff",
     "#ff922b", "#cc5de8", "#20c997", "#f06595",

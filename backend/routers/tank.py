@@ -8,6 +8,10 @@ router = APIRouter(prefix="/api/tank", tags=["tank"])
 
 MAX_TANKS = 3
 
+# Coin cost và player_exp tối thiểu để tạo hồ thứ N (index = số hồ hiện tại)
+_TANK_CHI_PHI      = [0, 0, 15, 25]
+_PLAYER_EXP_NGUONG = [0, 0, 15, 60]
+
 
 @router.get("/danh-sach")
 async def lay_danh_sach_tank(user_id: str = Depends(lay_user_id)):
@@ -53,7 +57,7 @@ async def lay_tank_theo_id(tank_id: str, user_id: str = Depends(lay_user_id)):
 
 @router.post("/tao-moi")
 async def tao_tank_moi(user_id: str = Depends(lay_user_id)):
-    """Tạo hồ mới. Tối đa 3 hồ mỗi người."""
+    """Tạo hồ mới. Tối đa 3 hồ, cần player_exp và coins cho hồ 2-3."""
     existing = (
         supabase_admin.table("tanks")
         .select("id")
@@ -63,6 +67,36 @@ async def tao_tank_moi(user_id: str = Depends(lay_user_id)):
     so_ho = len(existing.data or [])
     if so_ho >= MAX_TANKS:
         raise HTTPException(status_code=400, detail=f"Tối đa {MAX_TANKS} hồ")
+
+    chi_phi   = _TANK_CHI_PHI[so_ho]   if so_ho < len(_TANK_CHI_PHI)      else 0
+    exp_nguong = _PLAYER_EXP_NGUONG[so_ho] if so_ho < len(_PLAYER_EXP_NGUONG) else 0
+
+    if chi_phi > 0 or exp_nguong > 0:
+        profile = (
+            supabase_admin.table("profiles")
+            .select("coins, player_exp")
+            .eq("id", user_id)
+            .single()
+            .execute()
+        )
+        if not profile.data:
+            raise HTTPException(status_code=404, detail="Không tìm thấy profile")
+        player_exp = profile.data.get("player_exp") or 0
+        coins      = profile.data.get("coins") or 0
+        if player_exp < exp_nguong:
+            raise HTTPException(
+                status_code=403,
+                detail=f"Cần {exp_nguong} điểm kinh nghiệm (hiện tại {player_exp})"
+            )
+        if coins < chi_phi:
+            raise HTTPException(
+                status_code=402,
+                detail=f"Không đủ coins (cần {chi_phi} 🪙)"
+            )
+        if chi_phi > 0:
+            supabase_admin.table("profiles").update(
+                {"coins": coins - chi_phi}
+            ).eq("id", user_id).execute()
 
     tank_moi = (
         supabase_admin.table("tanks")
@@ -74,7 +108,7 @@ async def tao_tank_moi(user_id: str = Depends(lay_user_id)):
         })
         .execute()
     )
-    return {"tank": tank_moi.data[0]}
+    return {"tank": tank_moi.data[0], "coins_tru": chi_phi}
 
 
 @router.get("/xem/{username}")

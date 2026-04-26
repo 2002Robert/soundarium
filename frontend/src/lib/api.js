@@ -86,8 +86,11 @@ export const API = {
   xoaCa: (caId) =>
     goiApi(`/api/fish/xoa/${caId}`, { method: 'DELETE' }),
 
-  choAnCa: (caId) =>
-    goiApi(`/api/fish/cho-an/${caId}`, { method: 'POST' }),
+  choAnCa: (caId, tankId) =>
+    goiApi(`/api/fish/cho-an/${caId}${tankId ? `?tank_id=${tankId}` : ''}`, { method: 'POST' }),
+
+  thuHoachCaNo: (tankId) =>
+    goiApi(`/api/fish/thu-hoach-ca-no${tankId ? `?tank_id=${tankId}` : ''}`, { method: 'POST' }),
 
   capNhatNghe: (caId, soPhut = 5) =>
     goiApi(`/api/fish/cap-nhat-nghe/${caId}`, {

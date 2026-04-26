@@ -9,6 +9,9 @@ from services.fish_growth import (
     kiem_tra_len_level,
     tao_ca_ngau_nhien,
     GIA_CA,
+    RARITY_MAP,
+    EXP_TRUONG_THANH,
+    HUNGER_MINUTES,
 )
 from datetime import datetime, timezone
 
@@ -275,15 +278,12 @@ async def cho_ca_an(
     user_id: str = Depends(lay_user_id),
     tank_id: Optional[str] = Query(None),
 ):
-    """
-    Cho cá ăn: +1 XP cá, +3 coins người dùng.
-    Frontend tự quản lý cooldown 15 phút qua localStorage.
-    """
+    """Cho cá ăn: +1 exp cá, check truong_thanh, +3 coins, +1 player_exp."""
     tid = await _lay_tank_id_cua_user(user_id, tank_id)
 
     ca = (
         supabase_admin.table("fish")
-        .select("id, level, xp")
+        .select("id, level, xp, exp, truong_thanh, loai_ca")
         .eq("id", ca_id)
         .eq("tank_id", tid)
         .single()
@@ -292,35 +292,104 @@ async def cho_ca_an(
     if not ca.data:
         raise HTTPException(status_code=404, detail="Không tìm thấy con cá này")
 
-    xp_moi = ca.data["xp"] + 1
-    level_moi, xp_sau_len = kiem_tra_len_level(xp_moi, ca.data["level"])
-    da_len_level = level_moi > ca.data["level"]
+    # EXP trưởng thành
+    exp_cu = ca.data.get("exp") or 0
+    exp_moi = exp_cu + 1
+    rarity = RARITY_MAP.get(ca.data.get("loai_ca", ""), "common")
+    nguong_truong_thanh = EXP_TRUONG_THANH.get(rarity, 10)
+    truong_thanh_moi = exp_moi >= nguong_truong_thanh
+    da_truong_thanh = truong_thanh_moi and not ca.data.get("truong_thanh")
+
+    # Level up qua XP nghe (dùng xp hiện tại)
+    xp_moi = (ca.data.get("xp") or 0) + 1
+    level_moi, xp_sau_len = kiem_tra_len_level(xp_moi, ca.data.get("level") or 1)
+    da_len_level = level_moi > (ca.data.get("level") or 1)
 
     supabase_admin.table("fish").update({
-        "xp": xp_sau_len,
-        "level": level_moi,
+        "xp":           xp_sau_len,
+        "level":        level_moi,
+        "exp":          exp_moi,
+        "truong_thanh": truong_thanh_moi,
+        "lan_cho_an_cuoi": datetime.now(timezone.utc).isoformat(),
     }).eq("id", ca_id).execute()
 
-    # +3 coins và +1/60 giờ nghe
+    # Profile: +coins, +player_exp, +gio_nghe
     profile = (
         supabase_admin.table("profiles")
-        .select("tong_gio_nghe, coins")
+        .select("tong_gio_nghe, coins, player_exp")
         .eq("id", user_id)
         .single()
         .execute()
     )
-    coins_moi = profile.data.get("coins", 0) if profile.data else 0
+    coins_cu = (profile.data.get("coins") or 0) if profile.data else 0
+    coins_moi = coins_cu + COINS_KHI_CHO_AN
+    player_exp_moi = ((profile.data.get("player_exp") or 0) + 1) if profile.data else 1
+
     if profile.data:
         supabase_admin.table("profiles").update({
             "tong_gio_nghe": (profile.data.get("tong_gio_nghe") or 0) + 1 / 60,
-            "coins": coins_moi + COINS_KHI_CHO_AN,
+            "coins":         coins_moi,
+            "player_exp":    player_exp_moi,
+        }).eq("id", user_id).execute()
+
+    ca_moi = {
+        **ca.data,
+        "xp": xp_sau_len, "level": level_moi,
+        "exp": exp_moi, "truong_thanh": truong_thanh_moi,
+        "lan_cho_an_cuoi": datetime.now(timezone.utc).isoformat(),
+    }
+    return {
+        "ca":            ca_moi,
+        "da_truong_thanh": da_truong_thanh,
+        "da_len_level":  da_len_level,
+        "player_exp":    player_exp_moi,
+        "coins_nhan":    COINS_KHI_CHO_AN,
+        "coins_hien_tai": coins_moi,
+    }
+
+
+@router.post("/thu-hoach-ca-no")
+async def thu_hoach_ca_no(
+    user_id: str = Depends(lay_user_id),
+    tank_id: Optional[str] = Query(None),
+):
+    """Mỗi 5 phút: mỗi cá no (ăn trong 45 phút qua) nhả 1 coin."""
+    tid = await _lay_tank_id_cua_user(user_id, tank_id)
+
+    ket_qua = (
+        supabase_admin.table("fish")
+        .select("id, lan_cho_an_cuoi")
+        .eq("tank_id", tid)
+        .execute()
+    )
+
+    now = datetime.now(timezone.utc)
+    hunger_sec = HUNGER_MINUTES * 60
+    ca_no = [
+        c for c in (ket_qua.data or [])
+        if c.get("lan_cho_an_cuoi") and
+        (now - datetime.fromisoformat(c["lan_cho_an_cuoi"].replace("Z", "+00:00"))).total_seconds() < hunger_sec
+    ]
+
+    profile = (
+        supabase_admin.table("profiles")
+        .select("coins")
+        .eq("id", user_id)
+        .single()
+        .execute()
+    )
+    coins_cu = (profile.data.get("coins") or 0) if profile.data else 0
+    so_ca_no = len(ca_no)
+
+    if so_ca_no > 0 and profile.data:
+        supabase_admin.table("profiles").update({
+            "coins": coins_cu + so_ca_no
         }).eq("id", user_id).execute()
 
     return {
-        "ca": {**ca.data, "xp": xp_sau_len, "level": level_moi},
-        "da_len_level": da_len_level,
-        "coins_nhan": COINS_KHI_CHO_AN,
-        "coins_hien_tai": coins_moi + COINS_KHI_CHO_AN,
+        "ca_no":       so_ca_no,
+        "coins_nhan":  so_ca_no,
+        "coins_hien_tai": coins_cu + so_ca_no,
     }
 
 

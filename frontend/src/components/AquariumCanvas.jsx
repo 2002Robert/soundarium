@@ -323,15 +323,33 @@ function veCaTheoLoai(ctx, loaiCa, r, mau, g) {
   }
 }
 
+const HUNGER_MS = 45 * 60 * 1000
+
 // ─── Frame chính ─────────────────────────────────────────────
-function veCa(ctx, ca, trang, dangPhat, hHieuQua) {
-  const kt     = KICH_THUOC_THEO_LEVEL[ca.level] || 40
-  const doMo   = tinhDoMo(ca.lan_nghe_cuoi)
-  const r      = kt / 2
+// foodTarget = { ref: pelletObj, x, y, eatCb } | null
+function veCa(ctx, ca, trang, dangPhat, hHieuQua, foodTarget) {
+  const kt       = KICH_THUOC_THEO_LEVEL[ca.level] || 40
+  const sizeMult = (ca.truong_thanh == null || ca.truong_thanh === true) ? 1.3 : 0.8
+  const doMo     = tinhDoMo(ca.lan_nghe_cuoi)
+  const r        = (kt * sizeMult) / 2
 
   trang.pha += 0.05
-  trang.x   += trang.huongX * trang.tocDo
-  trang.y   += Math.sin(trang.pha) * 0.3
+
+  if (foodTarget && !foodTarget.ref.eaten) {
+    const dx   = foodTarget.x - trang.x
+    const dy   = foodTarget.y - trang.y
+    const dist = Math.sqrt(dx * dx + dy * dy) || 1
+    trang.huongX = dx >= 0 ? 1 : -1
+    trang.x += (dx / dist) * trang.tocDo * 2.8
+    trang.y += (dy / dist) * trang.tocDo * 1.8
+    if (dist < r * 1.6 && !foodTarget.ref.eaten) {
+      foodTarget.ref.eaten = true
+      foodTarget.eatCb?.(ca.id)
+    }
+  } else {
+    trang.x += trang.huongX * trang.tocDo
+    trang.y += Math.sin(trang.pha) * 0.3
+  }
 
   const w = ctx.canvas.width
   const h = hHieuQua ?? ctx.canvas.height    // dùng vùng hiệu quả nếu có
@@ -636,6 +654,8 @@ export default function AquariumCanvas({
   conTrai        = [],
   onClickConTrai,
   bottomPad      = 0,
+  feedSignal     = 0,
+  onCaAnThucAn,
 }) {
   const canvasRef      = useRef(null)
   const frameRef       = useRef(0)
@@ -658,6 +678,10 @@ export default function AquariumCanvas({
   const conTraiPosRef  = useRef({})
   const bottomPadRef   = useRef(bottomPad)
   bottomPadRef.current = bottomPad
+  const thucAnRef      = useRef([])
+  const feedSignalRef  = useRef(feedSignal)
+  const onCaAnRef      = useRef(onCaAnThucAn)
+  onCaAnRef.current    = onCaAnThucAn
 
   danhSachCa.forEach(khoiTaoChuyen)
 
@@ -710,10 +734,30 @@ export default function AquariumCanvas({
 
     veBongBong(ctx, bongRef.current)
 
+    const thucAnActive = thucAnRef.current.filter(f => !f.eaten)
+    const eatCb = onCaAnRef.current
+
     danhSachCa.forEach(ca => {
       const trang = trangThaiChuyen.get(ca.id)
       if (!trang) return
-      veCa(ctx, ca, trang, dangPhat === ca.id, h)
+
+      // Food-chasing AI for hungry fish
+      let foodTarget = null
+      if (thucAnActive.length > 0) {
+        const isHungry = !ca.lan_cho_an_cuoi ||
+          Date.now() - new Date(ca.lan_cho_an_cuoi) > HUNGER_MS
+        if (isHungry) {
+          let nearF = null, nearD2 = Infinity
+          thucAnActive.forEach(f => {
+            if (f.eaten) return
+            const d2 = (f.x - trang.x) ** 2 + (f.y - trang.y) ** 2
+            if (d2 < nearD2) { nearD2 = d2; nearF = f }
+          })
+          if (nearF && !nearF.eaten) foodTarget = { ref: nearF, x: nearF.x, y: nearF.y, eatCb }
+        }
+      }
+
+      veCa(ctx, ca, trang, dangPhat === ca.id, h, foodTarget)
 
       const ten = ca.nickname || ca.ten_bai || ''
       if (ten) {
@@ -724,7 +768,6 @@ export default function AquariumCanvas({
         ctx.font = `${Math.max(10, Math.round(kt * 0.30))}px sans-serif`
         ctx.textAlign = 'center'
         ctx.textBaseline = 'top'
-        // shadow để dễ đọc trên mọi nền
         ctx.fillStyle = 'rgba(0,0,0,0.55)'
         ctx.fillText(txt, trang.x + 1, trang.y + kt * 0.65 + 1)
         ctx.fillStyle = '#e0f0ff'
@@ -760,6 +803,29 @@ export default function AquariumCanvas({
       })
     }
 
+    // Cập nhật và vẽ thức ăn rơi
+    thucAnRef.current.forEach(f => {
+      if (f.eaten) return
+      f.y  += f.vy
+      f.vy  = Math.min(f.vy + 0.06, 3.5)
+      f.x  += Math.sin(f.y * 0.04) * 0.45
+      if (f.y > h + 20) { f.eaten = true; return }
+      ctx.save()
+      ctx.beginPath()
+      ctx.arc(f.x, f.y, 4, 0, Math.PI * 2)
+      ctx.fillStyle = '#f59e0b'
+      ctx.fill()
+      ctx.globalAlpha = 0.6
+      ctx.beginPath()
+      ctx.arc(f.x - 1.2, f.y - 1.2, 1.5, 0, Math.PI * 2)
+      ctx.fillStyle = '#fff'
+      ctx.fill()
+      ctx.restore()
+    })
+    if (thucAnRef.current.some(f => f.eaten)) {
+      thucAnRef.current = thucAnRef.current.filter(f => !f.eaten)
+    }
+
     if (caLevelUp) {
       const trang = trangThaiChuyen.get(caLevelUp)
       if (trang) {
@@ -784,13 +850,31 @@ export default function AquariumCanvas({
     return () => cancelAnimationFrame(id)
   }, [veFrame])
 
+  // Spawn thức ăn khi feedSignal tăng
+  useEffect(() => {
+    if (feedSignal === feedSignalRef.current) return
+    feedSignalRef.current = feedSignal
+    const count = 3 + Math.floor(Math.random() * 3)
+    const w = window.innerWidth
+    const newPellets = Array.from({ length: count }, (_, i) => ({
+      id:    `f${Date.now()}${i}`,
+      x:     w * (0.15 + Math.random() * 0.7),
+      y:     -8 - i * 18,
+      vy:    0.8 + Math.random() * 0.7,
+      eaten: false,
+    }))
+    thucAnRef.current = [...thucAnRef.current, ...newPellets]
+  }, [feedSignal])
+
   // Tìm cá tại vị trí (mx, my) — dùng vị trí HIỆN TẠI của cá
   function timCa(mx, my) {
     for (const ca of danhSachCa) {
       const trang = trangThaiChuyen.get(ca.id)
       if (!trang) continue
-      const kt = KICH_THUOC_THEO_LEVEL[ca.level] || 40
-      if ((mx - trang.x) ** 2 + (my - trang.y) ** 2 < kt * kt) {
+      const kt       = KICH_THUOC_THEO_LEVEL[ca.level] || 40
+      const sizeMult = (ca.truong_thanh == null || ca.truong_thanh === true) ? 1.3 : 0.8
+      const effR     = (kt * sizeMult) / 2
+      if ((mx - trang.x) ** 2 + (my - trang.y) ** 2 < effR * effR * 4) {
         return { ca, x: trang.x, y: trang.y }
       }
     }

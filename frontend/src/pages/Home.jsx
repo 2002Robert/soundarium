@@ -100,8 +100,11 @@ export default function Home() {
   const [danhSachTank, setDanhSachTank]       = useState([])
   const [selectedTankId, setSelectedTankId]   = useState(null)
   const [dangTaoTank, setDangTaoTank]         = useState(false)
+  const [feedSignal, setFeedSignal]           = useState(0)
   const [playerBarHeight, setPlayerBarHeight] = useState(0)
-  const playerBarRef = useRef(null)
+  const playerBarRef  = useRef(null)
+  const playerExpRef  = useRef(0)
+  const feedCoolRef   = useRef({})
   const [dangKhoiDong, setDangKhoiDong]       = useState(true)
   const [loiKetNoi, setLoiKetNoi]             = useState(false)
   const [soLanThu, setSoLanThu]               = useState(1)
@@ -150,6 +153,21 @@ export default function Home() {
     localStorage.setItem('snd_con_trai', JSON.stringify(conTrai))
   }, [conTrai])
 
+  // Coin drip: mỗi 5 phút cá no nhả 1 coin
+  useEffect(() => {
+    if (danhSachCa.length === 0 || !selectedTankId) return
+    const id = setInterval(async () => {
+      try {
+        const res = await API.thuHoachCaNo(selectedTankId)
+        if (res.coins_nhan > 0) {
+          setCoins(res.coins_hien_tai)
+          hienToast(`+${res.coins_nhan} 🪙 ${res.ca_no} cá no thưởng!`, 'thanhCong')
+        }
+      } catch {}
+    }, 5 * 60 * 1000)
+    return () => clearInterval(id)
+  }, [danhSachCa.length, selectedTankId])
+
   // Oyster timer: check every 60s if any should open
   useEffect(() => {
     if (conTrai.length === 0) return
@@ -166,6 +184,59 @@ export default function Home() {
     }, 60000)
     return () => clearInterval(interval)
   }, [conTrai.length])
+
+  function choAn() {
+    if (danhSachCaThuong.length === 0) {
+      hienToast('Chưa có cá để cho ăn!', 'info')
+      return
+    }
+    setFeedSignal(s => s + 1)
+  }
+
+  async function khiCaAnThucAn(caId) {
+    const now = Date.now()
+    if (feedCoolRef.current[caId] && now - feedCoolRef.current[caId] < 8000) return
+    feedCoolRef.current[caId] = now
+
+    // Optimistic: đánh dấu no ngay để cá ngừng đuổi thức ăn
+    setDanhSachCa(prev => prev.map(c =>
+      c.id === caId ? { ...c, lan_cho_an_cuoi: new Date().toISOString() } : c
+    ))
+
+    try {
+      const res = await API.choAnCa(caId, selectedTankId)
+      setDanhSachCa(prev => prev.map(c =>
+        c.id === caId ? {
+          ...c,
+          xp: res.ca.xp, level: res.ca.level,
+          exp: res.ca.exp, truong_thanh: res.ca.truong_thanh,
+          lan_cho_an_cuoi: res.ca.lan_cho_an_cuoi || new Date().toISOString(),
+        } : c
+      ))
+      setCoins(res.coins_hien_tai)
+
+      if (res.da_truong_thanh) {
+        const ten = danhSachCa.find(c => c.id === caId)?.nickname ||
+                    danhSachCa.find(c => c.id === caId)?.ten_bai || 'Cá'
+        hienToast(`🌟 ${ten} đã trưởng thành!`, 'thanhCong')
+      }
+      if (res.da_len_level) {
+        setCaLevelUp(caId)
+        setTimeout(() => setCaLevelUp(null), 2000)
+      }
+
+      const prev = playerExpRef.current
+      const curr = res.player_exp || 0
+      if (prev < 15 && curr >= 15) {
+        hienToast('🏆 Lv.3 đạt! Mở khóa Hồ 2 (15 🪙)', 'thanhCong')
+      } else if (prev < 60 && curr >= 60) {
+        hienToast('🏆 Lv.5 đạt! Mở khóa Hồ 3 (25 🪙)', 'thanhCong')
+      }
+      playerExpRef.current = curr
+    } catch {
+      // silent fail
+    }
+  }
 
   async function nhatNgocConTrai(ctId) {
     try {
@@ -276,6 +347,7 @@ export default function Home() {
       const res = await API.taoTankMoi()
       setDanhSachTank(prev => [...prev, res.tank])
       doiTank(res.tank.id)
+      if (res.coins_tru > 0) setCoins(c => c - res.coins_tru)
       hienToast(`Đã tạo ${res.tank.ten}!`, 'thanhCong')
     } catch (err) {
       hienToast(err.message || 'Tối đa 3 hồ', 'loi')
@@ -427,6 +499,8 @@ export default function Home() {
         conTrai={conTrai}
         onClickConTrai={nhatNgocConTrai}
         bottomPad={playerBarHeight}
+        feedSignal={feedSignal}
+        onCaAnThucAn={khiCaAnThucAn}
       />
 
       {danhSachCa.length === 0 && (
@@ -452,6 +526,7 @@ export default function Home() {
         <div className="flex flex-col gap-1.5 mt-2">
           <IconBtn onClick={chiaSe} title="Chia sẻ hồ">🔗</IconBtn>
           <IconBtn onClick={chupAnhHo} title="Chụp ảnh hồ">📷</IconBtn>
+          <IconBtn onClick={choAn} title="Cho cá ăn">🍖</IconBtn>
           <IconBtn onClick={() => setHienExplore(true)} title="Khám phá">🔍</IconBtn>
           <IconBtn onClick={() => setHienShop(true)} title="Cửa hàng">🛒</IconBtn>
           <TankSwitcher
