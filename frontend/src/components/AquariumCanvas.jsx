@@ -516,106 +516,208 @@ function veConTrai(ctx, x, y, r, isOpen) {
   ctx.translate(x, y)
 
   if (isOpen) {
-    // Pearl glow aura
-    const pearlGlow = ctx.createRadialGradient(0, r * 0.1, 0, 0, r * 0.1, r * 1.4)
-    pearlGlow.addColorStop(0, 'rgba(200,230,255,0.55)')
-    pearlGlow.addColorStop(1, 'rgba(200,230,255,0)')
-    ctx.fillStyle = pearlGlow
+    const t   = Date.now() / 1000
+    const pulse = 0.78 + Math.sin(t * 2.8) * 0.22   // 0.56 → 1.0
+
+    const sw = r * 1.1   // nửa chiều rộng vỏ
+    const sh = r * 0.42  // nửa chiều cao vỏ (dẹt như sò thật)
+    const OPEN = -0.92   // ~-53° — góc mở nửa vỏ trên
+
+    // ── Aura glow xung quanh (pulsing) ──
+    const auraAlpha = 0.18 + Math.sin(t * 2.8) * 0.1
+    const aura = ctx.createRadialGradient(0, -r * 0.15, 0, 0, 0, r * 1.3)
+    aura.addColorStop(0, `rgba(255,250,235,${auraAlpha + 0.15})`)
+    aura.addColorStop(1, 'rgba(255,250,235,0)')
+    ctx.fillStyle = aura
     ctx.beginPath()
-    ctx.ellipse(0, r * 0.1, r * 1.4, r, 0, 0, Math.PI * 2)
+    ctx.ellipse(0, 0, r * 1.4, r * 0.95, 0, 0, Math.PI * 2)
     ctx.fill()
 
-    // Top shell (open — rotated back)
+    // ── NỬA VỎ TRÊN (vẽ trước = nằm sau về chiều sâu) ──
     ctx.save()
-    ctx.rotate(-0.6)
-    ctx.fillStyle = '#9ca3af'
+    ctx.rotate(OPEN)
+
+    // Mặt ngoài
+    const gTop = ctx.createLinearGradient(0, -sh * 2.5, 0, 0)
+    gTop.addColorStop(0,   '#B0A080')
+    gTop.addColorStop(0.5, '#C8B89A')
+    gTop.addColorStop(1,   '#A89070')
+    ctx.fillStyle = gTop
     ctx.beginPath()
-    ctx.arc(0, 0, r, Math.PI, 0)
+    ctx.ellipse(0, 0, sw, sh, 0, Math.PI, 2 * Math.PI)
     ctx.closePath()
     ctx.fill()
-    ctx.strokeStyle = 'rgba(255,255,255,0.18)'
-    ctx.lineWidth = 0.8
-    for (let i = -1; i <= 1; i++) {
+    ctx.strokeStyle = 'rgba(85,65,40,0.28)'
+    ctx.lineWidth = 0.9
+    ctx.stroke()
+
+    // Mặt trong (xà cừ)
+    const gTopIn = ctx.createLinearGradient(-sw * 0.4, -sh * 2.0, sw * 0.4, -sh * 0.15)
+    gTopIn.addColorStop(0,   '#CFC4DF')  // tím nhạt (mép ngoài)
+    gTopIn.addColorStop(0.5, '#EECEBC')  // hồng nhạt
+    gTopIn.addColorStop(1,   '#F3EDE7')  // trắng ngà (gần bản lề)
+    ctx.fillStyle = gTopIn
+    ctx.beginPath()
+    ctx.ellipse(0, 0, sw * 0.82, sh * 0.68, 0, Math.PI, 2 * Math.PI)
+    ctx.closePath()
+    ctx.fill()
+
+    // Vân tỏa ra từ bản lề
+    ctx.strokeStyle = 'rgba(110,88,60,0.38)'
+    ctx.lineWidth = 0.55
+    for (let i = -2; i <= 2; i++) {
+      if (i === 0) continue
+      const xi = i * sw * 0.38
       ctx.beginPath()
-      ctx.moveTo(i * r * 0.4, 0)
-      ctx.lineTo(i * r * 0.55, -r * 0.88)
+      ctx.moveTo(xi * 0.25, -sh * 0.08)
+      ctx.quadraticCurveTo(xi * 0.6, -sh * 1.0, xi * 0.9, -sh * 1.9)
       ctx.stroke()
     }
+    // Vân trung tâm
+    ctx.beginPath()
+    ctx.moveTo(0, -sh * 0.05)
+    ctx.lineTo(0, -sh * 1.85)
+    ctx.stroke()
+
+    ctx.restore()  // end top shell rotate
+
+    // ── NỬA VỎ DƯỚI (đế — vẽ sau = nằm trước) ──
+    // Mặt ngoài
+    const gBot = ctx.createLinearGradient(0, 0, 0, sh * 2.5)
+    gBot.addColorStop(0,   '#A89070')
+    gBot.addColorStop(0.5, '#C8B89A')
+    gBot.addColorStop(1,   '#B0A080')
+    ctx.fillStyle = gBot
+    ctx.beginPath()
+    ctx.ellipse(0, 0, sw, sh, 0, 0, Math.PI)
+    ctx.closePath()
+    ctx.fill()
+    ctx.strokeStyle = 'rgba(85,65,40,0.28)'
+    ctx.lineWidth = 0.9
+    ctx.stroke()
+
+    // Mặt trong (xà cừ đáy — ngọc trai nằm đây)
+    const gBotIn = ctx.createLinearGradient(-sw * 0.4, sh * 0.15, sw * 0.4, sh * 1.9)
+    gBotIn.addColorStop(0,   '#F3EDE7')  // trắng ngà (gần bản lề)
+    gBotIn.addColorStop(0.5, '#EECEBC')  // hồng nhạt
+    gBotIn.addColorStop(1,   '#CFC4DF')  // tím nhạt (mép ngoài)
+    ctx.fillStyle = gBotIn
+    ctx.beginPath()
+    ctx.ellipse(0, 0, sw * 0.82, sh * 0.68, 0, 0, Math.PI)
+    ctx.closePath()
+    ctx.fill()
+
+    // Vân vỏ dưới
+    ctx.strokeStyle = 'rgba(110,88,60,0.38)'
+    ctx.lineWidth = 0.55
+    for (let i = -2; i <= 2; i++) {
+      if (i === 0) continue
+      const xi = i * sw * 0.38
+      ctx.beginPath()
+      ctx.moveTo(xi * 0.25, sh * 0.08)
+      ctx.quadraticCurveTo(xi * 0.6, sh * 1.0, xi * 0.9, sh * 1.9)
+      ctx.stroke()
+    }
+    ctx.beginPath()
+    ctx.moveTo(0, sh * 0.05)
+    ctx.lineTo(0, sh * 1.85)
+    ctx.stroke()
+
+    // ── NGỌC TRAI ──
+    const pr = r * 0.30
+    const py = 0  // ngọc nằm chính giữa bản lề
+
+    // Glow bên ngoài (nhấp nháy)
+    ctx.save()
+    ctx.globalAlpha = pulse * 0.52
+    const pGlow = ctx.createRadialGradient(0, py, 0, 0, py, pr * 2.0)
+    pGlow.addColorStop(0, 'rgba(255,253,248,0.95)')
+    pGlow.addColorStop(1, 'rgba(255,253,248,0)')
+    ctx.fillStyle = pGlow
+    ctx.beginPath()
+    ctx.arc(0, py, pr * 2.0, 0, Math.PI * 2)
+    ctx.fill()
     ctx.restore()
 
-    // Bottom shell (fixed)
-    ctx.fillStyle = '#7a8a92'
+    // Thân ngọc
+    ctx.save()
+    ctx.globalAlpha = 0.68 + pulse * 0.32
+    const pBody = ctx.createRadialGradient(
+      -pr * 0.32, py - pr * 0.32, 0,
+       pr * 0.06, py + pr * 0.06, pr
+    )
+    pBody.addColorStop(0,    '#FFFFFF')    // trắng sáng góc trên-trái
+    pBody.addColorStop(0.25, '#F8F1E4')   // trắng ngà
+    pBody.addColorStop(0.62, '#E6DDD2')   // xám ngà
+    pBody.addColorStop(1,    '#C8BCB5')   // xám nhạt dưới
+    ctx.fillStyle = pBody
     ctx.beginPath()
-    ctx.arc(0, 0, r, 0, Math.PI)
-    ctx.closePath()
-    ctx.fill()
-    ctx.strokeStyle = 'rgba(255,255,255,0.2)'
-    ctx.lineWidth = 0.8
-    for (let i = -1; i <= 1; i++) {
-      ctx.beginPath()
-      ctx.moveTo(i * r * 0.35, 0)
-      ctx.lineTo(i * r * 0.5, r * 0.85)
-      ctx.stroke()
-    }
-
-    // Pearl
-    const pg = ctx.createRadialGradient(-r * 0.15, -r * 0.15, 0, 0, 0, r * 0.42)
-    pg.addColorStop(0, '#ffffff')
-    pg.addColorStop(0.4, '#dde8ff')
-    pg.addColorStop(1, '#9bb5d8')
-    ctx.fillStyle = pg
-    ctx.beginPath()
-    ctx.arc(0, 0, r * 0.42, 0, Math.PI * 2)
+    ctx.arc(0, py, pr, 0, Math.PI * 2)
     ctx.fill()
 
-    // Pearl shine
-    ctx.fillStyle = 'rgba(255,255,255,0.72)'
-    ctx.beginPath()
-    ctx.ellipse(-r * 0.13, -r * 0.14, r * 0.13, r * 0.08, -0.5, 0, Math.PI * 2)
-    ctx.fill()
-
-    // Dashed "click me" ring
-    ctx.strokeStyle = 'rgba(200,230,255,0.55)'
-    ctx.lineWidth = 1.2
-    ctx.setLineDash([3, 5])
-    ctx.beginPath()
-    ctx.arc(0, 0, r * 0.65, 0, Math.PI * 2)
+    // Viền mỏng
+    ctx.strokeStyle = 'rgba(195,182,172,0.4)'
+    ctx.lineWidth = 0.5
     ctx.stroke()
-    ctx.setLineDash([])
+
+    // Highlight chính (vệt sáng trên-trái)
+    ctx.fillStyle = 'rgba(255,255,255,0.88)'
+    ctx.beginPath()
+    ctx.ellipse(-pr * 0.3, py - pr * 0.3, pr * 0.22, pr * 0.12, -0.5, 0, Math.PI * 2)
+    ctx.fill()
+
+    // Shimmer phụ nhỏ (dưới-phải)
+    ctx.fillStyle = 'rgba(255,255,255,0.33)'
+    ctx.beginPath()
+    ctx.ellipse(pr * 0.22, py + pr * 0.22, pr * 0.1, pr * 0.06, 0.75, 0, Math.PI * 2)
+    ctx.fill()
+    ctx.restore()
 
   } else {
-    // Closed shell
-    ctx.fillStyle = '#6b7280'
+    // Closed shell — màu be/nâu nhạt, vân vỏ
+    const gClosed = ctx.createRadialGradient(-r * 0.25, -r * 0.15, 0, 0, 0, r)
+    gClosed.addColorStop(0,   '#D4C4A8')  // be sáng
+    gClosed.addColorStop(0.6, '#C0AC8C')  // be trung
+    gClosed.addColorStop(1,   '#A08870')  // nâu mép
+    ctx.fillStyle = gClosed
     ctx.beginPath()
     ctx.ellipse(0, 0, r, r * 0.42, 0, 0, Math.PI * 2)
     ctx.fill()
 
-    // Seam
-    ctx.strokeStyle = 'rgba(180,190,200,0.45)'
+    // Đường mép giáp vỏ
+    ctx.strokeStyle = 'rgba(90,68,45,0.3)'
     ctx.lineWidth = 0.8
     ctx.beginPath()
-    ctx.ellipse(0, 0, r, r * 0.06, 0, 0, Math.PI * 2)
+    ctx.ellipse(0, 0, r, r * 0.07, 0, 0, Math.PI * 2)
     ctx.stroke()
 
-    // Texture lines
-    ctx.strokeStyle = 'rgba(255,255,255,0.14)'
-    ctx.lineWidth = 0.7
-    for (let i = -1; i <= 1; i++) {
+    // Vân tỏa ra từ bản lề
+    ctx.strokeStyle = 'rgba(255,255,255,0.18)'
+    ctx.lineWidth = 0.65
+    for (let i = -2; i <= 2; i++) {
+      if (i === 0) continue
+      const xi = i * r * 0.35
       ctx.beginPath()
-      ctx.moveTo(i * r * 0.38, -r * 0.38)
-      ctx.lineTo(i * r * 0.52, r * 0.38)
+      ctx.moveTo(xi * 0.2, -r * 0.38)
+      ctx.quadraticCurveTo(xi * 0.55, 0, xi * 0.2, r * 0.38)
       ctx.stroke()
     }
-
-    // Faint inner glow hinting at pearl
-    ctx.globalAlpha = 0.18
-    const innerGlow = ctx.createRadialGradient(0, 0, 0, 0, 0, r * 0.55)
-    innerGlow.addColorStop(0, 'rgba(200,230,255,1)')
-    innerGlow.addColorStop(1, 'rgba(200,230,255,0)')
-    ctx.fillStyle = innerGlow
     ctx.beginPath()
-    ctx.ellipse(0, 0, r * 0.72, r * 0.3, 0, 0, Math.PI * 2)
+    ctx.moveTo(0, -r * 0.4)
+    ctx.lineTo(0, r * 0.4)
+    ctx.stroke()
+
+    // Gợi ý ngọc bên trong (glow mờ)
+    ctx.save()
+    ctx.globalAlpha = 0.14
+    const innerHint = ctx.createRadialGradient(0, 0, 0, 0, 0, r * 0.5)
+    innerHint.addColorStop(0, 'rgba(255,248,235,1)')
+    innerHint.addColorStop(1, 'rgba(255,248,235,0)')
+    ctx.fillStyle = innerHint
+    ctx.beginPath()
+    ctx.ellipse(0, 0, r * 0.65, r * 0.28, 0, 0, Math.PI * 2)
     ctx.fill()
+    ctx.restore()
   }
 
   ctx.restore()
