@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, useRef } from 'react'
 import { API } from '../lib/api'
 
 function kiemTraYouTube(url) {
@@ -10,7 +10,9 @@ export default function BuyFishModal({ loaiCa, tenLoai, onXong, onDong }) {
   const [youtubeUrl, setYoutubeUrl] = useState('')
   const [nickname, setNickname]     = useState('')
   const [dangThem, setDangThem]     = useState(false)
+  const [loadingMsg, setLoadingMsg] = useState('')
   const [loi, setLoi]               = useState('')
+  const msgTimerRef                 = useRef(null)
 
   function thayDoiUrl(val) {
     setYoutubeUrl(val)
@@ -29,13 +31,20 @@ export default function BuyFishModal({ loaiCa, tenLoai, onXong, onDong }) {
 
     setDangThem(true)
     setLoi('')
+    setLoadingMsg('Đang kết nối...')
+    msgTimerRef.current = setTimeout(
+      () => setLoadingMsg('Server đang khởi động, đợi chút...'),
+      5000
+    )
     try {
       const res = await API.themCa(url, nickname.trim() || undefined, loaiCa)
       onXong(res.ca, res.coins_con_lai)
     } catch (err) {
       setLoi(err.message || 'Có lỗi xảy ra')
     } finally {
+      clearTimeout(msgTimerRef.current)
       setDangThem(false)
+      setLoadingMsg('')
     }
   }
 
@@ -95,7 +104,7 @@ export default function BuyFishModal({ loaiCa, tenLoai, onXong, onDong }) {
               disabled={dangThem || !youtubeUrl.trim()}
               className="flex-1 bg-ho-anh hover:bg-ho-accent text-ho-sau font-bold py-3 rounded-xl text-sm transition disabled:opacity-50"
             >
-              {dangThem ? '...' : 'Thêm cá vào hồ'}
+              {dangThem ? (loadingMsg || '...') : 'Thêm cá vào hồ'}
             </button>
           </div>
         </form>

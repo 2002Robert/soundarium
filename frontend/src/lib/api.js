@@ -2,6 +2,9 @@ import { supabase } from './supabase'
 
 const BASE = import.meta.env.VITE_API_URL || 'http://localhost:8000'
 
+// Pre-warm Render free-tier server on page load
+fetch(`${BASE}/health`).catch(() => {})
+
 async function layHeader() {
   const { data } = await supabase.auth.getSession()
   const token = data?.session?.access_token
@@ -11,16 +14,21 @@ async function layHeader() {
   }
 }
 
-async function goiApi(path, options = {}) {
+async function goiApi(path, options = {}, _retry = true) {
   const headers = await layHeader()
   const ctrl = new AbortController()
-  const tid  = setTimeout(() => ctrl.abort(), 35000)  // 35s — đủ cho Render cold start (~30s)
+  const tid  = setTimeout(() => ctrl.abort(), 40000)
   let resp
   try {
     resp = await fetch(`${BASE}${path}`, { ...options, headers, signal: ctrl.signal })
   } catch (err) {
     clearTimeout(tid)
     if (err.name === 'AbortError') throw new Error('Server đang khởi động, thử lại sau')
+    if (_retry) {
+      // Render free-tier TCP-resets during cold start — wait then retry once
+      await new Promise(r => setTimeout(r, 22000))
+      return goiApi(path, options, false)
+    }
     throw new Error('Không kết nối được server')
   }
   clearTimeout(tid)
