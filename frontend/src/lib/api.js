@@ -30,13 +30,13 @@ async function goiApi(path, options = {}, _retry = true) {
       for (let i = 0; i < 12; i++) {
         await new Promise(r => setTimeout(r, 5000))
         try {
-          const ping = await fetch(`${BASE}/health`)
+          const ping = await fetch(`${BASE}/health`, { signal: AbortSignal.timeout(4000) })
           if (ping.ok) break
         } catch {}
       }
       return goiApi(path, options, false)
     }
-    throw new Error('Không kết nối được server')
+    throw new Error('Server không phản hồi — thử tắt ad blocker hoặc đổi mạng')
   }
   clearTimeout(tid)
 

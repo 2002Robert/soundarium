@@ -33,8 +33,8 @@ export default function BuyFishModal({ loaiCa, tenLoai, onXong, onDong }) {
     setLoi('')
     setLoadingMsg('Đang kết nối...')
     msgTimerRef.current = setTimeout(
-      () => setLoadingMsg('Server đang khởi động, đợi chút...'),
-      5000
+      () => setLoadingMsg('Server đang khởi động (~30s)...'),
+      3000
     )
     try {
       const res = await API.themCa(url, nickname.trim() || undefined, loaiCa)
