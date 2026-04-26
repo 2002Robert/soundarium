@@ -16,23 +16,36 @@ async function layHeader() {
 
 async function goiApi(path, options = {}, _retry = true) {
   const headers = await layHeader()
+  const fullUrl = `${BASE}${path}`
+  console.log(`[API] ${options.method || 'GET'} ${fullUrl}`, {
+    hasAuth: !!headers.Authorization,
+    retry: !_retry,
+  })
+
   const ctrl = new AbortController()
   const tid  = setTimeout(() => ctrl.abort(), 40000)
   let resp
   try {
-    resp = await fetch(`${BASE}${path}`, { ...options, headers, signal: ctrl.signal })
+    resp = await fetch(fullUrl, { ...options, headers, signal: ctrl.signal })
   } catch (err) {
     clearTimeout(tid)
+    console.error(`[API] NETWORK ERROR on ${fullUrl}`, {
+      name: err.name,
+      message: err.message,
+      isAbort: err.name === 'AbortError',
+    })
     if (err.name === 'AbortError') throw new Error('Server đang khởi động, thử lại sau')
     if (_retry) {
-      // Render free-tier TCP-resets during cold start (~30-50s)
-      // Poll /health until server wakes up, then retry
+      console.log('[API] Polling /health until server wakes...')
       for (let i = 0; i < 12; i++) {
         await new Promise(r => setTimeout(r, 5000))
         try {
           const ping = await fetch(`${BASE}/health`, { signal: AbortSignal.timeout(4000) })
+          console.log(`[API] Health poll ${i + 1}: ${ping.status}`)
           if (ping.ok) break
-        } catch {}
+        } catch (pe) {
+          console.log(`[API] Health poll ${i + 1}: error (${pe.message})`)
+        }
       }
       return goiApi(path, options, false)
     }
@@ -40,28 +53,30 @@ async function goiApi(path, options = {}, _retry = true) {
   }
   clearTimeout(tid)
 
+  console.log(`[API] ${resp.status} ${fullUrl}`)
+
   if (resp.status === 401) {
-    // Token hết hạn — thử refresh session một lần
     const { data, error } = await supabase.auth.refreshSession()
     if (error || !data.session) {
-      // Refresh thất bại → xóa session cũ và về login
       await supabase.auth.signOut()
       window.location.href = '/login'
       return
     }
-    // Retry với token mới
     const newHeaders = await layHeader()
-    const retry = await fetch(`${BASE}${path}`, { ...options, headers: newHeaders })
+    const retry = await fetch(fullUrl, { ...options, headers: newHeaders })
+    console.log(`[API] retry after 401: ${retry.status}`)
     if (!retry.ok) {
-      const err = await retry.json().catch(() => ({ detail: 'Lỗi kết nối' }))
-      throw new Error(err.detail || 'Lỗi không xác định')
+      const body = await retry.json().catch(() => ({ detail: 'Lỗi kết nối' }))
+      console.error('[API] retry error body:', body)
+      throw new Error(body.detail || 'Lỗi không xác định')
     }
     return retry.json()
   }
 
   if (!resp.ok) {
-    const err = await resp.json().catch(() => ({ detail: 'Lỗi kết nối' }))
-    throw new Error(err.detail || 'Lỗi không xác định')
+    const body = await resp.json().catch(() => ({ detail: 'Lỗi kết nối' }))
+    console.error(`[API] HTTP ${resp.status} error body:`, body)
+    throw new Error(body.detail || 'Lỗi không xác định')
   }
   return resp.json()
 }
