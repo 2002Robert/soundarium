@@ -764,19 +764,16 @@ export default function AquariumCanvas({
       trang.tocDo = (ca.id === dpId) ? 80 : 40
 
       // Food-chasing AI for hungry fish
+      // Cá luôn đuổi mồi khi có thức ăn — hunger check ở backend khi ăn thật
       let foodTarget = null
       if (thucAnActive.length > 0) {
-        const isHungry = !ca.lan_cho_an_cuoi ||
-          Date.now() - new Date(ca.lan_cho_an_cuoi) > HUNGER_MS
-        if (isHungry) {
-          let nearF = null, nearD2 = Infinity
-          thucAnActive.forEach(f => {
-            if (f.eaten) return
-            const d2 = (f.x - trang.x) ** 2 + (f.y - trang.y) ** 2
-            if (d2 < nearD2) { nearD2 = d2; nearF = f }
-          })
-          if (nearF && !nearF.eaten) foodTarget = { ref: nearF, x: nearF.x, y: nearF.y, eatCb }
-        }
+        let nearF = null, nearD2 = Infinity
+        thucAnActive.forEach(f => {
+          if (f.eaten) return
+          const d2 = (f.x - trang.x) ** 2 + (f.y - trang.y) ** 2
+          if (d2 < nearD2) { nearD2 = d2; nearF = f }
+        })
+        if (nearF && !nearF.eaten) foodTarget = { ref: nearF, x: nearF.x, y: nearF.y, eatCb }
       }
 
       veCa(ctx, ca, trang, dpId === ca.id, h, foodTarget, dt)
@@ -869,17 +866,13 @@ export default function AquariumCanvas({
     genRef.current++
     const myGen = genRef.current
     lastTimeRef.current = null
-    console.log(`[Anim] loop gen ${myGen} start`)
     function tick(ts) {
-      if (genRef.current !== myGen) {
-        console.log(`[Anim] loop gen ${myGen} stopped (current=${genRef.current})`)
-        return
-      }
+      if (genRef.current !== myGen) return
       animLoopRef.current(ts)
       requestAnimationFrame(tick)
     }
     requestAnimationFrame(tick)
-    return () => { genRef.current++; console.log(`[Anim] loop gen ${myGen} cleanup`) }
+    return () => { genRef.current++ }
   }, []) // eslint-disable-line react-hooks/exhaustive-deps
 
   // Spawn thức ăn khi feedSignal tăng
