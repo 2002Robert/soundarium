@@ -624,15 +624,14 @@ export default function Home() {
           conTrai={conTrai}
           onThemConTrai={() => {
             const now = Date.now()
-            const newConTrai = Array.from({ length: 5 }, (_, i) => ({
-              id:         `ct_${now}_${i}`,
-              x:          0.1 + i * 0.2,
+            setConTrai([{
+              id:         `ct_${now}_0`,
+              x:          0.5,
               isOpen:     true,
               lastOpened: 0,
               createdAt:  now,
-            }))
-            setConTrai(newConTrai)
-            hienToast('🦪 5 con trai đã xuống đáy hồ!', 'thanhCong')
+            }])
+            hienToast('🦪 Con trai ngọc đã xuống đáy hồ!', 'thanhCong')
             setHienShop(false)
           }}
         />
