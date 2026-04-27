@@ -569,6 +569,7 @@ export default function Home() {
           onProfileLoad={p => {
               setProfileData(p)
               setNgocTrai(p.ngoc_trai || 0)
+              setCoins(p.coins || 0)
               const initExp = p.player_exp || 0
               setPlayerExp(initExp)
               playerExpRef.current = initExp
