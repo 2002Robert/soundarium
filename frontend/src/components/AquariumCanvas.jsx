@@ -701,9 +701,9 @@ function veConTrai(ctx, x, y, r, isOpen) {
     ctx.lineWidth = 0.7
     ctx.stroke()
 
-    // ─── NGỌC TRAI — nằm ở khe giữa 2 nửa vỏ ───
-    const pr = r * 0.28
-    const py = r * 0.08   // khe nhỏ giữa cánh quạt (y=0) và bowl (y=r*0.10)
+    // ─── NGỌC TRAI — nằm trong lòng vỏ dưới ───
+    const pr = r * 0.44              // ~1.57× lớn hơn
+    const py = bowlCenterY - pr      // đáy ngọc (py+pr = r*0.60) chạm đúng mép vỏ dưới
 
     // Glow (nhấp nháy)
     ctx.save()
