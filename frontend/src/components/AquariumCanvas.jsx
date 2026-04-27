@@ -753,7 +753,7 @@ function veConTrai(ctx, x, y, r, isOpen) {
     gClosed.addColorStop(1,   '#A08870')
     ctx.fillStyle = gClosed
     ctx.beginPath()
-    ctx.ellipse(0, 0, r, r * 0.58, 0, 0, Math.PI * 2)
+    ctx.ellipse(0, 0, r, r * 0.42, 0, 0, Math.PI * 2)
     ctx.fill()
 
     // Đường mép giáp vỏ
@@ -770,13 +770,13 @@ function veConTrai(ctx, x, y, r, isOpen) {
       if (i === 0) continue
       const xi = i * r * 0.35
       ctx.beginPath()
-      ctx.moveTo(xi * 0.2, -r * 0.52)
-      ctx.quadraticCurveTo(xi * 0.55, 0, xi * 0.2, r * 0.52)
+      ctx.moveTo(xi * 0.2, -r * 0.38)
+      ctx.quadraticCurveTo(xi * 0.55, 0, xi * 0.2, r * 0.38)
       ctx.stroke()
     }
     ctx.beginPath()
-    ctx.moveTo(0, -r * 0.55)
-    ctx.lineTo(0, r * 0.55)
+    ctx.moveTo(0, -r * 0.40)
+    ctx.lineTo(0, r * 0.40)
     ctx.stroke()
 
     // Gợi ý ngọc bên trong (glow mờ)
@@ -787,7 +787,7 @@ function veConTrai(ctx, x, y, r, isOpen) {
     innerHint.addColorStop(1, 'rgba(255,248,235,0)')
     ctx.fillStyle = innerHint
     ctx.beginPath()
-    ctx.ellipse(0, 0, r * 0.65, r * 0.39, 0, 0, Math.PI * 2)
+    ctx.ellipse(0, 0, r * 0.65, r * 0.28, 0, 0, Math.PI * 2)
     ctx.fill()
     ctx.restore()
   }
@@ -996,7 +996,7 @@ export default function AquariumCanvas({
     // Vẽ con trai đáy hồ
     const ctList = conTraiRef.current
     if (ctList.length > 0) {
-      const oysterR = Math.min(w * 0.04, 30)
+      const oysterR = Math.min(w * 0.04, 24)
       // +12: đẩy vào vùng cát thấy được (gradient transparent tại dayY, opaque ~14px thấp hơn)
       const sandY   = h - dayH + 12
       ctList.forEach(ct => {
@@ -1004,7 +1004,7 @@ export default function AquariumCanvas({
         // Tâm vẽ khác nhau để đáy luôn chạm mặt cát dù đóng hay mở
         const oy = ct.isOpen
           ? sandY - oysterR * 1.10   // vỏ dưới (bowl) chạm cát
-          : sandY - oysterR * 0.58   // ellipse đóng chạm cát
+          : sandY - oysterR * 0.42   // ellipse đóng chạm cát
         veConTrai(ctx, ox, oy, oysterR, ct.isOpen)
         conTraiPosRef.current[ct.id] = { x: ox, y: oy, r: oysterR }
       })
