@@ -2,7 +2,7 @@ import { useState, useEffect, useRef } from 'react'
 import { API } from '../lib/api'
 import { supabase } from '../lib/supabase'
 import FishIcon from './FishIcon'
-import { tinhLevelNguoiChoi } from '../constants/playerLevel'
+import { tinhLevelTuExp, expTrongLevel, expCanLenLevel } from '../constants/playerLevel'
 
 const LOAI_CA = [
   { loai_ca: 'ca_vang',      ten: 'Cá Vàng',  mau: '#FFB300' },
@@ -20,42 +20,36 @@ function getMau(loaiCa) {
 }
 
 const CARD_STYLE = {
-  background: 'rgba(10,22,40,0.72)',
-  backdropFilter: 'blur(10px)',
+  background: 'rgba(10,22,40,0.78)',
+  backdropFilter: 'blur(12px)',
   border: '1px solid rgba(96,165,250,0.13)',
 }
 
-export default function ProfileCard({ danhSachCa, coins, ngocTrai = 0, onProfileLoad, compact = false }) {
-  const [profile, setProfile]             = useState(null)
-  const [dangSuaTen, setDangSuaTen]       = useState(false)
-  const [tenMoi, setTenMoi]               = useState('')
-  const [loiTen, setLoiTen]               = useState('')
-  const [dangLuu, setDangLuu]             = useState(false)
-  const [hienPicker, setHienPicker]       = useState(false)
-  const [toast, setToast]                 = useState(null)
+export default function ProfileCard({
+  danhSachCa, coins, ngocTrai = 0, onProfileLoad, playerExp = 0,
+}) {
+  const [profile, setProfile]       = useState(null)
+  const [dangSuaTen, setDangSuaTen] = useState(false)
+  const [tenMoi, setTenMoi]         = useState('')
+  const [loiTen, setLoiTen]         = useState('')
+  const [dangLuu, setDangLuu]       = useState(false)
+  const [hienPicker, setHienPicker] = useState(false)
+  const [toast, setToast]           = useState(null)
   const inputRef = useRef(null)
 
   useEffect(() => {
     API.layProfile()
       .then(res => {
-        if (res?.profile) {
-          setProfile(res.profile)
-          onProfileLoad?.(res.profile)
-        }
+        if (res?.profile) { setProfile(res.profile); onProfileLoad?.(res.profile) }
       })
       .catch(async () => {
-        // Backend down hoặc column chưa có → fallback về auth session
         try {
           const { data } = await supabase.auth.getUser()
           if (data?.user) {
             const fallback = {
               username: data.user.user_metadata?.full_name
-                || data.user.email?.split('@')[0]
-                || 'Người chơi',
-              coins: 0,
-              tong_gio_nghe: 0,
-              avatar_loai_ca: 'ca_vang',
-              da_doi_username: false,
+                || data.user.email?.split('@')[0] || 'Người chơi',
+              player_exp: 0, avatar_loai_ca: 'ca_vang', da_doi_username: false,
             }
             setProfile(fallback)
             onProfileLoad?.(fallback)
@@ -64,57 +58,45 @@ export default function ProfileCard({ danhSachCa, coins, ngocTrai = 0, onProfile
       })
   }, [])
 
-  useEffect(() => {
-    if (dangSuaTen) inputRef.current?.focus()
-  }, [dangSuaTen])
-
-  const avatarLoai = profile?.avatar_loai_ca || 'ca_vang'
-  const mauVien   = getMau(avatarLoai)
+  useEffect(() => { if (dangSuaTen) inputRef.current?.focus() }, [dangSuaTen])
 
   // Loading skeleton
   if (!profile) {
     return (
-      <div
-        className="flex items-center gap-3 px-4 py-3 rounded-2xl"
-        style={CARD_STYLE}
-      >
-        <div
-          className="rounded-full shrink-0 animate-pulse"
-          style={{ width: compact ? 36 : 48, height: compact ? 36 : 48, background: 'rgba(96,165,250,0.12)' }}
-        />
-        <div className="space-y-2">
-          <div className="h-3 w-20 rounded animate-pulse" style={{ background: 'rgba(96,165,250,0.12)' }} />
-          {!compact && <div className="h-2 w-28 rounded animate-pulse" style={{ background: 'rgba(96,165,250,0.08)' }} />}
+      <div className="px-3.5 py-3 rounded-2xl" style={{ ...CARD_STYLE, minWidth: 212 }}>
+        <div className="flex items-center gap-2.5">
+          <div className="rounded-full shrink-0 animate-pulse" style={{ width: 44, height: 44, background: 'rgba(96,165,250,0.12)' }} />
+          <div className="space-y-1.5 flex-1">
+            <div className="h-3 w-20 rounded animate-pulse" style={{ background: 'rgba(96,165,250,0.12)' }} />
+            <div className="h-2.5 w-10 rounded animate-pulse" style={{ background: 'rgba(96,165,250,0.08)' }} />
+            <div className="h-2 w-28 rounded animate-pulse" style={{ background: 'rgba(96,165,250,0.07)' }} />
+          </div>
         </div>
+        <div className="h-[5px] w-full mt-3 rounded-full animate-pulse" style={{ background: 'rgba(96,165,250,0.08)' }} />
       </div>
     )
   }
 
-  const levelHo = tinhLevelNguoiChoi(profile.tong_gio_nghe || 0)
-
-  const avatarSize  = compact ? 36 : 48
-  // Fix: dùng box-shadow thay vì border để tránh bị clip bởi overflow:hidden + border-radius
+  const avatarLoai  = profile.avatar_loai_ca || 'ca_vang'
+  const mauVien     = getMau(avatarLoai)
   const avatarStyle = {
-    width: avatarSize, height: avatarSize,
+    width: 44, height: 44,
     background: `${mauVien}28`,
-    boxShadow: `0 0 0 2.5px ${mauVien}bb`,
+    boxShadow: `0 0 0 2px ${mauVien}bb`,
   }
 
-  function batDauSua() {
-    setTenMoi(profile.username || '')
-    setLoiTen('')
-    setDangSuaTen(true)
-  }
+  const level  = tinhLevelTuExp(playerExp)
+  const inLv   = expTrongLevel(playerExp)
+  const needLv = expCanLenLevel(level)
+  const pct    = Math.min(100, Math.round((inLv / needLv) * 100))
 
-  function huy() {
-    setDangSuaTen(false)
-    setLoiTen('')
-  }
+  function batDauSua() { setTenMoi(profile.username || ''); setLoiTen(''); setDangSuaTen(true) }
+  function huy()       { setDangSuaTen(false); setLoiTen('') }
 
   function validate(ten) {
-    if (ten.length < 3)  return 'Tối thiểu 3 ký tự'
-    if (ten.length > 20) return 'Tối đa 20 ký tự'
-    if (!/^[a-zA-Z0-9_]+$/.test(ten)) return 'Chỉ dùng chữ, số, dấu _'
+    if (ten.length < 3)                   return 'Tối thiểu 3 ký tự'
+    if (ten.length > 20)                  return 'Tối đa 20 ký tự'
+    if (!/^[a-zA-Z0-9_]+$/.test(ten))    return 'Chỉ dùng chữ, số, dấu _'
     return null
   }
 
@@ -128,11 +110,8 @@ export default function ProfileCard({ danhSachCa, coins, ngocTrai = 0, onProfile
       setProfile(p => ({ ...p, username: res.profile.username, da_doi_username: true }))
       setDangSuaTen(false)
       hienToast('Đã đổi username. Bạn không thể đổi lại.')
-    } catch (err) {
-      setLoiTen(err.message || 'Lỗi khi lưu')
-    } finally {
-      setDangLuu(false)
-    }
+    } catch (err) { setLoiTen(err.message || 'Lỗi khi lưu') }
+    finally { setDangLuu(false) }
   }
 
   async function chonAvatar(loaiCa) {
@@ -143,103 +122,98 @@ export default function ProfileCard({ danhSachCa, coins, ngocTrai = 0, onProfile
     } catch {}
   }
 
-  function hienToast(msg) {
-    setToast(msg)
-    setTimeout(() => setToast(null), 4500)
-  }
-
-  if (compact) {
-    return (
-      <>
-        <div
-          className="flex items-center gap-2 px-3 py-2 rounded-2xl transition hover:brightness-110 cursor-pointer"
-          style={CARD_STYLE}
-          onClick={() => setHienPicker(true)}
-          title="Đổi avatar"
-        >
-          <div className="rounded-full overflow-hidden shrink-0" style={avatarStyle}>
-            <FishIcon loaiCa={avatarLoai} fill />
-          </div>
-          <span className="text-white font-bold text-sm truncate max-w-[80px]">
-            {profile.username}
-          </span>
-        </div>
-
-        {hienPicker && <AvatarPicker avatarLoai={avatarLoai} onChon={chonAvatar} onDong={() => setHienPicker(false)} />}
-        {toast && <ToastMsg msg={toast} />}
-      </>
-    )
-  }
+  function hienToast(msg) { setToast(msg); setTimeout(() => setToast(null), 4500) }
 
   return (
     <>
-      {/* Card */}
-      <div
-        className="flex items-center gap-3 px-4 py-3 rounded-2xl transition hover:brightness-110"
-        style={{ ...CARD_STYLE, minWidth: 200 }}
-      >
-        {/* Avatar */}
-        <div
-          className="relative shrink-0 cursor-pointer group"
-          onClick={() => setHienPicker(true)}
-          title="Đổi avatar"
-        >
-          <div className="rounded-full overflow-hidden" style={avatarStyle}>
-            <FishIcon loaiCa={avatarLoai} fill />
-          </div>
-          <div className="absolute inset-0 rounded-full bg-black/45 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center text-white/90 text-sm select-none">
-            ✎
-          </div>
-        </div>
+      <div className="px-3.5 py-3 rounded-2xl" style={{ ...CARD_STYLE, minWidth: 212 }}>
 
-        {/* Text info */}
-        <div className="min-w-0">
-          {dangSuaTen ? (
-            <div>
-              <div className="flex items-center gap-1">
-                <input
-                  ref={inputRef}
-                  value={tenMoi}
-                  onChange={e => { setTenMoi(e.target.value); setLoiTen('') }}
-                  onKeyDown={e => {
-                    if (e.key === 'Enter')  luuTen()
-                    if (e.key === 'Escape') huy()
-                  }}
-                  maxLength={20}
-                  placeholder="username"
-                  className="bg-ho-nong border border-ho-anh/40 rounded-lg px-2 py-0.5 text-white text-sm w-28 focus:outline-none focus:border-ho-anh"
-                />
-                <button onClick={luuTen} disabled={dangLuu} className="text-green-400 hover:text-green-300 text-sm font-bold leading-none disabled:opacity-40">✓</button>
-                <button onClick={huy} className="text-red-400/60 hover:text-red-400 text-sm leading-none">✕</button>
+        {/* Rows 1–3: Avatar + info block */}
+        <div className="flex items-start gap-2.5">
+
+          {/* Avatar */}
+          <div
+            className="relative shrink-0 cursor-pointer group mt-0.5"
+            onClick={() => setHienPicker(true)}
+            title="Đổi avatar"
+          >
+            <div className="rounded-full overflow-hidden" style={avatarStyle}>
+              <FishIcon loaiCa={avatarLoai} fill />
+            </div>
+            <div className="absolute inset-0 rounded-full bg-black/45 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center text-white/90 text-xs select-none">
+              ✎
+            </div>
+          </div>
+
+          {/* Info block */}
+          <div className="flex-1 min-w-0">
+            {/* Row 1: Username + edit */}
+            {dangSuaTen ? (
+              <div>
+                <div className="flex items-center gap-1">
+                  <input
+                    ref={inputRef}
+                    value={tenMoi}
+                    onChange={e => { setTenMoi(e.target.value); setLoiTen('') }}
+                    onKeyDown={e => { if (e.key === 'Enter') luuTen(); if (e.key === 'Escape') huy() }}
+                    maxLength={20}
+                    placeholder="username"
+                    className="bg-ho-nong border border-ho-anh/40 rounded-lg px-2 py-0.5 text-white text-sm w-28 focus:outline-none focus:border-ho-anh"
+                  />
+                  <button onClick={luuTen} disabled={dangLuu} className="text-green-400 hover:text-green-300 text-sm font-bold leading-none disabled:opacity-40">✓</button>
+                  <button onClick={huy} className="text-red-400/60 hover:text-red-400 text-sm leading-none">✕</button>
+                </div>
+                {loiTen && <div className="text-red-400 text-[10px] mt-0.5">{loiTen}</div>}
               </div>
-              {loiTen && <div className="text-red-400 text-[10px] mt-0.5">{loiTen}</div>}
-            </div>
-          ) : (
-            <div className="flex items-center gap-1.5">
-              <span className="text-white font-bold text-base truncate max-w-[120px]">{profile.username}</span>
-              {!profile.da_doi_username && (
-                <button
-                  onClick={batDauSua}
-                  className="text-ho-anh/35 hover:text-ho-anh/80 text-xs transition shrink-0 leading-none"
-                  title="Đổi username (1 lần)"
-                >✎</button>
-              )}
-            </div>
-          )}
+            ) : (
+              <>
+                <div className="flex items-center gap-1.5">
+                  <span className="text-white font-semibold text-sm truncate">{profile.username}</span>
+                  {!profile.da_doi_username && (
+                    <button
+                      onClick={batDauSua}
+                      className="text-ho-anh/35 hover:text-ho-anh text-xs transition shrink-0 leading-none"
+                      title="Đổi username (1 lần)"
+                    >✎</button>
+                  )}
+                </div>
 
-          {!dangSuaTen && (
-            <div className="flex items-center gap-2 mt-1">
-              <span className="text-ho-anh/50 text-[13px]">🐠 {danhSachCa.length}</span>
-              <span className="text-ho-anh/50 text-[13px]">⭐ Lv.{levelHo}</span>
-              <span className="text-ho-anh/50 text-[13px]">🪙 {coins.toLocaleString()}</span>
-              {ngocTrai > 0 && <span className="text-ho-anh/50 text-[13px]">💎 {ngocTrai}</span>}
-            </div>
-          )}
+                {/* Row 2: Level */}
+                <div className="text-yellow-300/80 font-bold text-sm leading-snug">Lv.{level}</div>
+
+                {/* Row 3: Stats */}
+                <div className="flex items-center gap-3 mt-0.5">
+                  <span className="text-white/45 text-xs">🐟 {danhSachCa.length}</span>
+                  <span className="text-white/45 text-xs">💰 {coins.toLocaleString()}</span>
+                  <span className="text-white/45 text-xs">💎 {ngocTrai}</span>
+                </div>
+              </>
+            )}
+          </div>
         </div>
+
+        {/* Row 4: EXP bar */}
+        {!dangSuaTen && (
+          <div className="flex items-center gap-2 mt-2.5">
+            <span className="text-ho-anh/45 text-[10px] font-medium w-6 shrink-0">EXP</span>
+            <div
+              className="flex-1 h-[5px] rounded-full overflow-hidden"
+              style={{ background: 'rgba(255,255,255,0.07)' }}
+            >
+              <div
+                className="h-full rounded-full transition-all duration-700"
+                style={{ width: `${pct}%`, background: 'linear-gradient(90deg,#3b82f6,#60a5fa)' }}
+              />
+            </div>
+            <span className="text-ho-anh/45 text-[10px] tabular-nums shrink-0">{inLv}/{needLv}</span>
+          </div>
+        )}
       </div>
 
       {toast && <ToastMsg msg={toast} />}
-      {hienPicker && <AvatarPicker avatarLoai={avatarLoai} onChon={chonAvatar} onDong={() => setHienPicker(false)} />}
+      {hienPicker && (
+        <AvatarPicker avatarLoai={avatarLoai} onChon={chonAvatar} onDong={() => setHienPicker(false)} />
+      )}
     </>
   )
 }

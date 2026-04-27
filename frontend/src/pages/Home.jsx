@@ -15,7 +15,7 @@ import FishManagerModal from '../components/FishManagerModal'
 import ShopPanel from '../components/ShopPanel'
 import ExplorePanel from '../components/ExplorePanel'
 import TankSwitcher from '../components/TankSwitcher'
-import { tinhLevelNguoiChoi, TIEU_DE_LEVEL } from '../constants/playerLevel'
+import { tinhLevelTuExp, TIEU_DE_LEVEL } from '../constants/playerLevel'
 
 function roundRect(ctx, x, y, w, h, r) {
   ctx.beginPath()
@@ -109,6 +109,7 @@ export default function Home() {
   const [dangTaoTank, setDangTaoTank]         = useState(false)
   const [feedSignal, setFeedSignal]           = useState(0)
   const [coinHarvestSignal, setCoinHarvestSignal] = useState(0)
+  const [playerExp, setPlayerExp]                 = useState(0)
   const [playerBarHeight, setPlayerBarHeight] = useState(0)
   const playerBarRef  = useRef(null)
   const playerExpRef  = useRef(0)
@@ -150,13 +151,6 @@ export default function Home() {
     if (res.da_len_level) {
       setCaLevelUp(caId)
       setTimeout(() => setCaLevelUp(null), 2500)
-    }
-    const lvCu = tinhLevelNguoiChoi(gioNgheRef.current)
-    gioNgheRef.current += 5 / 60
-    const lvMoi = tinhLevelNguoiChoi(gioNgheRef.current)
-    if (lvMoi > lvCu) {
-      setPlayerLevelUp(lvMoi)
-      setTimeout(() => setPlayerLevelUp(null), 4500)
     }
   }, [])
 
@@ -258,10 +252,15 @@ export default function Home() {
 
       const prev = playerExpRef.current
       const curr = res.player_exp || 0
-      if (prev < 15 && curr >= 15) {
-        hienToast('🏆 Lv.3 đạt! Mở khóa Hồ 2 (15 🪙)', 'thanhCong')
-      } else if (prev < 60 && curr >= 60) {
-        hienToast('🏆 Lv.5 đạt! Mở khóa Hồ 3 (25 🪙)', 'thanhCong')
+      if (curr !== prev) {
+        const lvCu  = tinhLevelTuExp(prev)
+        const lvMoi = tinhLevelTuExp(curr)
+        if (lvMoi > lvCu) {
+          setPlayerLevelUp(lvMoi)
+          setTimeout(() => setPlayerLevelUp(null), 4500)
+          hienToast(`🎉 Lên Lv.${lvMoi}!`, 'thanhCong')
+        }
+        setPlayerExp(curr)
       }
       playerExpRef.current = curr
     } catch {
@@ -418,7 +417,7 @@ export default function Home() {
     ctx.drawImage(src, 0, 0)
 
     if (profileData) {
-      const levelHo = tinhLevelNguoiChoi(profileData.tong_gio_nghe || 0)
+      const levelHo = tinhLevelTuExp(playerExp)
       const BOX_W = 210, BOX_H = 72, PAD = 14, R = 12
 
       ctx.save()
@@ -564,7 +563,13 @@ export default function Home() {
           danhSachCa={danhSachCa}
           coins={coins}
           ngocTrai={ngocTrai}
-          onProfileLoad={p => { setProfileData(p); setNgocTrai(p.ngoc_trai || 0); gioNgheRef.current = p.tong_gio_nghe || 0 }}
+          onProfileLoad={p => {
+              setProfileData(p)
+              setNgocTrai(p.ngoc_trai || 0)
+              const initExp = p.player_exp || 0
+              setPlayerExp(initExp)
+              playerExpRef.current = initExp
+            }}
         />
         <div className="flex flex-col gap-1.5 mt-2">
           <IconBtn onClick={chiaSe} title="Chia sẻ hồ">🔗</IconBtn>
@@ -616,6 +621,7 @@ export default function Home() {
           onXoa={xoaCa}
           onDong={() => setInfoCa(null)}
           onMoQuanLyCa={() => setHienFishManager(true)}
+          playerExp={playerExp}
         />
       )}
 
@@ -630,7 +636,7 @@ export default function Home() {
           nenHo={nenHo} dayHo={dayHo}
           onChonNen={chonNen} onChonDay={chonDay}
           coins={coins}
-          playerLevel={tinhLevelNguoiChoi(profileData?.tong_gio_nghe || 0)}
+          playerLevel={tinhLevelTuExp(playerExp)}
           onCoinsUpdate={setCoins}
           conTrai={conTrai}
           onThemConTrai={() => {
