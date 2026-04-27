@@ -997,7 +997,8 @@ export default function AquariumCanvas({
     const ctList = conTraiRef.current
     if (ctList.length > 0) {
       const oysterR = Math.min(w * 0.04, 30)
-      const sandY   = h - dayH
+      // +12: đẩy vào vùng cát thấy được (gradient transparent tại dayY, opaque ~14px thấp hơn)
+      const sandY   = h - dayH + 12
       ctList.forEach(ct => {
         const ox = ct.x * w
         // Tâm vẽ khác nhau để đáy luôn chạm mặt cát dù đóng hay mở
