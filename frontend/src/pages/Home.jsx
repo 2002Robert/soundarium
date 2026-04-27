@@ -250,19 +250,21 @@ export default function Home() {
         setTimeout(() => setCaLevelUp(null), 2000)
       }
 
-      const prev = playerExpRef.current
-      const curr = res.player_exp || 0
-      if (curr !== prev) {
-        const lvCu  = tinhLevelTuExp(prev)
-        const lvMoi = tinhLevelTuExp(curr)
-        if (lvMoi > lvCu) {
-          setPlayerLevelUp(lvMoi)
-          setTimeout(() => setPlayerLevelUp(null), 4500)
-          hienToast(`🎉 Lên Lv.${lvMoi}!`, 'thanhCong')
+      const curr = res.player_exp
+      if (curr != null) {
+        const prev = playerExpRef.current
+        if (curr !== prev) {
+          const lvCu  = tinhLevelTuExp(prev)
+          const lvMoi = tinhLevelTuExp(curr)
+          if (lvMoi > lvCu) {
+            setPlayerLevelUp(lvMoi)
+            setTimeout(() => setPlayerLevelUp(null), 4500)
+            hienToast(`🎉 Lên Lv.${lvMoi}!`, 'thanhCong')
+          }
+          setPlayerExp(curr)
         }
-        setPlayerExp(curr)
+        playerExpRef.current = curr
       }
-      playerExpRef.current = curr
     } catch {
       // silent fail
     }
@@ -563,6 +565,7 @@ export default function Home() {
           danhSachCa={danhSachCa}
           coins={coins}
           ngocTrai={ngocTrai}
+          playerExp={playerExp}
           onProfileLoad={p => {
               setProfileData(p)
               setNgocTrai(p.ngoc_trai || 0)
