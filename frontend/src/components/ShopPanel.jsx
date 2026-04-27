@@ -4,21 +4,23 @@ import FishIcon from './FishIcon'
 import { API } from '../lib/api'
 
 const HIEM = {
-  common:    { nhan: 'Phổ thông',   mau: '#6b7280' },
-  rare:      { nhan: 'Hiếm',        mau: '#818cf8' },
-  epic:      { nhan: 'Sử thi',      mau: '#f59e0b' },
-  legendary: { nhan: 'Huyền thoại', mau: '#ef4444' },
+  common:    { nhan: 'Phổ biến',       mau: '#9ca3af' },
+  uncommon:  { nhan: 'Không phổ biến', mau: '#4ade80' },
+  rare:      { nhan: 'Hiếm',           mau: '#3b82f6' },
+  epic:      { nhan: 'Sử thi',         mau: '#a855f7' },
+  legendary: { nhan: 'Huyền thoại',    mau: '#ef4444' },
 }
 
+// common→uncommon→rare→epic
 const LOAI_CA_SHOP = [
-  { loai_ca: 'ca_vang',      ma: '#CA001', ten: 'Cá Vàng',  hiem: 'common',    gia: 0   },
-  { loai_ca: 'ca_neon',      ma: '#CA002', ten: 'Cá Neon',  hiem: 'common',    gia: 0   },
-  { loai_ca: 'ca_betta',     ma: '#CA003', ten: 'Cá Betta', hiem: 'rare',      gia: 50  },
-  { loai_ca: 'ca_clownfish', ma: '#CA004', ten: 'Cá Hề',    hiem: 'rare',      gia: 50  },
-  { loai_ca: 'ca_tang',      ma: '#CA005', ten: 'Cá Tang',  hiem: 'rare',      gia: 50  },
-  { loai_ca: 'ca_koi',       ma: '#CA006', ten: 'Cá Koi',   hiem: 'epic',      gia: 150 },
-  { loai_ca: 'ca_chep',      ma: '#CA007', ten: 'Cá Chép',  hiem: 'epic',      gia: 150 },
-  { loai_ca: 'ca_dia',       ma: '#CA008', ten: 'Cá Đĩa',   hiem: 'legendary', gia: 500 },
+  { loai_ca: 'ca_vang',      ten: 'Cá Vàng',  hiem: 'common',   gia: 0,   coin5ph: 1 },
+  { loai_ca: 'ca_neon',      ten: 'Cá Neon',  hiem: 'common',   gia: 0,   coin5ph: 1 },
+  { loai_ca: 'ca_betta',     ten: 'Cá Betta', hiem: 'uncommon', gia: 80,  coin5ph: 2 },
+  { loai_ca: 'ca_clownfish', ten: 'Cá Hề',    hiem: 'uncommon', gia: 80,  coin5ph: 2 },
+  { loai_ca: 'ca_tang',      ten: 'Cá Tang',  hiem: 'rare',     gia: 200, coin5ph: 4 },
+  { loai_ca: 'ca_koi',       ten: 'Cá Koi',   hiem: 'rare',     gia: 200, coin5ph: 4 },
+  { loai_ca: 'ca_chep',      ten: 'Cá Chép',  hiem: 'epic',     gia: 450, coin5ph: 8 },
+  { loai_ca: 'ca_dia',       ten: 'Cá Đĩa',   hiem: 'epic',     gia: 450, coin5ph: 8 },
 ]
 
 const BACKGROUNDS = [
@@ -120,19 +122,21 @@ const SHOP_SPECIAL_ITEMS = [
     id:          'sua_gai',
     ten:         'Sứa Gai',
     hiem:        'epic',
-    gia:         500,
+    gia:         300,
+    coin5ph:     5,
     levelYeuCau: 3,
     Icon:        JellyfishShopIcon,
-    tooltip:     'Bơi trong hồ, hiệu ứng hồng tím đẹp',
+    tooltip:     'Bơi trong hồ, buff hiệu ứng hồng tím',
   },
   {
     id:          'ngoc_trai',
     ten:         'Ngọc Trai',
-    hiem:        'rare',
-    gia:         700,
+    hiem:        'epic',
+    gia:         600,
+    coin5ph:     null,
     levelYeuCau: 0,
     Icon:        OysterShopIcon,
-    tooltip:     '5 con trai đáy hồ, mở mỗi 15 phút → +10 🪙',
+    tooltip:     'Con trai đáy hồ, mở mỗi 15 phút → +50 🪙/click',
   },
 ]
 
@@ -144,13 +148,14 @@ function phuHop(item, q) {
 
 // ── Unified card (4-column) ───────────────────────────────────────
 const ShopCard = forwardRef(function ShopCard(
-  { Icon, ten, hiem, gia, levelYeuCau, coins, playerLevel, onMua, dangMua, isDisabled, isHighlighted, dimmed },
+  { Icon, ten, hiem, gia, coin5ph, levelYeuCau, coins, playerLevel, onMua, dangMua, isDisabled, isHighlighted, dimmed },
   ref,
 ) {
   const duCoins  = gia === 0 || coins >= gia
   const duLevel  = !levelYeuCau || playerLevel >= levelYeuCau
   const coTheMua = duCoins && duLevel && !isDisabled && !dangMua
-  const hiemMau  = HIEM[hiem]?.mau || '#6b7280'
+  const hiemCfg  = HIEM[hiem] || HIEM.common
+  const hiemMau  = hiemCfg.mau
 
   let btnLabel
   if (dangMua)         btnLabel = '…'
@@ -162,29 +167,45 @@ const ShopCard = forwardRef(function ShopCard(
 
   const tooltip = !duLevel
     ? `Cần Lv.${levelYeuCau} (đang Lv.${playerLevel})`
-    : !duCoins
-    ? `Cần ${gia} coins (đang có ${coins})`
-    : ''
+    : !duCoins ? `Cần ${gia} coins (đang có ${coins})` : ''
 
   return (
     <div
       ref={ref}
       title={tooltip}
-      className="flex flex-col items-center bg-ho-nong border rounded-2xl px-2 py-3 gap-1 transition-all duration-300"
+      className="relative flex flex-col items-center bg-ho-nong border rounded-2xl px-2 py-3 gap-1 transition-all duration-300"
       style={{
         borderColor: isHighlighted ? hiemMau + 'bb' : hiemMau + '35',
         opacity:     dimmed ? 0.25 : 1,
         boxShadow:   isHighlighted ? `0 0 16px 3px ${hiemMau}33` : 'none',
       }}
     >
-      <div className={duCoins && duLevel ? '' : 'opacity-50'}>{Icon}</div>
+      {/* Rarity badge */}
+      <div
+        className="absolute top-1.5 right-1.5 px-1 py-px rounded text-[8px] font-bold leading-tight"
+        style={{ background: hiemMau + '28', color: hiemMau }}
+      >
+        {hiemCfg.nhan}
+      </div>
+
+      <div className={`mt-1 ${duCoins && duLevel ? '' : 'opacity-50'}`}>{Icon}</div>
       <div className="text-white text-[10px] font-semibold text-center leading-tight w-full truncate px-0.5">{ten}</div>
-      <div>
+
+      {/* Giá */}
+      <div className="text-center">
         {gia === 0
           ? <span className="text-green-400 text-[10px] font-semibold">Miễn phí</span>
           : <span className="text-[10px] font-bold" style={{ color: hiemMau }}>🪙 {gia}</span>
         }
       </div>
+
+      {/* Coin/5 phút */}
+      {coin5ph != null && (
+        <div className="text-[9px] text-white/35 leading-none">
+          💰 +{coin5ph} / 5 phút
+        </div>
+      )}
+
       <button
         onClick={e => { e.stopPropagation(); if (coTheMua) onMua() }}
         disabled={!coTheMua}
@@ -315,6 +336,7 @@ export default function ShopPanel({
                     ten={item.ten}
                     hiem={item.hiem}
                     gia={item.gia}
+                    coin5ph={item.coin5ph}
                     levelYeuCau={item.levelYeuCau || 0}
                     coins={coins}
                     playerLevel={playerLevel}
@@ -340,6 +362,7 @@ export default function ShopPanel({
                       ten={item.ten}
                       hiem={item.hiem}
                       gia={item.gia}
+                      coin5ph={item.coin5ph}
                       coins={coins}
                       playerLevel={playerLevel}
                       onMua={() => setModal({ loai_ca: item.loai_ca, ten: item.ten })}

@@ -103,16 +103,18 @@ async def cap_nhat_avatar(
     return {"profile": ket_qua.data[0]}
 
 
-_NGUONG_LEVEL = [0, 2, 8, 25, 75, 200, 500]
-_GIA_SUA = 500
+_GIA_SUA = 300
 _YEU_CAU_LEVEL_SUA = 3
+_EXP_NGUONG = [0, 10, 30, 65, 120, 200, 310, 455, 640, 870]
 
 
-def _tinh_level(gio_nghe: float) -> int:
+def _tinh_level_exp(player_exp: float) -> int:
     level = 1
-    for i, nguong in enumerate(_NGUONG_LEVEL):
-        if gio_nghe >= nguong:
+    for i in range(1, len(_EXP_NGUONG)):
+        if player_exp >= _EXP_NGUONG[i]:
             level = i + 1
+        else:
+            break
     return level
 
 
@@ -121,7 +123,7 @@ async def mua_sua_gai(user_id: str = Depends(lay_user_id)):
     """Mua sứa gai bằng coins. Yêu cầu Lv.3."""
     profile = (
         supabase_admin.table("profiles")
-        .select("coins, tong_gio_nghe")
+        .select("coins, player_exp")
         .eq("id", user_id)
         .single()
         .execute()
@@ -129,7 +131,7 @@ async def mua_sua_gai(user_id: str = Depends(lay_user_id)):
     if not profile.data:
         raise HTTPException(status_code=404, detail="Không tìm thấy profile")
 
-    level = _tinh_level(profile.data.get("tong_gio_nghe") or 0)
+    level = _tinh_level_exp(profile.data.get("player_exp") or 0)
     if level < _YEU_CAU_LEVEL_SUA:
         raise HTTPException(
             status_code=403,

@@ -12,6 +12,8 @@ from services.fish_growth import (
     RARITY_MAP,
     EXP_TRUONG_THANH,
     HUNGER_MINUTES,
+    COINS_PER_CYCLE,
+    COINS_SUA_PER_CYCLE,
 )
 from datetime import datetime, timezone
 
@@ -360,23 +362,34 @@ async def thu_hoach_ca_no(
     user_id: str = Depends(lay_user_id),
     tank_id: Optional[str] = Query(None),
 ):
-    """Mỗi 5 phút: mỗi cá no (ăn trong 45 phút qua) nhả 1 coin."""
+    """Mỗi 5 phút: cá no nhả coins theo rarity; sứa luôn nhả coins."""
     tid = await _lay_tank_id_cua_user(user_id, tank_id)
 
     ket_qua = (
         supabase_admin.table("fish")
-        .select("id, lan_cho_an_cuoi")
+        .select("id, loai_ca, lan_cho_an_cuoi")
         .eq("tank_id", tid)
         .execute()
     )
 
     now = datetime.now(timezone.utc)
     hunger_sec = HUNGER_MINUTES * 60
-    ca_no = [
-        c for c in (ket_qua.data or [])
-        if c.get("lan_cho_an_cuoi") and
-        (now - datetime.fromisoformat(c["lan_cho_an_cuoi"].replace("Z", "+00:00"))).total_seconds() < hunger_sec
-    ]
+    coins_nhan = 0
+    ca_no_count = 0
+
+    for c in (ket_qua.data or []):
+        loai = c.get("loai_ca", "")
+        rarity = RARITY_MAP.get(loai, "common")
+
+        if loai == "sua_gai":
+            # Sứa luôn nhả coins (không cần ăn)
+            coins_nhan += COINS_SUA_PER_CYCLE
+            ca_no_count += 1
+        else:
+            fed = c.get("lan_cho_an_cuoi")
+            if fed and (now - datetime.fromisoformat(fed.replace("Z", "+00:00"))).total_seconds() < hunger_sec:
+                coins_nhan += COINS_PER_CYCLE.get(rarity, 1)
+                ca_no_count += 1
 
     profile = (
         supabase_admin.table("profiles")
@@ -386,17 +399,16 @@ async def thu_hoach_ca_no(
         .execute()
     )
     coins_cu = (profile.data.get("coins") or 0) if profile.data else 0
-    so_ca_no = len(ca_no)
 
-    if so_ca_no > 0 and profile.data:
+    if coins_nhan > 0 and profile.data:
         supabase_admin.table("profiles").update({
-            "coins": coins_cu + so_ca_no
+            "coins": coins_cu + coins_nhan
         }).eq("id", user_id).execute()
 
     return {
-        "ca_no":       so_ca_no,
-        "coins_nhan":  so_ca_no,
-        "coins_hien_tai": coins_cu + so_ca_no,
+        "ca_no":          ca_no_count,
+        "coins_nhan":     coins_nhan,
+        "coins_hien_tai": coins_cu + coins_nhan,
     }
 
 

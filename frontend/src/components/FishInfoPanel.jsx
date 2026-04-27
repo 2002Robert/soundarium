@@ -5,11 +5,12 @@ import { API } from '../lib/api'
 const HUNGER_MS = 45 * 60 * 1000
 
 const RARITY_MAP = {
-  ca_vang: 'common', ca_neon: 'common',
-  ca_betta: 'rare',  ca_clownfish: 'rare', ca_tang: 'rare', ca_koi: 'rare', ca_chep: 'rare',
-  ca_dia:   'epic',  sua_gai: 'epic',
+  ca_vang: 'common',   ca_neon: 'common',
+  ca_betta: 'uncommon', ca_clownfish: 'uncommon',
+  ca_tang: 'rare',     ca_koi: 'rare',
+  ca_chep: 'epic',     ca_dia: 'epic', sua_gai: 'epic',
 }
-const XP_TRUONG_THANH = { common: 10, rare: 13, epic: 17, legendary: 22 }
+const XP_TRUONG_THANH = { common: 10, uncommon: 15, rare: 20, epic: 30 }
 
 function tinhMsNo(ca) {
   const fromProp = ca.lan_cho_an_cuoi ? new Date(ca.lan_cho_an_cuoi).getTime() : 0

@@ -9,27 +9,37 @@ _LEVEL_TOI_DA = 5
 KICH_THUOC_THEO_LEVEL = {1: 40, 2: 52, 3: 64, 4: 72, 5: 80}
 
 GIA_CA = {
-    "ca_vang": 0,
-    "ca_neon": 0,
-    "ca_betta": 50,
-    "ca_clownfish": 50,
-    "ca_tang": 50,
-    "ca_koi": 150,
-    "ca_chep": 150,
-    "ca_dia": 500,
-    "sua_gai": 500,
+    "ca_vang":      0,
+    "ca_neon":      0,
+    "ca_betta":     80,
+    "ca_clownfish": 80,
+    "ca_tang":      200,
+    "ca_koi":       200,
+    "ca_chep":      450,
+    "ca_dia":       450,
+    "sua_gai":      300,
 }
 
 LOAI_CA = list(GIA_CA.keys())
 
 RARITY_MAP = {
-    "ca_vang": "common",  "ca_neon": "common",
-    "ca_betta": "rare",   "ca_clownfish": "rare", "ca_tang": "rare",
-    "ca_koi": "rare",     "ca_chep": "rare",
-    "ca_dia": "epic",     "sua_gai": "epic",
+    "ca_vang":      "common",
+    "ca_neon":      "common",
+    "ca_betta":     "uncommon",
+    "ca_clownfish": "uncommon",
+    "ca_tang":      "rare",
+    "ca_koi":       "rare",
+    "ca_chep":      "epic",
+    "ca_dia":       "epic",
+    "sua_gai":      "epic",
 }
 
-EXP_TRUONG_THANH = {"common": 10, "rare": 13, "epic": 17, "legendary": 22}
+# EXP cần để cá trưởng thành
+EXP_TRUONG_THANH = {"common": 10, "uncommon": 15, "rare": 20, "epic": 30}
+
+# Coins nhả mỗi 5 phút khi cá no (cá thường) hoặc mỗi 5 phút (sứa)
+COINS_PER_CYCLE = {"common": 1, "uncommon": 2, "rare": 4, "epic": 8}
+COINS_SUA_PER_CYCLE = 5
 
 HUNGER_MINUTES = 45
 
