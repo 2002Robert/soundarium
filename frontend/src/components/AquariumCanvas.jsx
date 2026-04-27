@@ -702,8 +702,8 @@ function veConTrai(ctx, x, y, r, isOpen) {
     ctx.stroke()
 
     // ─── NGỌC TRAI — nằm trong lòng vỏ dưới ───
-    const pr = r * 0.44              // ~1.57× lớn hơn
-    const py = bowlCenterY - pr      // đáy ngọc (py+pr = r*0.60) chạm đúng mép vỏ dưới
+    const pr = r * 0.50              // ~15px at r=30
+    const py = bowlCenterY - pr      // đáy ngọc chạm đúng mép vỏ dưới
 
     // Glow (nhấp nháy)
     ctx.save()
@@ -748,12 +748,12 @@ function veConTrai(ctx, x, y, r, isOpen) {
   } else {
     // Closed shell — màu be/nâu nhạt, vân vỏ
     const gClosed = ctx.createRadialGradient(-r * 0.25, -r * 0.15, 0, 0, 0, r)
-    gClosed.addColorStop(0,   '#D4C4A8')  // be sáng
-    gClosed.addColorStop(0.6, '#C0AC8C')  // be trung
-    gClosed.addColorStop(1,   '#A08870')  // nâu mép
+    gClosed.addColorStop(0,   '#D4C4A8')
+    gClosed.addColorStop(0.6, '#C0AC8C')
+    gClosed.addColorStop(1,   '#A08870')
     ctx.fillStyle = gClosed
     ctx.beginPath()
-    ctx.ellipse(0, 0, r, r * 0.42, 0, 0, Math.PI * 2)
+    ctx.ellipse(0, 0, r, r * 0.58, 0, 0, Math.PI * 2)
     ctx.fill()
 
     // Đường mép giáp vỏ
@@ -770,13 +770,13 @@ function veConTrai(ctx, x, y, r, isOpen) {
       if (i === 0) continue
       const xi = i * r * 0.35
       ctx.beginPath()
-      ctx.moveTo(xi * 0.2, -r * 0.38)
-      ctx.quadraticCurveTo(xi * 0.55, 0, xi * 0.2, r * 0.38)
+      ctx.moveTo(xi * 0.2, -r * 0.52)
+      ctx.quadraticCurveTo(xi * 0.55, 0, xi * 0.2, r * 0.52)
       ctx.stroke()
     }
     ctx.beginPath()
-    ctx.moveTo(0, -r * 0.4)
-    ctx.lineTo(0, r * 0.4)
+    ctx.moveTo(0, -r * 0.55)
+    ctx.lineTo(0, r * 0.55)
     ctx.stroke()
 
     // Gợi ý ngọc bên trong (glow mờ)
@@ -787,7 +787,7 @@ function veConTrai(ctx, x, y, r, isOpen) {
     innerHint.addColorStop(1, 'rgba(255,248,235,0)')
     ctx.fillStyle = innerHint
     ctx.beginPath()
-    ctx.ellipse(0, 0, r * 0.65, r * 0.28, 0, 0, Math.PI * 2)
+    ctx.ellipse(0, 0, r * 0.65, r * 0.39, 0, 0, Math.PI * 2)
     ctx.fill()
     ctx.restore()
   }
@@ -867,6 +867,7 @@ export default function AquariumCanvas({
   const coinRef            = useRef([])
   const fishPosRef         = useRef(new Map())
   const coinHarvestSigRef  = useRef(0)
+  const pearlPickRef       = useRef([])
 
   danhSachCa.forEach(khoiTaoChuyen)
 
@@ -995,13 +996,16 @@ export default function AquariumCanvas({
     // Vẽ con trai đáy hồ
     const ctList = conTraiRef.current
     if (ctList.length > 0) {
-      const oysterR = Math.min(w * 0.072, ctList.length === 1 ? 46 : 28)
-      // Đẩy tâm vẽ lên cao hơn để cánh dưới (SPREAD > 90°) không bị cắt bởi đáy
-      const oysterY = h - 40 - oysterR * 1.1
+      const oysterR = Math.min(w * 0.04, 30)
+      const sandY   = h - dayH
       ctList.forEach(ct => {
         const ox = ct.x * w
-        veConTrai(ctx, ox, oysterY, oysterR, ct.isOpen)
-        conTraiPosRef.current[ct.id] = { x: ox, y: oysterY, r: oysterR }
+        // Tâm vẽ khác nhau để đáy luôn chạm mặt cát dù đóng hay mở
+        const oy = ct.isOpen
+          ? sandY - oysterR * 1.10   // vỏ dưới (bowl) chạm cát
+          : sandY - oysterR * 0.58   // ellipse đóng chạm cát
+        veConTrai(ctx, ox, oy, oysterR, ct.isOpen)
+        conTraiPosRef.current[ct.id] = { x: ox, y: oy, r: oysterR }
       })
     }
 
@@ -1044,6 +1048,20 @@ export default function AquariumCanvas({
       ctx.textAlign = 'center'
       ctx.fillStyle = '#FBBF24'
       ctx.fillText('+1', c.x, cy - 10)
+      ctx.restore()
+    })
+
+    // Pearl pick animation (+50 coins khi nhặt ngọc trai)
+    const nowPickMs = Date.now()
+    pearlPickRef.current = pearlPickRef.current.filter(p => nowPickMs - p.spawnMs < 1200)
+    pearlPickRef.current.forEach(p => {
+      const prog = (nowPickMs - p.spawnMs) / 1200
+      ctx.save()
+      ctx.globalAlpha = Math.max(0, 1 - prog * 1.3)
+      ctx.font = 'bold 16px sans-serif'
+      ctx.textAlign = 'center'
+      ctx.fillStyle = '#F59E0B'
+      ctx.fillText('+50 🪙', p.x, p.y - prog * 70)
       ctx.restore()
     })
 
@@ -1163,7 +1181,11 @@ export default function AquariumCanvas({
       const dx = mx - pos.x, dy = my - pos.y
       if (dx * dx + dy * dy < (pos.r * 2.2) ** 2) {
         const ct = conTraiRef.current.find(c => c.id === ctId)
-        if (ct?.isOpen) { onClickConTrai?.(ctId); return }
+        if (ct?.isOpen) {
+          pearlPickRef.current.push({ x: pos.x, y: pos.y - pos.r, spawnMs: Date.now() })
+          onClickConTrai?.(ctId)
+          return
+        }
       }
     }
 

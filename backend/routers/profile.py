@@ -171,7 +171,7 @@ async def thu_ngoc_trai(user_id: str = Depends(lay_user_id)):
 
 _GIA_CON_TRAI = 700
 _SO_CON_TRAI  = 5
-_COINS_NGOC   = 10
+_COINS_NGOC   = 50
 
 
 @router.post("/mua-con-trai")
