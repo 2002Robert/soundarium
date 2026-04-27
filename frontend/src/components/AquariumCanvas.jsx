@@ -544,6 +544,46 @@ function veConTrai(ctx, x, y, r, isOpen) {
       ctx.closePath()
     }
 
+    // ─── VỎ DƯỚI (BOWL/ĐẾ) — vẽ trước cánh quạt ───
+    // bowlCenterY + bowlRy = r * 1.10 → đáy vừa chạm cát
+    const bowlCenterY = r * 0.60
+    const bowlRx      = r * 1.18
+    const bowlRy      = r * 0.50
+    ctx.save()
+    // Mặt ngoài
+    ctx.beginPath()
+    ctx.ellipse(0, bowlCenterY, bowlRx, bowlRy, 0, 0, Math.PI)
+    ctx.closePath()
+    const gBowlOut = ctx.createLinearGradient(0, bowlCenterY - bowlRy, 0, bowlCenterY + bowlRy)
+    gBowlOut.addColorStop(0,    '#D4C4A0')
+    gBowlOut.addColorStop(0.55, '#C2AC88')
+    gBowlOut.addColorStop(1,    '#8A7050')
+    ctx.fillStyle = gBowlOut
+    ctx.fill()
+    ctx.strokeStyle = 'rgba(75,55,30,0.3)'
+    ctx.lineWidth = 0.85
+    ctx.stroke()
+    // Mặt trong xà cừ
+    ctx.beginPath()
+    ctx.ellipse(0, bowlCenterY + bowlRy * 0.10, bowlRx * 0.78, bowlRy * 0.70, 0, 0, Math.PI)
+    ctx.closePath()
+    const gBowlNacre = ctx.createLinearGradient(0, bowlCenterY, 0, bowlCenterY + bowlRy)
+    gBowlNacre.addColorStop(0,    '#F4EDE8')
+    gBowlNacre.addColorStop(0.45, '#EDD5C2')
+    gBowlNacre.addColorStop(1,    '#CEC3DF')
+    ctx.fillStyle = gBowlNacre
+    ctx.fill()
+    // Gân vỏ
+    ctx.strokeStyle = 'rgba(255,255,255,0.18)'
+    ctx.lineWidth = 0.6
+    for (let i = 1; i <= 4; i++) {
+      const sc = i / 5
+      ctx.beginPath()
+      ctx.ellipse(0, bowlCenterY, bowlRx * sc, bowlRy * sc, 0, 0, Math.PI)
+      ctx.stroke()
+    }
+    ctx.restore()
+
     // ── Aura glow (nhấp nháy) ──
     ctx.save()
     ctx.globalAlpha = 0.15 + Math.sin(t * 2.8) * 0.1
@@ -661,32 +701,33 @@ function veConTrai(ctx, x, y, r, isOpen) {
     ctx.lineWidth = 0.7
     ctx.stroke()
 
-    // ─── NGỌC TRAI ───
-    const pr = r * 0.30
+    // ─── NGỌC TRAI — nằm ở khe giữa 2 nửa vỏ ───
+    const pr = r * 0.28
+    const py = r * 0.08   // khe nhỏ giữa cánh quạt (y=0) và bowl (y=r*0.10)
 
     // Glow (nhấp nháy)
     ctx.save()
     ctx.globalAlpha = pulse * 0.58
-    const pGlow = ctx.createRadialGradient(0, 0, 0, 0, 0, pr * 2.0)
+    const pGlow = ctx.createRadialGradient(0, py, 0, 0, py, pr * 2.0)
     pGlow.addColorStop(0, 'rgba(255,253,246,0.95)')
     pGlow.addColorStop(1, 'rgba(255,253,246,0)')
     ctx.fillStyle = pGlow
     ctx.beginPath()
-    ctx.arc(0, 0, pr * 2.0, 0, Math.PI * 2)
+    ctx.arc(0, py, pr * 2.0, 0, Math.PI * 2)
     ctx.fill()
     ctx.restore()
 
     // Thân ngọc
     ctx.save()
     ctx.globalAlpha = 0.65 + pulse * 0.35
-    const pBody = ctx.createRadialGradient(-pr * 0.32, -pr * 0.32, 0, pr * 0.06, pr * 0.06, pr)
+    const pBody = ctx.createRadialGradient(-pr * 0.32, py - pr * 0.32, 0, pr * 0.06, py + pr * 0.06, pr)
     pBody.addColorStop(0,    '#FFFFFF')
     pBody.addColorStop(0.22, '#F9F2E6')
     pBody.addColorStop(0.6,  '#E6DED2')
     pBody.addColorStop(1,    '#C8BCB5')
     ctx.fillStyle = pBody
     ctx.beginPath()
-    ctx.arc(0, 0, pr, 0, Math.PI * 2)
+    ctx.arc(0, py, pr, 0, Math.PI * 2)
     ctx.fill()
     ctx.strokeStyle = 'rgba(195,182,170,0.4)'
     ctx.lineWidth = 0.5
@@ -695,12 +736,12 @@ function veConTrai(ctx, x, y, r, isOpen) {
     // Highlight chính
     ctx.fillStyle = 'rgba(255,255,255,0.9)'
     ctx.beginPath()
-    ctx.ellipse(-pr * 0.3, -pr * 0.3, pr * 0.22, pr * 0.12, -0.5, 0, Math.PI * 2)
+    ctx.ellipse(-pr * 0.3, py - pr * 0.3, pr * 0.22, pr * 0.12, -0.5, 0, Math.PI * 2)
     ctx.fill()
     // Shimmer phụ
     ctx.fillStyle = 'rgba(255,255,255,0.32)'
     ctx.beginPath()
-    ctx.ellipse(pr * 0.22, pr * 0.22, pr * 0.1, pr * 0.06, 0.75, 0, Math.PI * 2)
+    ctx.ellipse(pr * 0.22, py + pr * 0.22, pr * 0.1, pr * 0.06, 0.75, 0, Math.PI * 2)
     ctx.fill()
     ctx.restore()
 
