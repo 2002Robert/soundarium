@@ -826,6 +826,7 @@ export default function AquariumCanvas({
   onGiuCa,
   caLevelUp      = null,
   suaGai         = [],
+  onSuaPos,
   conTrai        = [],
   onClickConTrai,
   bottomPad      = 0,
@@ -851,9 +852,12 @@ export default function AquariumCanvas({
   )
   const giuRef         = useRef(null)
   const longPressedRef = useRef(false)
-  const suaGaiRef      = useRef(suaGai)
-  suaGaiRef.current    = suaGai
-  const suaPosRef      = useRef({})
+  const suaGaiRef           = useRef(suaGai)
+  suaGaiRef.current         = suaGai
+  const suaPosRef           = useRef({})
+  const suaPosThrottleRef   = useRef(0)
+  const onSuaPosRef         = useRef(onSuaPos)
+  onSuaPosRef.current       = onSuaPos
   const conTraiRef     = useRef(conTrai)
   conTraiRef.current   = conTrai
   const conTraiPosRef  = useRef({})
@@ -991,6 +995,13 @@ export default function AquariumCanvas({
         veSua(ctx, rx, ry, sr, pha, t)
         suaPosRef.current[sua.id] = { x: rx, y: ry, r: sr, obj: sua }
       })
+      // Throttle: emit positions to React for overlay click targets (~8fps)
+      const now = Date.now()
+      if (onSuaPosRef.current && now - suaPosThrottleRef.current > 120) {
+        suaPosThrottleRef.current = now
+        const positions = suaList.map(sua => suaPosRef.current[sua.id]).filter(Boolean)
+        onSuaPosRef.current(positions)
+      }
     }
 
     // Vẽ con trai đáy hồ

@@ -110,6 +110,7 @@ export default function Home() {
   const [feedSignal, setFeedSignal]           = useState(0)
   const [coinHarvestSignal, setCoinHarvestSignal] = useState(0)
   const [playerExp, setPlayerExp]                 = useState(0)
+  const [suaTargets, setSuaTargets]               = useState([])
   const [playerBarHeight, setPlayerBarHeight] = useState(0)
   const playerBarRef  = useRef(null)
   const playerExpRef  = useRef(0)
@@ -539,6 +540,7 @@ export default function Home() {
         onClickCa={clickCa}
         caLevelUp={caLevelUp}
         suaGai={danhSachSua}
+        onSuaPos={setSuaTargets}
         conTrai={conTrai}
         onClickConTrai={nhatNgocConTrai}
         bottomPad={playerBarHeight}
@@ -546,6 +548,21 @@ export default function Home() {
         onCaAnThucAn={khiCaAnThucAn}
         coinHarvestSignal={coinHarvestSignal}
       />
+
+      {/* Overlay click targets cho sứa — z-[150] vượt qua header z-[100] */}
+      {suaTargets.map(pos => pos && (
+        <div
+          key={pos.obj?.id}
+          className="fixed z-[150] cursor-pointer rounded-full"
+          style={{
+            left:   pos.x - pos.r * 1.8,
+            top:    pos.y - pos.r * 1.8,
+            width:  pos.r * 3.6,
+            height: pos.r * 3.6,
+          }}
+          onClick={() => pos.obj && clickCa(pos.obj, pos.x, pos.y)}
+        />
+      ))}
 
       {danhSachCa.length === 0 && (
         <div className="absolute inset-0 flex flex-col items-center justify-center pointer-events-none">
