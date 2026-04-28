@@ -15,7 +15,7 @@ import FishManagerModal from '../components/FishManagerModal'
 import ShopPanel from '../components/ShopPanel'
 import ExplorePanel from '../components/ExplorePanel'
 import TankSwitcher from '../components/TankSwitcher'
-import { tinhLevelTuExp, TIEU_DE_LEVEL } from '../constants/playerLevel'
+import { tinhLevel, TIEU_DE_LEVEL } from '../utils/playerLevel'
 
 function roundRect(ctx, x, y, w, h, r) {
   ctx.beginPath()
@@ -254,8 +254,8 @@ export default function Home() {
       if (curr != null) {
         const prev = playerExpRef.current
         if (curr !== prev) {
-          const lvCu  = tinhLevelTuExp(prev)
-          const lvMoi = tinhLevelTuExp(curr)
+          const lvCu  = tinhLevel(prev)
+          const lvMoi = tinhLevel(curr)
           if (lvMoi > lvCu) {
             setPlayerLevelUp(lvMoi)
             setTimeout(() => setPlayerLevelUp(null), 4500)
@@ -419,7 +419,7 @@ export default function Home() {
     ctx.drawImage(src, 0, 0)
 
     if (profileData) {
-      const levelHo = tinhLevelTuExp(playerExp)
+      const levelHo = tinhLevel(playerExp)
       const BOX_W = 210, BOX_H = 72, PAD = 14, R = 12
 
       ctx.save()
@@ -640,7 +640,7 @@ export default function Home() {
           nenHo={nenHo} dayHo={dayHo}
           onChonNen={chonNen} onChonDay={chonDay}
           coins={coins}
-          playerLevel={tinhLevelTuExp(playerExp)}
+          playerLevel={tinhLevel(playerExp)}
           onCoinsUpdate={setCoins}
           conTrai={conTrai}
           onThemConTrai={() => {

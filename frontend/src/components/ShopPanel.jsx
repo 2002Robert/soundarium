@@ -122,11 +122,11 @@ const SHOP_SPECIAL_ITEMS = [
     id:          'sua_gai',
     ten:         'Sứa Gai',
     hiem:        'epic',
-    gia:         300,
-    coin5ph:     5,
+    gia:         500,
+    coin5ph:     8,
     levelYeuCau: 3,
     Icon:        JellyfishShopIcon,
-    tooltip:     'Bơi trong hồ, buff hiệu ứng hồng tím',
+    tooltip:     'Buff +8 🪙/5 phút cho cá xung quanh',
   },
   {
     id:          'ngoc_trai',
@@ -328,29 +328,7 @@ export default function ShopPanel({
               </div>
 
               <div className="grid grid-cols-4 gap-2">
-                {/* Special items — hidden during fish search */}
-                {!coTimKiem && SHOP_SPECIAL_ITEMS.map(item => (
-                  <ShopCard
-                    key={item.id}
-                    Icon={<item.Icon size={48} />}
-                    ten={item.ten}
-                    hiem={item.hiem}
-                    gia={item.gia}
-                    coin5ph={item.coin5ph}
-                    levelYeuCau={item.levelYeuCau || 0}
-                    coins={coins}
-                    playerLevel={playerLevel}
-                    onMua={
-                      item.id === 'sua_gai'
-                        ? () => setModal({ loai_ca: 'sua_gai', ten: 'Sứa Gai' })
-                        : khiMuaConTrai
-                    }
-                    dangMua={item.id === 'ngoc_trai' ? dangMuaCT : false}
-                    isDisabled={item.id === 'ngoc_trai' && conTrai.length > 0}
-                  />
-                ))}
-
-                {/* Fish */}
+                {/* Fish — common → uncommon → rare → epic */}
                 {LOAI_CA_SHOP.map(item => {
                   const matched  = coTimKiem && phuHop(item, tuKhoa)
                   const notMatch = coTimKiem && !phuHop(item, tuKhoa)
@@ -371,6 +349,28 @@ export default function ShopPanel({
                     />
                   )
                 })}
+
+                {/* Special epic items — hidden during fish search */}
+                {!coTimKiem && SHOP_SPECIAL_ITEMS.map(item => (
+                  <ShopCard
+                    key={item.id}
+                    Icon={<item.Icon size={48} />}
+                    ten={item.ten}
+                    hiem={item.hiem}
+                    gia={item.gia}
+                    coin5ph={item.coin5ph}
+                    levelYeuCau={item.levelYeuCau || 0}
+                    coins={coins}
+                    playerLevel={playerLevel}
+                    onMua={
+                      item.id === 'sua_gai'
+                        ? () => setModal({ loai_ca: 'sua_gai', ten: 'Sứa Gai' })
+                        : khiMuaConTrai
+                    }
+                    dangMua={item.id === 'ngoc_trai' ? dangMuaCT : false}
+                    isDisabled={item.id === 'ngoc_trai' && conTrai.length > 0}
+                  />
+                ))}
               </div>
             </div>
           )}

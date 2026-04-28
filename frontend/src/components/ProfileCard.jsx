@@ -2,7 +2,7 @@ import { useState, useEffect, useRef } from 'react'
 import { API } from '../lib/api'
 import { supabase } from '../lib/supabase'
 import FishIcon from './FishIcon'
-import { tinhLevelTuExp, expTrongLevel, expCanLenLevel } from '../constants/playerLevel'
+import { tinhLevel, expDenLevelTiep } from '../utils/playerLevel'
 
 const LOAI_CA = [
   { loai_ca: 'ca_vang',      ten: 'Cá Vàng',  mau: '#FFB300' },
@@ -85,10 +85,9 @@ export default function ProfileCard({
     boxShadow: `0 0 0 2px ${mauVien}bb`,
   }
 
-  const level  = tinhLevelTuExp(playerExp)
-  const inLv   = expTrongLevel(playerExp)
-  const needLv = expCanLenLevel(level)
-  const pct    = Math.min(100, Math.round((inLv / needLv) * 100))
+  const level              = tinhLevel(playerExp)
+  const { hienTai, canCo } = expDenLevelTiep(playerExp)
+  const pct                = canCo > 0 ? Math.min(100, Math.round((hienTai / canCo) * 100)) : 100
 
   function batDauSua() { setTenMoi(profile.username || ''); setLoiTen(''); setDangSuaTen(true) }
   function huy()       { setDangSuaTen(false); setLoiTen('') }
@@ -205,7 +204,7 @@ export default function ProfileCard({
                 style={{ width: `${pct}%`, background: 'linear-gradient(90deg,#3b82f6,#60a5fa)' }}
               />
             </div>
-            <span className="text-ho-anh/45 text-[10px] tabular-nums shrink-0">{inLv}/{needLv}</span>
+            <span className="text-ho-anh/45 text-[10px] tabular-nums shrink-0">{hienTai}/{canCo}</span>
           </div>
         )}
       </div>

@@ -103,9 +103,9 @@ async def cap_nhat_avatar(
     return {"profile": ket_qua.data[0]}
 
 
-_GIA_SUA = 300
+_GIA_SUA = 500
 _YEU_CAU_LEVEL_SUA = 3
-_EXP_NGUONG = [0, 10, 30, 65, 120, 200, 310, 455, 640, 870]
+_EXP_NGUONG = [0, 10, 30, 65, 120, 200, 320, 500]
 
 
 def _tinh_level_exp(player_exp: float) -> int:

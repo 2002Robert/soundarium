@@ -17,7 +17,7 @@ GIA_CA = {
     "ca_koi":       200,
     "ca_chep":      450,
     "ca_dia":       450,
-    "sua_gai":      300,
+    "sua_gai":      500,
 }
 
 LOAI_CA = list(GIA_CA.keys())
@@ -39,7 +39,7 @@ EXP_TRUONG_THANH = {"common": 10, "uncommon": 15, "rare": 20, "epic": 30}
 
 # Coins nhả mỗi 5 phút khi cá no (cá thường) hoặc mỗi 5 phút (sứa)
 COINS_PER_CYCLE = {"common": 1, "uncommon": 2, "rare": 4, "epic": 8}
-COINS_SUA_PER_CYCLE = 5
+COINS_SUA_PER_CYCLE = 8
 
 HUNGER_MINUTES = 45
 
