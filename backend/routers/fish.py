@@ -21,15 +21,17 @@ router = APIRouter(prefix="/api/fish", tags=["fish"])
 
 COINS_KHI_CHO_AN = 3  # coins thưởng mỗi lần cho ăn
 
-_NGUONG_LEVEL = [0, 2, 8, 25, 75, 200, 500]
+_EXP_NGUONG_PLAYER = [0, 10, 30, 65, 120, 200, 320, 500]
 _LEVEL_SUA_GAI = 3
 
 
-def _tinh_level_nguoi_choi(gio_nghe: float) -> int:
+def _tinh_level_player(player_exp: float) -> int:
     level = 1
-    for i, nguong in enumerate(_NGUONG_LEVEL):
-        if gio_nghe >= nguong:
+    for i in range(1, len(_EXP_NGUONG_PLAYER)):
+        if player_exp >= _EXP_NGUONG_PLAYER[i]:
             level = i + 1
+        else:
+            break
     return level
 
 
@@ -87,7 +89,7 @@ async def them_ca_moi(
 
     coins_hien_co = 0
     if gia > 0:
-        fields = "coins,tong_gio_nghe" if loai_ca == "sua_gai" else "coins"
+        fields = "coins,player_exp" if loai_ca == "sua_gai" else "coins"
         profile = (
             supabase_admin.table("profiles")
             .select(fields)
@@ -99,7 +101,7 @@ async def them_ca_moi(
             raise HTTPException(status_code=404, detail="Không tìm thấy profile")
 
         if loai_ca == "sua_gai":
-            level = _tinh_level_nguoi_choi(profile.data.get("tong_gio_nghe") or 0)
+            level = _tinh_level_player(profile.data.get("player_exp") or 0)
             if level < _LEVEL_SUA_GAI:
                 raise HTTPException(
                     status_code=403,

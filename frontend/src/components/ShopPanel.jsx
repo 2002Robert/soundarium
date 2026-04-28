@@ -2,6 +2,7 @@ import { useState, useRef, useEffect, forwardRef } from 'react'
 import BuyFishModal from './BuyFishModal'
 import FishIcon from './FishIcon'
 import { API } from '../lib/api'
+import { tinhLevel } from '../utils/playerLevel'
 
 const HIEM = {
   common:    { nhan: 'Phổ biến',       mau: '#9ca3af' },
@@ -226,11 +227,12 @@ export default function ShopPanel({
   nenHo, dayHo,
   onChonNen, onChonDay,
   coins = 0,
-  playerLevel = 1,
+  playerExp = 0,
   onCoinsUpdate,
   onThemConTrai,
   conTrai = [],
 }) {
+  const playerLevel = tinhLevel(playerExp)
   const [tab, setTab]              = useState('ca')
   const [modal, setModal]          = useState(null)
   const [tuKhoa, setTuKhoa]        = useState('')
@@ -364,7 +366,10 @@ export default function ShopPanel({
                     playerLevel={playerLevel}
                     onMua={
                       item.id === 'sua_gai'
-                        ? () => setModal({ loai_ca: 'sua_gai', ten: 'Sứa Gai' })
+                        ? () => {
+                            console.log(`Shop level check: player_exp=${playerExp}, level=${playerLevel}`)
+                            setModal({ loai_ca: 'sua_gai', ten: 'Sứa Gai' })
+                          }
                         : khiMuaConTrai
                     }
                     dangMua={item.id === 'ngoc_trai' ? dangMuaCT : false}

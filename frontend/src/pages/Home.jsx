@@ -640,7 +640,7 @@ export default function Home() {
           nenHo={nenHo} dayHo={dayHo}
           onChonNen={chonNen} onChonDay={chonDay}
           coins={coins}
-          playerLevel={tinhLevel(playerExp)}
+          playerExp={playerExp}
           onCoinsUpdate={setCoins}
           conTrai={conTrai}
           onThemConTrai={() => {
