@@ -31,19 +31,21 @@ export default function FishInfoPanel({
   const [loi, setLoi]           = useState('')
   const [msNo, setMsNo]         = useState(() => tinhMsNo(ca))
 
-  // Cập nhật khi ca thay đổi (sau khi ăn)
-  useEffect(() => { setMsNo(tinhMsNo(ca)) }, [ca.lan_cho_an_cuoi])
+  const isSua = ca.loai_ca === 'sua_gai'
 
-  // Đếm ngược no mỗi 30 giây
+  // Cập nhật khi ca thay đổi (sau khi ăn)
+  useEffect(() => { if (!isSua) setMsNo(tinhMsNo(ca)) }, [ca.lan_cho_an_cuoi, isSua])
+
+  // Đếm ngược no mỗi 30 giây (chỉ cho cá thường)
   useEffect(() => {
-    if (!msNo) return
+    if (isSua || !msNo) return
     const id = setInterval(() => {
       const left = tinhMsNo(ca)
       setMsNo(left)
       if (!left) clearInterval(id)
     }, 30_000)
     return () => clearInterval(id)
-  }, [!!msNo, ca.id]) // eslint-disable-line react-hooks/exhaustive-deps
+  }, [!!msNo, ca.id, isSua]) // eslint-disable-line react-hooks/exhaustive-deps
 
   const tenLoai    = LOAI_CA[ca.loai_ca]?.ten || ca.loai_ca || 'Cá'
   const tenHienThi = ca.nickname || ca.ten_bai || tenLoai
@@ -102,30 +104,51 @@ export default function FishInfoPanel({
 
       {/* ── Trạng thái ── */}
       <div className="px-4 py-2.5 space-y-1.5">
-        {/* Tên trạng thái + XP */}
-        <div className="flex items-center justify-between">
-          <span className="text-white/80 text-xs font-medium">
-            {isMature ? '🐠 Cá trưởng thành' : '🐟 Cá con'}
-          </span>
-          <span className="text-ho-anh/35 text-[11px] tabular-nums">
-            {xpHienTai}&thinsp;/&thinsp;{xpNguong} XP
-          </span>
-        </div>
-
-        {/* XP bar — chỉ khi chưa trưởng thành */}
-        {!isMature && (
-          <div className="h-[3px] bg-white/5 rounded-full overflow-hidden">
-            <div
-              className="h-full rounded-full transition-all duration-700"
-              style={{ width: `${phanTramXP}%`, background: 'rgba(96,165,250,0.55)' }}
-            />
-          </div>
+        {isSua ? (
+          <>
+            <div className="flex items-center justify-between">
+              <span className="text-white/80 text-xs font-medium">
+                {isMature ? '🪼 Sứa trưởng thành' : '🪼 Sứa con'}
+              </span>
+              <span className="text-ho-anh/35 text-[11px] tabular-nums">
+                {xpHienTai}&thinsp;/&thinsp;{xpNguong} XP
+              </span>
+            </div>
+            {!isMature && (
+              <div className="h-[3px] bg-white/5 rounded-full overflow-hidden">
+                <div
+                  className="h-full rounded-full transition-all duration-700"
+                  style={{ width: `${phanTramXP}%`, background: 'rgba(168,85,247,0.6)' }}
+                />
+              </div>
+            )}
+            <div className="text-[11px] text-purple-400/70">
+              ⚡ Buff +8 🪙/5 phút cho cá xung quanh
+            </div>
+          </>
+        ) : (
+          <>
+            <div className="flex items-center justify-between">
+              <span className="text-white/80 text-xs font-medium">
+                {isMature ? '🐠 Cá trưởng thành' : '🐟 Cá con'}
+              </span>
+              <span className="text-ho-anh/35 text-[11px] tabular-nums">
+                {xpHienTai}&thinsp;/&thinsp;{xpNguong} XP
+              </span>
+            </div>
+            {!isMature && (
+              <div className="h-[3px] bg-white/5 rounded-full overflow-hidden">
+                <div
+                  className="h-full rounded-full transition-all duration-700"
+                  style={{ width: `${phanTramXP}%`, background: 'rgba(96,165,250,0.55)' }}
+                />
+              </div>
+            )}
+            <div className={`text-[11px] ${msNo > 0 ? 'text-ho-anh/40' : 'text-amber-400/80'}`}>
+              {msNo > 0 ? `⏱ No còn: ${phutNo} phút` : '😋 Đang đói'}
+            </div>
+          </>
         )}
-
-        {/* No / Đói */}
-        <div className={`text-[11px] ${msNo > 0 ? 'text-ho-anh/40' : 'text-amber-400/80'}`}>
-          {msNo > 0 ? `⏱ No còn: ${phutNo} phút` : '😋 Đang đói'}
-        </div>
       </div>
 
       {/* ── Divider ── */}
