@@ -25,19 +25,19 @@ const LOAI_CA_SHOP = [
 ]
 
 const BACKGROUNDS = [
-  { id: 'ocean-shallow', ten: 'Đại dương',  mau1: '#1a3a5c', mau2: '#0a1628' },
-  { id: 'ocean-deep',    ten: 'Biển thẳm',  mau1: '#0a1628', mau2: '#050d1a' },
-  { id: 'coral-reef',    ten: 'Rạn san hô', mau1: '#1a3a5c', mau2: '#2d1810' },
-  { id: 'twilight',      ten: 'Hoàng hôn',  mau1: '#1a1a3a', mau2: '#0a0a1a' },
-  { id: 'tropical',      ten: 'Nhiệt đới',  mau1: '#0a2e3a', mau2: '#061820' },
-  { id: 'sunset',        ten: 'Đêm muộn',   mau1: '#2a1a0a', mau2: '#0a0505' },
+  { id: 'ocean-shallow', ten: 'Đại dương',  nuoc: ['#0a1628','#0d2240','#0f2d4a'], tia: [100,180,255,0.033] },
+  { id: 'ocean-deep',    ten: 'Biển thẳm',  nuoc: ['#020818','#041030','#060c20'], tia: [60, 120,200,0.022] },
+  { id: 'coral-reef',    ten: 'Rạn san hô', nuoc: ['#1a0a2e','#2d1b4e','#3d1a0a'], tia: [180,100,255,0.028] },
+  { id: 'twilight',      ten: 'Hoàng hôn',  nuoc: ['#3d2010','#0a0a1a','#2d1040'], tia: [255,150,80, 0.022] },
+  { id: 'tropical',      ten: 'Nhiệt đới',  nuoc: ['#0a2818','#0d3d20','#0a2d18'], tia: [80, 200,100,0.028] },
+  { id: 'sunset',        ten: 'Đêm muộn',   nuoc: ['#050508','#0a0a10','#080810'], tia: [100,80, 200,0.018] },
 ]
 
 const DAY_HO_LIST = [
-  { id: 'cat_trang', ten: 'Cát trắng', mau: '#c8b89a' },
-  { id: 'cat_vang',  ten: 'Cát vàng',  mau: '#d4a84a' },
-  { id: 'soi_den',   ten: 'Sỏi đen',   mau: '#3a3a4a' },
-  { id: 'san_ho',    ten: 'San hô',     mau: '#cc6655' },
+  { id: 'cat_trang', ten: 'Cát trắng', s1: '#c4a882', s2: '#a08660' },
+  { id: 'cat_vang',  ten: 'Cát vàng',  s1: '#d4a853', s2: '#b8863a' },
+  { id: 'soi_den',   ten: 'Sỏi đen',   s1: '#4a4a5a', s2: '#2a2a38' },
+  { id: 'san_ho',    ten: 'San hô',     s1: '#cc6655', s2: '#994040' },
 ]
 
 const TRANG_TRI = [
@@ -140,6 +140,95 @@ const SHOP_SPECIAL_ITEMS = [
     tooltip:     'Con trai đáy hồ, mở mỗi 15 phút → +50 🪙/click',
   },
 ]
+
+function NenThumbnail({ nuoc, tia }) {
+  const ref  = useRef(null)
+  const bRef = useRef(
+    Array.from({ length: 5 }, (_, i) => ({
+      x:   (i + 0.5) / 5 + (Math.random() - 0.5) * 0.06,
+      y:   0.15 + Math.random() * 0.65,
+      r:   0.7 + Math.random() * 1.1,
+      spd: 0.010 + Math.random() * 0.014,
+      pha: Math.random() * Math.PI * 2,
+    }))
+  )
+  useEffect(() => {
+    const canvas = ref.current
+    if (!canvas) return
+    const ctx = canvas.getContext('2d')
+    let raf, t = 0, last = null
+    function tick(ts) {
+      if (last === null) last = ts
+      t += Math.min(ts - last, 50) / 1000; last = ts
+      const w = canvas.width, h = canvas.height
+      const sandY = Math.round(h * 0.68)
+      const wg = ctx.createLinearGradient(0, 0, 0, h)
+      nuoc.forEach((c, i) => wg.addColorStop(i / (nuoc.length - 1), c))
+      ctx.fillStyle = wg; ctx.fillRect(0, 0, w, h)
+      const [tr, tg, tb, ta] = tia
+      const rx = w * 0.5 + Math.sin(t * 0.28) * w * 0.18
+      const rg = ctx.createLinearGradient(0, 0, 0, h * 0.72)
+      rg.addColorStop(0, `rgba(${tr},${tg},${tb},${(ta * 2).toFixed(3)})`)
+      rg.addColorStop(1, `rgba(${tr},${tg},${tb},0)`)
+      ctx.fillStyle = rg
+      ctx.beginPath()
+      ctx.moveTo(rx - w * 0.022, 0); ctx.lineTo(rx + w * 0.022, 0)
+      ctx.lineTo(rx + w * 0.09, h * 0.72); ctx.lineTo(rx - w * 0.09, h * 0.72)
+      ctx.closePath(); ctx.fill()
+      const sg = ctx.createLinearGradient(0, sandY, 0, h)
+      sg.addColorStop(0, '#c4a882'); sg.addColorStop(1, '#a08660')
+      ctx.fillStyle = sg
+      ctx.beginPath(); ctx.moveTo(0, h)
+      for (let x = 0; x <= w; x += 3)
+        ctx.lineTo(x, sandY + Math.sin(x * 0.12 + t * 0.35) * 1.5 + Math.sin(x * 0.06 + t * 0.22) * 2)
+      ctx.lineTo(w, h); ctx.closePath(); ctx.fill()
+      bRef.current.forEach(b => {
+        b.y -= b.spd; if (b.y < -0.06) b.y = 1.04
+        const bx = b.x * w + Math.sin(b.y * 18 + b.pha) * 2.5
+        ctx.beginPath(); ctx.arc(bx, b.y * h, b.r, 0, Math.PI * 2)
+        ctx.strokeStyle = 'rgba(255,255,255,0.48)'; ctx.lineWidth = 0.6; ctx.stroke()
+      })
+      raf = requestAnimationFrame(tick)
+    }
+    raf = requestAnimationFrame(tick)
+    return () => cancelAnimationFrame(raf)
+  }, []) // eslint-disable-line react-hooks/exhaustive-deps
+  return <canvas ref={ref} width={180} height={56} style={{ width: '100%', height: '56px', display: 'block' }} />
+}
+
+function DayThumbnail({ s1, s2 }) {
+  const ref = useRef(null)
+  useEffect(() => {
+    const canvas = ref.current
+    if (!canvas) return
+    const ctx = canvas.getContext('2d')
+    let raf, t = 0, last = null
+    function tick(ts) {
+      if (last === null) last = ts
+      t += Math.min(ts - last, 50) / 1000; last = ts
+      const w = canvas.width, h = canvas.height
+      const sandY = Math.round(h * 0.28)
+      ctx.fillStyle = '#070d18'; ctx.fillRect(0, 0, w, h)
+      const sg = ctx.createLinearGradient(0, sandY, 0, h)
+      sg.addColorStop(0, s1); sg.addColorStop(1, s2)
+      ctx.fillStyle = sg
+      ctx.beginPath(); ctx.moveTo(0, h)
+      for (let x = 0; x <= w; x += 3)
+        ctx.lineTo(x, sandY + Math.sin(x * 0.12 + t * 0.35) * 1.5)
+      ctx.lineTo(w, h); ctx.closePath(); ctx.fill()
+      ;[0.22, 0.55, 0.78].forEach((xf, i) => {
+        const bx = xf * w + Math.sin(t * 0.7 + i * 2.1) * 3
+        const by = sandY - 6 - Math.abs(Math.sin(t * 0.4 + i)) * 7
+        ctx.beginPath(); ctx.arc(bx, by, 1.2, 0, Math.PI * 2)
+        ctx.strokeStyle = 'rgba(255,255,255,0.45)'; ctx.lineWidth = 0.5; ctx.stroke()
+      })
+      raf = requestAnimationFrame(tick)
+    }
+    raf = requestAnimationFrame(tick)
+    return () => cancelAnimationFrame(raf)
+  }, []) // eslint-disable-line react-hooks/exhaustive-deps
+  return <canvas ref={ref} width={180} height={40} style={{ width: '100%', height: '40px', display: 'block' }} />
+}
 
 function phuHop(item, q) {
   if (!q) return true
@@ -398,7 +487,7 @@ export default function ShopPanel({
                           boxShadow:   selected ? '0 0 14px rgba(74,158,218,0.35)' : 'none',
                         }}
                       >
-                        <div className="h-14 w-full" style={{ background: `linear-gradient(to bottom, ${bg.mau1}, ${bg.mau2})` }} />
+                        <NenThumbnail nuoc={bg.nuoc} tia={bg.tia} />
                         <div className="bg-ho-nong px-2 py-1.5 flex items-center justify-between">
                           <span className="text-white text-xs font-medium">{bg.ten}</span>
                           {selected && <span className="text-ho-anh text-sm">✓</span>}
@@ -424,7 +513,7 @@ export default function ShopPanel({
                           boxShadow:   selected ? '0 0 14px rgba(74,158,218,0.35)' : 'none',
                         }}
                       >
-                        <div className="h-10 w-full" style={{ backgroundColor: day.mau }} />
+                        <DayThumbnail s1={day.s1} s2={day.s2} />
                         <div className="bg-ho-nong px-2 py-1.5 flex items-center justify-between">
                           <span className="text-white text-xs font-medium">{day.ten}</span>
                           {selected && <span className="text-ho-anh text-sm">✓</span>}

@@ -1,6 +1,22 @@
 import { useEffect, useRef, useCallback } from 'react'
 import { KICH_THUOC_THEO_LEVEL } from '../constants/fishTypes'
 
+const THEME_CFG = {
+  'ocean-shallow': { nuoc: ['#0a1628', '#0d2240', '#0f2d4a'], tia: [100,180,255,0.033], rong: 'rgba(34,120,60,0.75)',   da: ['#6b7280','#374151'] },
+  'ocean-deep':    { nuoc: ['#020818', '#041030', '#060c20'], tia: [60, 120,200,0.022], rong: 'rgba(20,80,40,0.70)',    da: ['#3a4050','#202838'] },
+  'coral-reef':    { nuoc: ['#1a0a2e', '#2d1b4e', '#3d1a0a'], tia: [180,100,255,0.028], rong: 'rgba(130,60,20,0.75)', da: ['#7a5060','#4a2838'] },
+  'twilight':      { nuoc: ['#3d2010', '#0a0a1a', '#2d1040'], tia: [255,150,80, 0.022], rong: 'rgba(80,40,90,0.75)',  da: ['#4a3858','#2a2038'] },
+  'tropical':      { nuoc: ['#0a2818', '#0d3d20', '#0a2d18'], tia: [80, 200,100,0.028], rong: 'rgba(40,140,40,0.80)', da: ['#506050','#303838'] },
+  'sunset':        { nuoc: ['#050508', '#0a0a10', '#080810'], tia: [100,80, 200,0.018], rong: 'rgba(30,30,60,0.70)',  da: ['#303038','#181820'] },
+}
+
+const DAY_CFG = {
+  'cat_trang': { s1: '#c4a882', s2: '#a08660', rip: '#7a5c38', hz: [196,168,130,0.13] },
+  'cat_vang':  { s1: '#d4a853', s2: '#b8863a', rip: '#8a6020', hz: [212,168,83, 0.15] },
+  'soi_den':   { s1: '#4a4a5a', s2: '#2a2a38', rip: '#1a1a28', hz: [70, 70, 90, 0.12] },
+  'san_ho':    { s1: '#cc6655', s2: '#994040', rip: '#7a3030', hz: [200,100,85, 0.15] },
+}
+
 const trangThaiChuyen = new Map()
 
 function khoiTaoChuyen(ca) {
@@ -935,15 +951,17 @@ export default function AquariumCanvas({
     }
 
     const w = canvas.width, h = canvas.height
+    const theme = THEME_CFG[nenKey] || THEME_CFG['ocean-shallow']
+    const day   = DAY_CFG[dayKey]   || DAY_CFG['cat_trang']
+
     // ─── Background gradient ────────────────────────────────────────
     const grad = ctx.createLinearGradient(0, 0, 0, h)
-    grad.addColorStop(0,   '#0a1628')
-    grad.addColorStop(0.5, '#0d2240')
-    grad.addColorStop(1,   '#0f2d4a')
+    theme.nuoc.forEach((c, i) => grad.addColorStop(i / (theme.nuoc.length - 1), c))
     ctx.fillStyle = grad
     ctx.fillRect(0, 0, w, h)
 
     // ─── God rays ───────────────────────────────────────────────────
+    const [tr, tg, tb, ta] = theme.tia
     ctx.save()
     for (let i = 0; i < 5; i++) {
       const cx   = (0.12 + i * 0.18) * w + Math.sin(t / (22 + i * 3) * Math.PI * 2) * w * 0.04
@@ -951,8 +969,8 @@ export default function AquariumCanvas({
       const botW = w * 0.11
       const rayLen = h * 0.72
       const rayGrad = ctx.createLinearGradient(0, 0, 0, rayLen)
-      rayGrad.addColorStop(0, 'rgba(100,180,255,0.033)')
-      rayGrad.addColorStop(1, 'rgba(100,180,255,0)')
+      rayGrad.addColorStop(0, `rgba(${tr},${tg},${tb},${ta})`)
+      rayGrad.addColorStop(1, `rgba(${tr},${tg},${tb},0)`)
       ctx.fillStyle = rayGrad
       ctx.beginPath()
       ctx.moveTo(cx - topW, 0)
@@ -968,15 +986,16 @@ export default function AquariumCanvas({
     const dayH = 60
     const dayY = h - dayH
 
+    const [hr, hg, hb, ha] = day.hz
     const hazeGrad = ctx.createLinearGradient(0, dayY - 28, 0, dayY + 8)
-    hazeGrad.addColorStop(0, 'rgba(196,168,130,0)')
-    hazeGrad.addColorStop(1, 'rgba(196,168,130,0.13)')
+    hazeGrad.addColorStop(0, `rgba(${hr},${hg},${hb},0)`)
+    hazeGrad.addColorStop(1, `rgba(${hr},${hg},${hb},${ha})`)
     ctx.fillStyle = hazeGrad
     ctx.fillRect(0, dayY - 28, w, 36)
 
     const sandGrad = ctx.createLinearGradient(0, dayY, 0, h)
-    sandGrad.addColorStop(0, '#c4a882')
-    sandGrad.addColorStop(1, '#a08660')
+    sandGrad.addColorStop(0, day.s1)
+    sandGrad.addColorStop(1, day.s2)
     ctx.fillStyle = sandGrad
     ctx.beginPath()
     ctx.moveTo(0, h)
@@ -992,7 +1011,7 @@ export default function AquariumCanvas({
 
     ctx.save()
     ctx.globalAlpha = 0.08
-    ctx.strokeStyle = '#7a5c38'
+    ctx.strokeStyle = day.rip
     ctx.lineWidth = 1
     for (let ri = 0; ri < 3; ri++) {
       const ryBase = dayY + 14 + ri * 14
@@ -1015,8 +1034,8 @@ export default function AquariumCanvas({
       const cx = xf * w
       const cy = dayY + 6
       const rg = ctx.createRadialGradient(cx - rx * 0.3, cy - ry * 0.3, 2, cx, cy, rx)
-      rg.addColorStop(0, '#6b7280')
-      rg.addColorStop(1, '#374151')
+      rg.addColorStop(0, theme.da[0])
+      rg.addColorStop(1, theme.da[1])
       ctx.save()
       ctx.translate(cx, cy)
       ctx.rotate(ang)
@@ -1056,7 +1075,7 @@ export default function AquariumCanvas({
         const stalkH = 55 + si * 12
         const sway   = Math.sin(t * 0.7 + ci * 1.4 + si * 0.9) * 10
         ctx.save()
-        ctx.strokeStyle = 'rgba(34,120,60,0.75)'
+        ctx.strokeStyle = theme.rong
         ctx.lineWidth = 3.5 - si * 0.5
         ctx.lineCap = 'round'
         ctx.beginPath()
