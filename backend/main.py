@@ -22,6 +22,7 @@ app.add_middleware(
         "http://localhost:5173",
         "http://localhost:3000",
     ],
+    allow_origin_regex=r"https://[a-z0-9]+\.soundarium\.pages\.dev",
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
