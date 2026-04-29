@@ -1,5 +1,4 @@
 import { useEffect, useRef, useCallback } from 'react'
-import { NEN_HO, DAY_HO_MAU } from '../constants/colors'
 import { KICH_THUOC_THEO_LEVEL } from '../constants/fishTypes'
 
 const trangThaiChuyen = new Map()
@@ -798,22 +797,48 @@ function veConTrai(ctx, x, y, r, isOpen) {
 function veBongBong(ctx, bongBubbles, dt) {
   bongBubbles.forEach((b, i) => {
     b.y -= b.tocDo * (dt / 1000)
-    b.x += Math.sin(b.y * 0.05) * 0.3
-    b.doMo = Math.max(0, b.doMo - 0.02 * (dt / 1000))
-    if (b.y < 0 || b.doMo <= 0) {
+    b.x += Math.sin(b.y * 0.03 + b.pha) * 0.25
+    if (b.y < -10) {
       bongBubbles[i] = {
         x: Math.random() * ctx.canvas.width,
         y: ctx.canvas.height + 10,
-        r: 1 + Math.random() * 3,
-        tocDo: 20 + Math.random() * 40,   // px/sec
-        doMo:  0.1 + Math.random() * 0.3,
+        r: 0.7 + Math.random() * 1.4,
+        tocDo: 8 + Math.random() * 14,
+        doMo: 0.15 + Math.random() * 0.35,
+        pha: Math.random() * Math.PI * 2,
       }
+      return
     }
     ctx.beginPath()
     ctx.arc(b.x, b.y, b.r, 0, Math.PI * 2)
-    ctx.strokeStyle = `rgba(126,200,227,${b.doMo})`
-    ctx.lineWidth = 0.5
+    ctx.fillStyle = `rgba(150,200,255,${b.doMo})`
+    ctx.fill()
+  })
+}
+
+function veBubbleLofi(ctx, bubbles, dt) {
+  bubbles.forEach((b, i) => {
+    b.y -= b.tocDo * (dt / 1000)
+    b.x += Math.sin(b.y * 0.025 + b.pha) * 0.4
+    if (b.y < -20) {
+      bubbles[i] = {
+        x: Math.random() * ctx.canvas.width,
+        y: ctx.canvas.height + 20,
+        r: 3 + Math.random() * 5,
+        tocDo: 12 + Math.random() * 20,
+        pha: Math.random() * Math.PI * 2,
+      }
+      return
+    }
+    ctx.beginPath()
+    ctx.arc(b.x, b.y, b.r, 0, Math.PI * 2)
+    ctx.strokeStyle = 'rgba(255,255,255,0.35)'
+    ctx.lineWidth = 1
     ctx.stroke()
+    ctx.beginPath()
+    ctx.arc(b.x - b.r * 0.35, b.y - b.r * 0.35, b.r * 0.22, 0, Math.PI * 2)
+    ctx.fillStyle = 'rgba(255,255,255,0.55)'
+    ctx.fill()
   })
 }
 
@@ -842,12 +867,22 @@ export default function AquariumCanvas({
   const depsRef        = useRef({})
   const genRef         = useRef(0)
   const bongRef        = useRef(
-    Array.from({ length: 30 }, () => ({
+    Array.from({ length: 18 }, () => ({
       x: Math.random() * window.innerWidth,
       y: Math.random() * window.innerHeight,
-      r: 1 + Math.random() * 3,
-      tocDo: 20 + Math.random() * 40,    // px/sec
-      doMo:  0.1 + Math.random() * 0.3,
+      r: 0.7 + Math.random() * 1.4,
+      tocDo: 8 + Math.random() * 14,
+      doMo: 0.15 + Math.random() * 0.35,
+      pha: Math.random() * Math.PI * 2,
+    }))
+  )
+  const bubbleRef      = useRef(
+    Array.from({ length: 6 }, () => ({
+      x: Math.random() * window.innerWidth,
+      y: Math.random() * window.innerHeight,
+      r: 3 + Math.random() * 5,
+      tocDo: 12 + Math.random() * 20,
+      pha: Math.random() * Math.PI * 2,
     }))
   )
   const giuRef         = useRef(null)
@@ -900,40 +935,140 @@ export default function AquariumCanvas({
     }
 
     const w = canvas.width, h = canvas.height
-    const nenCfg = NEN_HO[nenKey] || NEN_HO['ocean-shallow']
-
+    // ─── Background gradient ────────────────────────────────────────
     const grad = ctx.createLinearGradient(0, 0, 0, h)
-    grad.addColorStop(0, nenCfg.tren)
-    grad.addColorStop(1, nenCfg.duoi)
+    grad.addColorStop(0,   '#0a1628')
+    grad.addColorStop(0.5, '#0d2240')
+    grad.addColorStop(1,   '#0f2d4a')
     ctx.fillStyle = grad
     ctx.fillRect(0, 0, w, h)
 
-    // Tia sáng — tần số giữ nguyên so với version cũ (thoiGian tăng 1.2/giây)
+    // ─── God rays ───────────────────────────────────────────────────
+    ctx.save()
     for (let i = 0; i < 5; i++) {
-      const xAnh = (Math.sin(t * 1.2 + i * 1.2) * 0.5 + 0.5) * w
-      const gAnh = ctx.createRadialGradient(xAnh, 0, 0, xAnh, h * 0.5, w * 0.4)
-      gAnh.addColorStop(0, 'rgba(126,200,227,0.04)')
-      gAnh.addColorStop(1, 'rgba(0,0,0,0)')
-      ctx.fillStyle = gAnh
-      ctx.fillRect(0, 0, w, h)
+      const cx   = (0.12 + i * 0.18) * w + Math.sin(t / (22 + i * 3) * Math.PI * 2) * w * 0.04
+      const topW = w * 0.025
+      const botW = w * 0.11
+      const rayLen = h * 0.72
+      const rayGrad = ctx.createLinearGradient(0, 0, 0, rayLen)
+      rayGrad.addColorStop(0, 'rgba(100,180,255,0.033)')
+      rayGrad.addColorStop(1, 'rgba(100,180,255,0)')
+      ctx.fillStyle = rayGrad
+      ctx.beginPath()
+      ctx.moveTo(cx - topW, 0)
+      ctx.lineTo(cx + topW, 0)
+      ctx.lineTo(cx + botW, rayLen)
+      ctx.lineTo(cx - botW, rayLen)
+      ctx.closePath()
+      ctx.fill()
     }
+    ctx.restore()
 
-    const dayMau = DAY_HO_MAU[dayKey] || '#c8b89a'
-    const dayH = 40
+    // ─── Sand ───────────────────────────────────────────────────────
+    const dayH = 60
     const dayY = h - dayH
-    const dayGrad = ctx.createLinearGradient(0, dayY, 0, h)
-    dayGrad.addColorStop(0, dayMau + '00')
-    dayGrad.addColorStop(0.35, dayMau + 'bb')
-    dayGrad.addColorStop(1, dayMau + 'ff')
-    ctx.fillStyle = dayGrad
+
+    const hazeGrad = ctx.createLinearGradient(0, dayY - 28, 0, dayY + 8)
+    hazeGrad.addColorStop(0, 'rgba(196,168,130,0)')
+    hazeGrad.addColorStop(1, 'rgba(196,168,130,0.13)')
+    ctx.fillStyle = hazeGrad
+    ctx.fillRect(0, dayY - 28, w, 36)
+
+    const sandGrad = ctx.createLinearGradient(0, dayY, 0, h)
+    sandGrad.addColorStop(0, '#c4a882')
+    sandGrad.addColorStop(1, '#a08660')
+    ctx.fillStyle = sandGrad
     ctx.beginPath()
     ctx.moveTo(0, h)
-    for (let x = 0; x <= w; x += 18) {
-      ctx.lineTo(x, dayY + Math.sin(x * 0.04 + t * 0.48) * 5)
+    for (let sx = 0; sx <= w; sx += 14) {
+      const sy = dayY
+        + Math.sin(sx * 0.035 + t * 0.22) * 3.5
+        + Math.sin(sx * 0.018 + t * 0.14) * 5
+      ctx.lineTo(sx, sy)
     }
     ctx.lineTo(w, h)
     ctx.closePath()
     ctx.fill()
+
+    ctx.save()
+    ctx.globalAlpha = 0.08
+    ctx.strokeStyle = '#7a5c38'
+    ctx.lineWidth = 1
+    for (let ri = 0; ri < 3; ri++) {
+      const ryBase = dayY + 14 + ri * 14
+      ctx.beginPath()
+      for (let sx = 0; sx <= w; sx += 10) {
+        const sy = ryBase + Math.sin(sx * 0.03 + ri * 1.1 + t * 0.08) * 2
+        sx === 0 ? ctx.moveTo(sx, sy) : ctx.lineTo(sx, sy)
+      }
+      ctx.stroke()
+    }
+    ctx.restore()
+
+    // ─── Rocks ──────────────────────────────────────────────────────
+    ;[
+      { xf: 0.27, rx: 26, ry: 17, ang: 0.18 },
+      { xf: 0.43, rx: 20, ry: 14, ang: -0.12 },
+      { xf: 0.63, rx: 18, ry: 13, ang: 0.22 },
+      { xf: 0.87, rx: 24, ry: 16, ang: -0.08 },
+    ].forEach(({ xf, rx, ry, ang }) => {
+      const cx = xf * w
+      const cy = dayY + 6
+      const rg = ctx.createRadialGradient(cx - rx * 0.3, cy - ry * 0.3, 2, cx, cy, rx)
+      rg.addColorStop(0, '#6b7280')
+      rg.addColorStop(1, '#374151')
+      ctx.save()
+      ctx.translate(cx, cy)
+      ctx.rotate(ang)
+      ctx.beginPath()
+      ctx.ellipse(0, 0, rx, ry, 0, 0, Math.PI * 2)
+      ctx.fillStyle = rg
+      ctx.fill()
+      ctx.strokeStyle = 'rgba(0,0,0,0.2)'
+      ctx.lineWidth = 1
+      ctx.stroke()
+      ctx.restore()
+    })
+
+    // ─── Starfish ───────────────────────────────────────────────────
+    ;[{ xf: 0.34, r: 11 }, { xf: 0.72, r: 9 }].forEach(({ xf, r }) => {
+      const sx = xf * w
+      const sy = dayY + r * 0.6
+      ctx.save()
+      ctx.translate(sx, sy)
+      ctx.fillStyle = '#c07040'
+      ctx.beginPath()
+      for (let p = 0; p < 10; p++) {
+        const a = (p / 10) * Math.PI * 2 - Math.PI / 2
+        const rad = p % 2 === 0 ? r : r * 0.42
+        p === 0 ? ctx.moveTo(Math.cos(a) * rad, Math.sin(a) * rad)
+                : ctx.lineTo(Math.cos(a) * rad, Math.sin(a) * rad)
+      }
+      ctx.closePath()
+      ctx.fill()
+      ctx.restore()
+    })
+
+    // ─── Seaweed ────────────────────────────────────────────────────
+    ;[0.14, 0.51, 0.79].forEach((xf, ci) => {
+      for (let si = 0; si < 3; si++) {
+        const stalkX = xf * w + (si - 1) * 14
+        const stalkH = 55 + si * 12
+        const sway   = Math.sin(t * 0.7 + ci * 1.4 + si * 0.9) * 10
+        ctx.save()
+        ctx.strokeStyle = 'rgba(34,120,60,0.75)'
+        ctx.lineWidth = 3.5 - si * 0.5
+        ctx.lineCap = 'round'
+        ctx.beginPath()
+        ctx.moveTo(stalkX, dayY + 4)
+        ctx.quadraticCurveTo(
+          stalkX + sway * 0.5, dayY - stalkH * 0.5,
+          stalkX + sway,       dayY - stalkH,
+        )
+        ctx.stroke()
+        ctx.restore()
+      }
+    })
 
     veBongBong(ctx, bongRef.current, dt)
 
@@ -1020,6 +1155,8 @@ export default function AquariumCanvas({
         conTraiPosRef.current[ct.id] = { x: ox, y: oy, r: oysterR }
       })
     }
+
+    veBubbleLofi(ctx, bubbleRef.current, dt)
 
     // Thức ăn rơi — dùng delta time, 80-100 px/giây
     thucAnRef.current.forEach(f => {
