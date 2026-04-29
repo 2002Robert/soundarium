@@ -4,7 +4,7 @@ from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 from dotenv import load_dotenv
-from routers import fish, tank, coins, profile
+from routers import fish, tank, coins, profile, decor
 
 load_dotenv()
 
@@ -41,6 +41,7 @@ app.include_router(fish.router)
 app.include_router(tank.router)
 app.include_router(coins.router)
 app.include_router(profile.router)
+app.include_router(decor.router)
 
 
 @app.get("/")

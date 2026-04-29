@@ -40,13 +40,13 @@ const DAY_HO_LIST = [
   { id: 'san_ho',    ten: 'San hô',     s1: '#cc6655', s2: '#994040' },
 ]
 
-const TRANG_TRI = [
-  { id: 'rong_bien',  ten: 'Rong biển',  icon: '🌿' },
-  { id: 'san_ho_cay', ten: 'San hô cây', icon: '🪸' },
-  { id: 'da_cuoi',    ten: 'Đá cuội',    icon: '🪨' },
-  { id: 'kho_bau',    ten: 'Kho báu',    icon: '🏺' },
-  { id: 'vo_oc',      ten: 'Vỏ ốc',      icon: '🐚' },
-  { id: 'hai_quy',    ten: 'Hải quỳ',    icon: '🌺' },
+const TRANG_TRI_SHOP = [
+  { id: 'rong_bien',  ten: 'Rong biển',  icon: '🌿', gia: 50  },
+  { id: 'san_ho_cay', ten: 'San hô cây', icon: '🪸', gia: 80  },
+  { id: 'da_cuoi',    ten: 'Đá cuội',    icon: '🪨', gia: 30  },
+  { id: 'kho_bau',    ten: 'Kho báu',    icon: '🏺', gia: 200 },
+  { id: 'vo_oc',      ten: 'Vỏ ốc',      icon: '🐚', gia: 40  },
+  { id: 'hai_quy',    ten: 'Hải quỳ',    icon: '🌺', gia: 120 },
 ]
 
 // ── SVG icons for special shop items ─────────────────────────────
@@ -320,6 +320,9 @@ export default function ShopPanel({
   onCoinsUpdate,
   onThemConTrai,
   conTrai = [],
+  danhSachDecor = [],
+  onMuaDecor,
+  onDatDecor,
 }) {
   const playerLevel = tinhLevel(playerExp)
   const [tab, setTab]              = useState('ca')
@@ -528,18 +531,73 @@ export default function ShopPanel({
 
           {/* ── Tab: Trang trí ── */}
           {tab === 'trang_tri' && (
-            <div className="px-4 pb-6 mt-4">
-              <div className="grid grid-cols-2 gap-3">
-                {TRANG_TRI.map(item => (
-                  <div key={item.id} className="flex flex-col items-center bg-ho-nong border border-ho-anh/10 rounded-2xl px-3 py-4">
-                    <div className="text-4xl mb-2">{item.icon}</div>
-                    <div className="font-semibold text-white text-sm text-center">{item.ten}</div>
-                    <div className="mt-3 w-full bg-ho-anh/10 border border-ho-anh/15 text-ho-anh/40 font-semibold py-1.5 rounded-xl text-xs text-center">
-                      Sắp ra mắt
+            <div className="px-4 pb-6 mt-3 space-y-2.5">
+              {TRANG_TRI_SHOP.map(item => {
+                const owned   = danhSachDecor.filter(d => d.loai === item.id)
+                const visible = owned.filter(d => !d.an)
+                const canBuy  = coins >= item.gia
+                return (
+                  <div key={item.id} className="bg-ho-nong border border-ho-anh/10 rounded-2xl overflow-hidden">
+                    {/* Shop row */}
+                    <div className="flex items-center gap-3 px-3 py-2.5">
+                      <span className="text-2xl">{item.icon}</span>
+                      <div className="flex-1 min-w-0">
+                        <div className="text-white text-sm font-semibold">{item.ten}</div>
+                        <div className="text-ho-anh/40 text-xs">
+                          🪙 {item.gia}
+                          {owned.length > 0 && (
+                            <span className="ml-2 text-ho-anh/55">
+                              · Có {owned.length} ({visible.length} đặt)
+                            </span>
+                          )}
+                        </div>
+                      </div>
+                      <button
+                        onClick={() => onMuaDecor?.(item.id)}
+                        disabled={!canBuy}
+                        className={`px-3 py-1.5 rounded-xl text-xs font-semibold transition ${
+                          canBuy
+                            ? 'bg-ho-anh hover:bg-ho-accent text-ho-sau cursor-pointer'
+                            : 'bg-ho-anh/10 text-ho-anh/25 cursor-not-allowed'
+                        }`}
+                      >
+                        Mua
+                      </button>
                     </div>
+
+                    {/* Owned instances */}
+                    {owned.length > 0 && (
+                      <div className="border-t border-ho-anh/8">
+                        {owned.map((d, idx) => (
+                          <div key={d.id} className="flex items-center gap-2 px-3 py-1.5 border-b border-ho-anh/5 last:border-0">
+                            <span className="text-[11px] text-ho-anh/35 tabular-nums w-4">{idx + 1}</span>
+                            {d.an ? (
+                              <span className="text-ho-anh/35 text-xs flex-1">Chưa đặt</span>
+                            ) : (
+                              <span className="text-green-400/80 text-xs flex-1">✓ Tầng {d.layer}</span>
+                            )}
+                            {d.an ? (
+                              <button
+                                onClick={() => { onDatDecor?.(d.id); onDong() }}
+                                className="px-2.5 py-1 bg-ho-anh/15 hover:bg-ho-anh/25 text-ho-anh text-xs rounded-lg transition"
+                              >
+                                Đặt vào hồ
+                              </button>
+                            ) : (
+                              <button
+                                onClick={() => onDatDecor?.(d.id)}
+                                className="px-2.5 py-1 bg-ho-anh/10 hover:bg-ho-anh/20 text-ho-anh/60 hover:text-ho-anh text-xs rounded-lg transition"
+                              >
+                                Đặt lại
+                              </button>
+                            )}
+                          </div>
+                        ))}
+                      </div>
+                    )}
                   </div>
-                ))}
-              </div>
+                )
+              })}
             </div>
           )}
 

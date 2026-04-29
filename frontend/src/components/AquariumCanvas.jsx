@@ -810,6 +810,149 @@ function veConTrai(ctx, x, y, r, isOpen) {
   ctx.restore()
 }
 
+// ─── Decoration draw helpers ────────────────────────────────────────
+
+function veRongBien(ctx, s, t) {
+  for (let i = 0; i < 2; i++) {
+    const ox   = (i - 0.5) * s * 0.7
+    const h2   = s * (0.9 + i * 0.3)
+    const sway = Math.sin(t * 0.8 + i * 1.1 + ox * 0.01) * s * 0.35
+    ctx.strokeStyle = i === 0 ? 'rgba(25,130,55,0.92)' : 'rgba(35,110,45,0.88)'
+    ctx.lineWidth   = s * 0.16
+    ctx.lineCap     = 'round'
+    ctx.beginPath()
+    ctx.moveTo(ox, 0)
+    ctx.quadraticCurveTo(ox + sway * 0.5, -h2 * 0.5, ox + sway, -h2)
+    ctx.stroke()
+    ctx.fillStyle = i === 0 ? 'rgba(30,150,60,0.75)' : 'rgba(40,130,50,0.72)'
+    ctx.beginPath()
+    ctx.ellipse(ox + sway * 0.6, -h2 * 0.6, s * 0.18, s * 0.08, Math.PI * 0.4, 0, Math.PI * 2)
+    ctx.fill()
+  }
+}
+
+function veSanHoCay(ctx, s, t) {
+  const sway = Math.sin(t * 0.5) * 0.09
+  function branch(x, y, angle, len, depth) {
+    if (depth === 0) return
+    const ex = x + Math.cos(angle) * len
+    const ey = y - Math.abs(Math.sin(angle)) * len
+    ctx.strokeStyle = `rgba(${220 - depth * 18},${55 + depth * 28},90,${0.65 + depth * 0.1})`
+    ctx.lineWidth   = depth * s * 0.055 + 0.5
+    ctx.beginPath(); ctx.moveTo(x, y); ctx.lineTo(ex, ey); ctx.stroke()
+    if (depth > 1) {
+      branch(ex, ey, angle - 0.52 + sway, len * 0.67, depth - 1)
+      branch(ex, ey, angle + 0.52 + sway, len * 0.67, depth - 1)
+    }
+  }
+  ctx.lineCap = 'round'
+  branch(0, 0, Math.PI / 2, s * 0.82, 3)
+}
+
+function veDaCuoi(ctx, s) {
+  const stones = [
+    { x: -s * 0.28, y: 0,        a: s * 0.30, b: s * 0.19, ang:  0.22 },
+    { x:  s * 0.24, y: 0,        a: s * 0.25, b: s * 0.17, ang: -0.18 },
+    { x:  s * 0.02, y: -s * 0.1, a: s * 0.20, b: s * 0.14, ang:  0.08 },
+  ]
+  stones.forEach(st => {
+    const g = ctx.createRadialGradient(st.x - st.a * 0.28, st.y - st.b * 0.28, 2, st.x, st.y, st.a)
+    g.addColorStop(0, '#909aa8'); g.addColorStop(1, '#4a5265')
+    ctx.save()
+    ctx.translate(st.x, st.y); ctx.rotate(st.ang)
+    ctx.beginPath(); ctx.ellipse(0, 0, st.a, st.b, 0, 0, Math.PI * 2)
+    ctx.fillStyle = g; ctx.fill()
+    ctx.strokeStyle = 'rgba(0,0,0,0.15)'; ctx.lineWidth = 0.5; ctx.stroke()
+    ctx.restore()
+  })
+}
+
+function veKhoBau(ctx, s, t) {
+  const glow = 0.08 + Math.abs(Math.sin(t * 1.4)) * 0.12
+  ctx.fillStyle = 'rgba(0,0,0,0.15)'
+  ctx.beginPath(); ctx.ellipse(0, s * 0.06, s * 0.52, s * 0.09, 0, 0, Math.PI * 2); ctx.fill()
+  // Body
+  ctx.fillStyle = '#6b3d15'
+  ctx.beginPath(); ctx.rect(-s * 0.48, -s * 0.22, s * 0.96, s * 0.28); ctx.fill()
+  ctx.fillStyle = '#8a4f1a'
+  ctx.beginPath(); ctx.rect(-s * 0.36, -s * 0.18, s * 0.72, s * 0.20); ctx.fill()
+  // Dome lid
+  ctx.fillStyle = '#7a4018'
+  ctx.beginPath()
+  ctx.moveTo(-s * 0.48, -s * 0.22)
+  ctx.bezierCurveTo(-s * 0.48, -s * 0.52, s * 0.48, -s * 0.52, s * 0.48, -s * 0.22)
+  ctx.closePath(); ctx.fill()
+  // Gold band
+  ctx.strokeStyle = `rgba(230,175,20,${0.85 + glow})`; ctx.lineWidth = s * 0.055
+  ctx.beginPath(); ctx.moveTo(-s * 0.48, -s * 0.22); ctx.lineTo(s * 0.48, -s * 0.22); ctx.stroke()
+  ctx.beginPath(); ctx.arc(0, -s * 0.22, s * 0.48, Math.PI, 0); ctx.stroke()
+  // Lock
+  ctx.fillStyle = `rgba(230,185,25,${0.9 + glow * 2})`
+  ctx.beginPath(); ctx.arc(0, -s * 0.18, s * 0.09, 0, Math.PI * 2); ctx.fill()
+  ctx.fillStyle = 'rgba(255,230,100,0.35)'
+  ctx.beginPath(); ctx.ellipse(-s * 0.15, -s * 0.38, s * 0.2, s * 0.08, -0.3, 0, Math.PI * 2); ctx.fill()
+}
+
+function veVoOc(ctx, s) {
+  ctx.save(); ctx.rotate(-0.3)
+  const g = ctx.createLinearGradient(-s * 0.3, -s * 0.35, s * 0.3, s * 0.1)
+  g.addColorStop(0, '#e0c8a0'); g.addColorStop(1, '#b09070')
+  ctx.fillStyle = g
+  ctx.beginPath()
+  ctx.moveTo(0, -s * 0.45)
+  ctx.bezierCurveTo( s * 0.12, -s * 0.30,  s * 0.38, -s * 0.05,  s * 0.28,  s * 0.05)
+  ctx.bezierCurveTo( s * 0.20,  s * 0.12, -s * 0.12,  s * 0.12, -s * 0.28,  s * 0.05)
+  ctx.bezierCurveTo(-s * 0.38, -s * 0.05, -s * 0.12, -s * 0.30,  0,        -s * 0.45)
+  ctx.fill()
+  ctx.strokeStyle = 'rgba(140,100,60,0.35)'; ctx.lineWidth = s * 0.04
+  for (let i = 0; i < 4; i++) {
+    ctx.beginPath()
+    ctx.ellipse(0, -s * 0.30 + i * s * 0.1, s * (0.25 - i * 0.04), s * 0.06, 0, 0, Math.PI)
+    ctx.stroke()
+  }
+  ctx.fillStyle = 'rgba(255,245,220,0.35)'
+  ctx.beginPath(); ctx.ellipse(-s * 0.08, -s * 0.28, s * 0.1, s * 0.06, -0.4, 0, Math.PI * 2); ctx.fill()
+  ctx.restore()
+}
+
+function veHaiQuy(ctx, s, t) {
+  const NUM = 8
+  for (let i = 0; i < NUM; i++) {
+    const baseA = (i / NUM) * Math.PI * 2 - Math.PI / 2
+    const sway  = Math.sin(t * 1.0 + i * 0.78) * s * 0.18
+    const len   = s * 0.55
+    const ex    = Math.cos(baseA) * len + Math.cos(baseA + Math.PI / 2) * sway
+    const ey    = Math.sin(baseA) * len + Math.sin(baseA + Math.PI / 2) * sway - len * 0.18
+    const hue   = 280 + (i % 3) * 25
+    ctx.strokeStyle = `hsla(${hue},65%,62%,0.8)`
+    ctx.lineWidth   = s * 0.10; ctx.lineCap = 'round'
+    ctx.beginPath(); ctx.moveTo(0, 0)
+    ctx.quadraticCurveTo(ex * 0.5 + sway * 0.4, ey * 0.5, ex, ey); ctx.stroke()
+    ctx.fillStyle = `hsla(${hue + 20},70%,70%,0.9)`
+    ctx.beginPath(); ctx.arc(ex, ey, s * 0.085, 0, Math.PI * 2); ctx.fill()
+  }
+  const cg = ctx.createRadialGradient(0, 0, 0, 0, 0, s * 0.22)
+  cg.addColorStop(0, 'rgba(210,130,190,0.95)'); cg.addColorStop(1, 'rgba(160,60,130,0.85)')
+  ctx.fillStyle = cg; ctx.beginPath(); ctx.arc(0, 0, s * 0.22, 0, Math.PI * 2); ctx.fill()
+}
+
+function veVatTrangTri(ctx, item, w, h, t) {
+  if (item.an) return
+  const x = item.pos_x * w
+  const y = item.pos_y * h
+  const s = Math.min(w, h) * 0.038
+  ctx.save(); ctx.translate(x, y)
+  switch (item.loai) {
+    case 'rong_bien':  veRongBien(ctx, s, t);  break
+    case 'san_ho_cay': veSanHoCay(ctx, s, t);  break
+    case 'da_cuoi':    veDaCuoi(ctx, s);        break
+    case 'kho_bau':    veKhoBau(ctx, s, t);    break
+    case 'vo_oc':      veVoOc(ctx, s);          break
+    case 'hai_quy':    veHaiQuy(ctx, s, t);    break
+  }
+  ctx.restore()
+}
+
 function veBongBong(ctx, bongBubbles, dt) {
   bongBubbles.forEach((b, i) => {
     b.y -= b.tocDo * (dt / 1000)
@@ -874,6 +1017,7 @@ export default function AquariumCanvas({
   feedSignal        = 0,
   onCaAnThucAn,
   coinHarvestSignal = 0,
+  decorations    = [],
 }) {
   const canvasRef      = useRef(null)
   const frameRef       = useRef(0)
@@ -927,7 +1071,7 @@ export default function AquariumCanvas({
   danhSachCa.forEach(khoiTaoChuyen)
 
   // Cập nhật deps mỗi render — loop đọc qua ref, không restart
-  depsRef.current = { danhSachCa, dangPhat, nenHo, dayHo, caLevelUp }
+  depsRef.current = { danhSachCa, dangPhat, nenHo, dayHo, caLevelUp, decorations }
 
   // Gán hàm loop mỗi render để luôn có closure mới nhất
   animLoopRef.current = (timestamp) => {
@@ -938,7 +1082,7 @@ export default function AquariumCanvas({
     elapsedRef.current += dt
     const t = elapsedRef.current / 1000   // giây thực
 
-    const { danhSachCa: dsCa, dangPhat: dpId, nenHo: nenKey, dayHo: dayKey, caLevelUp: clu } = depsRef.current
+    const { danhSachCa: dsCa, dangPhat: dpId, nenHo: nenKey, dayHo: dayKey, caLevelUp: clu, decorations: decors } = depsRef.current
 
     const canvas = canvasRef.current
     if (!canvas) return
@@ -1091,6 +1235,9 @@ export default function AquariumCanvas({
 
     veBongBong(ctx, bongRef.current, dt)
 
+    // ─── Layer 1 decorations (bottom — below fish) ───────────────────
+    decors.filter(d => !d.an && d.layer <= 1).forEach(d => veVatTrangTri(ctx, d, w, h, t))
+
     const thucAnActive = thucAnRef.current.filter(f => !f.eaten)
     const eatCb = onCaAnRef.current
     const nowTs = Date.now()
@@ -1138,6 +1285,9 @@ export default function AquariumCanvas({
       }
     })
 
+    // ─── Layer 2 decorations (above fish, below sứa) ────────────────
+    decors.filter(d => !d.an && d.layer === 2).forEach(d => veVatTrangTri(ctx, d, w, h, t))
+
     // Vẽ sứa gai
     const suaList = suaGaiRef.current
     if (suaList.length > 0) {
@@ -1174,6 +1324,9 @@ export default function AquariumCanvas({
         conTraiPosRef.current[ct.id] = { x: ox, y: oy, r: oysterR }
       })
     }
+
+    // ─── Layer 3 decorations (top — above sứa/oysters) ──────────────
+    decors.filter(d => !d.an && d.layer >= 3).forEach(d => veVatTrangTri(ctx, d, w, h, t))
 
     veBubbleLofi(ctx, bubbleRef.current, dt)
 

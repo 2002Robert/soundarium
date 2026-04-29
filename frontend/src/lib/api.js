@@ -156,6 +156,24 @@ export const API = {
 
   layTankNgauNhien: () => goiApi('/api/tank/ngau-nhien'),
 
+  // Decorations
+  layDecor: (tankId) =>
+    goiApi(`/api/decor/danh-sach${tankId ? `?tank_id=${tankId}` : ''}`),
+
+  muaDecor: (loai, tankId) =>
+    goiApi('/api/decor/mua', {
+      method: 'POST',
+      body: JSON.stringify({ loai, tank_id: tankId || null }),
+    }),
+
+  capNhatDecor: (id, data) =>
+    goiApi(`/api/decor/${id}`, {
+      method: 'PATCH',
+      body: JSON.stringify(data),
+    }),
+
+  xoaDecor: (id) => goiApi(`/api/decor/${id}`, { method: 'DELETE' }),
+
   // Coins
   thuHoachCoins: () => goiApi('/api/coins/thu-hoach'),
 

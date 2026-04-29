@@ -18,6 +18,58 @@ import TankSwitcher from '../components/TankSwitcher'
 import { tinhLevel, TIEU_DE_LEVEL } from '../utils/playerLevel'
 
 
+const DECOR_ICON = {
+  rong_bien: '🌿', san_ho_cay: '🪸', da_cuoi: '🪨',
+  kho_bau: '🏺',  vo_oc: '🐚',       hai_quy: '🌺',
+}
+
+function PlacementOverlay({ icon, playerBarHeight, onPlace, onCancel }) {
+  const [pos, setPos] = useState({ x: -999, y: -999 })
+  useEffect(() => {
+    function onMove(e) {
+      const cx = e.touches ? e.touches[0].clientX : e.clientX
+      const cy = e.touches ? e.touches[0].clientY : e.clientY
+      setPos({ x: cx, y: cy })
+    }
+    window.addEventListener('mousemove', onMove)
+    window.addEventListener('touchmove', onMove, { passive: true })
+    return () => {
+      window.removeEventListener('mousemove', onMove)
+      window.removeEventListener('touchmove', onMove)
+    }
+  }, [])
+
+  function handleClick(e) {
+    const effectiveH = window.innerHeight - playerBarHeight
+    onPlace(e.clientX / window.innerWidth, e.clientY / effectiveH)
+  }
+
+  return (
+    <>
+      <div
+        className="fixed inset-0 z-[130] cursor-crosshair"
+        style={{ bottom: playerBarHeight }}
+        onClick={handleClick}
+        onContextMenu={e => { e.preventDefault(); onCancel() }}
+      />
+      <div
+        className="fixed z-[131] pointer-events-none select-none"
+        style={{ left: pos.x - 22, top: pos.y - 48, fontSize: 40, filter: 'drop-shadow(0 0 8px rgba(100,200,255,0.9))' }}
+      >
+        {icon}
+      </div>
+      <div className="fixed top-4 left-1/2 -translate-x-1/2 z-[132] bg-ho-sau/90 border border-ho-anh/30 rounded-2xl px-4 py-2 text-sm text-white/80 pointer-events-none text-center">
+        Click để đặt · Chuột phải / ESC để huỷ
+      </div>
+      <button
+        className="fixed top-4 right-4 z-[132] bg-ho-sau/90 border border-ho-anh/30 hover:border-red-400/50 text-ho-anh/70 hover:text-red-400 rounded-xl px-3 py-2 text-sm transition"
+        onClick={onCancel}
+        style={{ top: 16 }}
+      >✕ Huỷ</button>
+    </>
+  )
+}
+
 function IconBtn({ onClick, title, children, className = '' }) {
   return (
     <button
@@ -105,9 +157,23 @@ export default function Home() {
   const gioNgheRef    = useRef(0)
 
   const [playerLevelUp, setPlayerLevelUp] = useState(null)
+
+  // ── Decorations ─────────────────────────────────────────────────────
+  const [danhSachDecor, setDanhSachDecor] = useState([])
+  const [dangDatDecor, setDangDatDecor]   = useState(null)   // decorId being placed
+  const [menuDecor, setMenuDecor]         = useState(null)   // {decor, x, y}
+  const decorMoveRef = useRef({})  // { [id]: { startX, startY, origX, origY, moved } }
+
   const [dangKhoiDong, setDangKhoiDong]       = useState(true)
   const [loiKetNoi, setLoiKetNoi]             = useState(false)
   const [soLanThu, setSoLanThu]               = useState(1)
+
+  // ESC cancels placement mode
+  useEffect(() => {
+    function onKey(e) { if (e.key === 'Escape') { setDangDatDecor(null); setMenuDecor(null) } }
+    window.addEventListener('keydown', onKey)
+    return () => window.removeEventListener('keydown', onKey)
+  }, [])
 
   const [nenHo, setNenHoState] = useState(() => localStorage.getItem('snd_nen') || 'ocean-shallow')
   const [dayHo, setDayHoState] = useState(() => localStorage.getItem('snd_day') || 'cat_trang')
@@ -294,8 +360,12 @@ export default function Home() {
       if (tanks.length > 0) {
         const tid = tanks[0].id
         setSelectedTankId(tid)
-        const fishRes = await API.layDanhSachCa(tid)
+        const [fishRes, decorRes] = await Promise.all([
+          API.layDanhSachCa(tid),
+          API.layDecor(tid).catch(() => ({ danh_sach: [] })),
+        ])
         setDanhSachCa(fishRes.danh_sach_ca || [])
+        setDanhSachDecor(decorRes.danh_sach || [])
       }
       setDangKhoiDong(false)
     } catch {
@@ -354,8 +424,12 @@ export default function Home() {
     setSelectedTankId(tankId)
     setInfoCa(null)
     try {
-      const res = await API.layDanhSachCa(tankId)
-      setDanhSachCa(res.danh_sach_ca || [])
+      const [fishRes, decorRes] = await Promise.all([
+        API.layDanhSachCa(tankId),
+        API.layDecor(tankId).catch(() => ({ danh_sach: [] })),
+      ])
+      setDanhSachCa(fishRes.danh_sach_ca || [])
+      setDanhSachDecor(decorRes.danh_sach || [])
     } catch {
       hienToast('Không tải được hồ', 'loi')
     }
@@ -374,6 +448,63 @@ export default function Home() {
     } finally {
       setDangTaoTank(false)
     }
+  }
+
+  // ── Decoration handlers ─────────────────────────────────────────────
+  async function muaDecor(loai) {
+    try {
+      const res = await API.muaDecor(loai, selectedTankId)
+      setDanhSachDecor(prev => [...prev, res.decor])
+      setCoins(res.coins_con_lai)
+      hienToast('Đã mua! Mở tab Trang trí → Đặt vào hồ', 'thanhCong')
+    } catch (err) {
+      hienToast(err.message || 'Không mua được', 'loi')
+    }
+  }
+
+  function batDauDat(decorId) {
+    setDangDatDecor(decorId)
+    setMenuDecor(null)
+  }
+
+  async function datTaiViTri(xFrac, yFrac) {
+    if (!dangDatDecor) return
+    const id = dangDatDecor
+    setDangDatDecor(null)
+    try {
+      const res = await API.capNhatDecor(id, { pos_x: xFrac, pos_y: yFrac, an: false })
+      setDanhSachDecor(prev => prev.map(d => d.id === id ? (res.decor || { ...d, pos_x: xFrac, pos_y: yFrac, an: false }) : d))
+    } catch (err) {
+      hienToast(err.message || 'Lỗi đặt trang trí', 'loi')
+    }
+  }
+
+  async function diChuyenDecor(id, xFrac, yFrac) {
+    setDanhSachDecor(prev => prev.map(d => d.id === id ? { ...d, pos_x: xFrac, pos_y: yFrac } : d))
+    try {
+      await API.capNhatDecor(id, { pos_x: xFrac, pos_y: yFrac })
+    } catch {}
+  }
+
+  async function doiLayerDecor(id, delta) {
+    const d = danhSachDecor.find(x => x.id === id)
+    if (!d) return
+    const newLayer = Math.max(1, Math.min(3, d.layer + delta))
+    setDanhSachDecor(prev => prev.map(x => x.id === id ? { ...x, layer: newLayer } : x))
+    setMenuDecor(prev => prev ? { ...prev, decor: { ...prev.decor, layer: newLayer } } : null)
+    try { await API.capNhatDecor(id, { layer: newLayer }) } catch {}
+  }
+
+  async function anDecor(id, an) {
+    setDanhSachDecor(prev => prev.map(d => d.id === id ? { ...d, an } : d))
+    setMenuDecor(null)
+    try { await API.capNhatDecor(id, { an }) } catch {}
+  }
+
+  async function xoaDecor(id) {
+    setDanhSachDecor(prev => prev.filter(d => d.id !== id))
+    setMenuDecor(null)
+    try { await API.xoaDecor(id) } catch {}
   }
 
   function khiKetThucBai() {
@@ -495,6 +626,7 @@ export default function Home() {
         feedSignal={feedSignal}
         onCaAnThucAn={khiCaAnThucAn}
         coinHarvestSignal={coinHarvestSignal}
+        decorations={danhSachDecor}
       />
 
       {/* Overlay click targets cho sứa — z-[150] vượt qua header z-[100] */}
@@ -511,6 +643,106 @@ export default function Home() {
           onClick={() => pos.obj && clickCa(pos.obj, pos.x, pos.y)}
         />
       ))}
+
+      {/* ── Decoration overlays (drag + click) ── */}
+      {danhSachDecor.filter(d => !d.an).map(d => {
+        const effectiveH = window.innerHeight - playerBarHeight
+        const ox = d.pos_x * window.innerWidth
+        const oy = d.pos_y * effectiveH
+        const SZ = 60
+        return (
+          <div
+            key={d.id}
+            className="fixed z-[115] cursor-move"
+            style={{ left: ox - SZ / 2, top: oy - SZ, width: SZ, height: SZ, touchAction: 'none' }}
+            onPointerDown={e => {
+              e.currentTarget.setPointerCapture(e.pointerId)
+              decorMoveRef.current[d.id] = {
+                startX: e.clientX, startY: e.clientY,
+                origX: d.pos_x, origY: d.pos_y,
+                moved: false, el: e.currentTarget,
+              }
+            }}
+            onPointerMove={e => {
+              const st = decorMoveRef.current[d.id]
+              if (!st) return
+              const dx = e.clientX - st.startX
+              const dy = e.clientY - st.startY
+              if (Math.abs(dx) > 6 || Math.abs(dy) > 6) {
+                st.moved = true
+                if (menuDecor?.decor.id === d.id) setMenuDecor(null)
+                st.el.style.left = `${st.origX * window.innerWidth + dx - SZ / 2}px`
+                st.el.style.top  = `${st.origY * effectiveH + dy - SZ}px`
+              }
+            }}
+            onPointerUp={e => {
+              const st = decorMoveRef.current[d.id]
+              if (!st) return
+              delete decorMoveRef.current[d.id]
+              if (st.moved) {
+                const dx = e.clientX - st.startX
+                const dy = e.clientY - st.startY
+                const nx = Math.max(0.02, Math.min(0.98, st.origX + dx / window.innerWidth))
+                const ny = Math.max(0.05, Math.min(0.97, st.origY + dy / effectiveH))
+                diChuyenDecor(d.id, nx, ny)
+              } else {
+                setMenuDecor(m => m?.decor.id === d.id ? null : { decor: d, x: ox, y: oy })
+              }
+            }}
+          />
+        )
+      })}
+
+      {/* ── Decoration context menu ── */}
+      {menuDecor && (
+        <div
+          className="fixed z-[125] bg-ho-sau/95 border border-ho-anh/20 rounded-2xl shadow-2xl overflow-hidden"
+          style={{
+            left: Math.min(menuDecor.x - 80, window.innerWidth - 180),
+            top:  Math.max(menuDecor.y - 130, 8),
+            width: 168,
+          }}
+        >
+          <div className="px-3 pt-2.5 pb-1 text-white/60 text-xs font-semibold border-b border-ho-anh/10">
+            {DECOR_ICON[menuDecor.decor.loai]} Tầng {menuDecor.decor.layer}
+          </div>
+          <div className="py-1">
+            <button
+              onClick={() => doiLayerDecor(menuDecor.decor.id, 1)}
+              className="w-full text-left px-3 py-2 text-sm text-ho-anh/70 hover:text-white hover:bg-ho-anh/10 transition"
+            >↑ Lên trên</button>
+            <button
+              onClick={() => doiLayerDecor(menuDecor.decor.id, -1)}
+              className="w-full text-left px-3 py-2 text-sm text-ho-anh/70 hover:text-white hover:bg-ho-anh/10 transition"
+            >↓ Xuống dưới</button>
+            <button
+              onClick={() => anDecor(menuDecor.decor.id, true)}
+              className="w-full text-left px-3 py-2 text-sm text-ho-anh/70 hover:text-white hover:bg-ho-anh/10 transition"
+            >👁 Ẩn</button>
+            <div className="mx-3 border-t border-ho-anh/10 my-1" />
+            <button
+              onClick={() => xoaDecor(menuDecor.decor.id)}
+              className="w-full text-left px-3 py-2 text-sm text-red-400/60 hover:text-red-400 hover:bg-red-400/10 transition"
+            >🗑 Xóa</button>
+          </div>
+        </div>
+      )}
+      {menuDecor && (
+        <div className="fixed inset-0 z-[120]" onClick={() => setMenuDecor(null)} />
+      )}
+
+      {/* ── Placement overlay ── */}
+      {dangDatDecor && (() => {
+        const item = danhSachDecor.find(d => d.id === dangDatDecor)
+        return (
+          <PlacementOverlay
+            icon={DECOR_ICON[item?.loai] || '✨'}
+            playerBarHeight={playerBarHeight}
+            onPlace={datTaiViTri}
+            onCancel={() => setDangDatDecor(null)}
+          />
+        )
+      })()}
 
       {danhSachCa.length === 0 && (
         <div className="absolute inset-0 flex flex-col items-center justify-center pointer-events-none">
@@ -607,6 +839,9 @@ export default function Home() {
           playerExp={playerExp}
           onCoinsUpdate={setCoins}
           conTrai={conTrai}
+          danhSachDecor={danhSachDecor}
+          onMuaDecor={muaDecor}
+          onDatDecor={batDauDat}
           onThemConTrai={() => {
             const now = Date.now()
             setConTrai([{
