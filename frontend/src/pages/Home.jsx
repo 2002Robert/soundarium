@@ -17,19 +17,6 @@ import ExplorePanel from '../components/ExplorePanel'
 import TankSwitcher from '../components/TankSwitcher'
 import { tinhLevel, TIEU_DE_LEVEL } from '../utils/playerLevel'
 
-function roundRect(ctx, x, y, w, h, r) {
-  ctx.beginPath()
-  ctx.moveTo(x + r, y)
-  ctx.lineTo(x + w - r, y)
-  ctx.quadraticCurveTo(x + w, y, x + w, y + r)
-  ctx.lineTo(x + w, y + h - r)
-  ctx.quadraticCurveTo(x + w, y + h, x + w - r, y + h)
-  ctx.lineTo(x + r, y + h)
-  ctx.quadraticCurveTo(x, y + h, x, y + h - r)
-  ctx.lineTo(x, y + r)
-  ctx.quadraticCurveTo(x, y, x + r, y)
-  ctx.closePath()
-}
 
 function IconBtn({ onClick, title, children, className = '' }) {
   return (
@@ -84,7 +71,7 @@ export default function Home() {
   const [hienLogout, setHienLogout]           = useState(false)
   const [videoIdDangPhat, setVideoIdDangPhat] = useState(null)
   const [ytPlayer, setYtPlayer]               = useState(null)
-  const [profileData, setProfileData]         = useState(null)
+
   const [ngocTrai, setNgocTrai]               = useState(0)
   const [conTrai, setConTrai]                 = useState(() => {
     try {
@@ -419,45 +406,6 @@ export default function Home() {
     const ctx  = off.getContext('2d')
     ctx.drawImage(src, 0, 0)
 
-    if (profileData) {
-      const levelHo = tinhLevel(playerExp)
-      const BOX_W = 210, BOX_H = 72, PAD = 14, R = 12
-
-      ctx.save()
-      ctx.globalAlpha = 0.88
-      ctx.fillStyle = '#0a1628'
-      roundRect(ctx, PAD, PAD, BOX_W, BOX_H, R)
-      ctx.fill()
-      ctx.strokeStyle = 'rgba(96,165,250,0.18)'
-      ctx.lineWidth = 1
-      roundRect(ctx, PAD, PAD, BOX_W, BOX_H, R)
-      ctx.stroke()
-      ctx.restore()
-
-      const AVATAR_R = 20
-      const ax = PAD + 14 + AVATAR_R
-      const ay = PAD + BOX_H / 2
-      ctx.save()
-      ctx.globalAlpha = 0.9
-      ctx.beginPath()
-      ctx.arc(ax, ay, AVATAR_R, 0, Math.PI * 2)
-      ctx.fillStyle = '#1a3a5c'; ctx.fill()
-      ctx.strokeStyle = 'rgba(74,158,218,0.5)'; ctx.lineWidth = 2; ctx.stroke()
-      ctx.restore()
-
-      ctx.save()
-      ctx.font = 'bold 14px "Segoe UI", system-ui, sans-serif'
-      ctx.fillStyle = '#ffffff'
-      ctx.fillText(profileData.username || 'User', PAD + 14 + AVATAR_R * 2 + 10, PAD + 28)
-      ctx.restore()
-
-      ctx.save()
-      ctx.font = '11px "Segoe UI", system-ui, sans-serif'
-      ctx.fillStyle = 'rgba(74,158,218,0.75)'
-      ctx.fillText(`🐠 ${danhSachCa.length}   ⭐ Lv.${levelHo}   🪙 ${coins.toLocaleString()}`, PAD + 14 + AVATAR_R * 2 + 10, PAD + 50)
-      ctx.restore()
-    }
-
     ctx.font = '12px sans-serif'
     ctx.fillStyle = 'rgba(255,255,255,0.3)'
     ctx.fillText('soundarium.app', src.width - 115, src.height - 12)
@@ -584,7 +532,6 @@ export default function Home() {
           ngocTrai={ngocTrai}
           playerExp={playerExp}
           onProfileLoad={p => {
-              setProfileData(p)
               setNgocTrai(p.ngoc_trai || 0)
               setCoins(p.coins || 0)
               const initExp = p.player_exp || 0
