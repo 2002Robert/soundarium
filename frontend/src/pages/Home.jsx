@@ -496,6 +496,16 @@ export default function Home() {
     try { await API.capNhatDecor(id, { layer: newLayer }) } catch {}
   }
 
+  async function doiScaleDecor(id, delta) {
+    const d = danhSachDecor.find(x => x.id === id)
+    if (!d) return
+    const cur = d.scale ?? 1.0
+    const newScale = Math.round(Math.max(0.3, Math.min(3.0, cur + delta)) * 10) / 10
+    setDanhSachDecor(prev => prev.map(x => x.id === id ? { ...x, scale: newScale } : x))
+    setMenuDecor(prev => prev ? { ...prev, decor: { ...prev.decor, scale: newScale } } : null)
+    try { await API.capNhatDecor(id, { scale: newScale }) } catch {}
+  }
+
   async function anDecor(id, an) {
     setDanhSachDecor(prev => prev.map(d => d.id === id ? { ...d, an } : d))
     setMenuDecor(null)
@@ -699,15 +709,31 @@ export default function Home() {
         <div
           className="fixed z-[125] bg-ho-sau/95 border border-ho-anh/20 rounded-2xl shadow-2xl overflow-hidden"
           style={{
-            left: Math.min(menuDecor.x - 80, window.innerWidth - 180),
-            top:  Math.max(menuDecor.y - 130, 8),
-            width: 168,
+            left: Math.min(menuDecor.x - 92, window.innerWidth - 196),
+            top:  Math.max(menuDecor.y - 158, 8),
+            width: 184,
           }}
         >
           <div className="px-3 pt-2.5 pb-1 text-white/60 text-xs font-semibold border-b border-ho-anh/10">
             {DECOR_ICON[menuDecor.decor.loai]} Tầng {menuDecor.decor.layer}
           </div>
           <div className="py-1">
+            {/* Scale controls */}
+            <div className="flex items-center gap-1 px-3 py-1.5 border-b border-ho-anh/8">
+              <button
+                onClick={() => doiScaleDecor(menuDecor.decor.id, -0.2)}
+                disabled={(menuDecor.decor.scale ?? 1.0) <= 0.3}
+                className="flex-1 py-1 rounded-lg text-xs bg-ho-anh/10 hover:bg-ho-anh/20 text-ho-anh/70 hover:text-white disabled:opacity-30 disabled:cursor-not-allowed transition"
+              >🔍−</button>
+              <span className="w-10 text-center text-xs font-mono text-white/70 tabular-nums">
+                {(menuDecor.decor.scale ?? 1.0).toFixed(1)}×
+              </span>
+              <button
+                onClick={() => doiScaleDecor(menuDecor.decor.id, 0.2)}
+                disabled={(menuDecor.decor.scale ?? 1.0) >= 3.0}
+                className="flex-1 py-1 rounded-lg text-xs bg-ho-anh/10 hover:bg-ho-anh/20 text-ho-anh/70 hover:text-white disabled:opacity-30 disabled:cursor-not-allowed transition"
+              >🔍+</button>
+            </div>
             <button
               onClick={() => doiLayerDecor(menuDecor.decor.id, 1)}
               className="w-full text-left px-3 py-2 text-sm text-ho-anh/70 hover:text-white hover:bg-ho-anh/10 transition"

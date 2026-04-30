@@ -938,10 +938,13 @@ function veHaiQuy(ctx, s, t) {
 
 function veVatTrangTri(ctx, item, w, h, t) {
   if (item.an) return
-  const x = item.pos_x * w
-  const y = item.pos_y * h
-  const s = Math.min(w, h) * 0.038
-  ctx.save(); ctx.translate(x, y)
+  const x  = item.pos_x * w
+  const y  = item.pos_y * h
+  const s  = Math.min(w, h) * 0.038
+  const sc = item.scale ?? 1.0
+  ctx.save()
+  ctx.translate(x, y)
+  if (sc !== 1) ctx.scale(sc, sc)
   switch (item.loai) {
     case 'rong_bien':  veRongBien(ctx, s, t);  break
     case 'san_ho_cay': veSanHoCay(ctx, s, t);  break

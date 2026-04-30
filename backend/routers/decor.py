@@ -34,6 +34,7 @@ def _to_frontend(d: dict) -> dict:
         "pos_x":      d.get("pos_x", 0.5),
         "pos_y":      d.get("pos_y", 0.85),
         "layer":      d.get("layer", 1),
+        "scale":      d.get("scale", 1.0),
         # is_visible=True → visible → an=False; is_visible=False → hidden → an=True
         "an":         not d.get("is_visible", False),
         "created_at": d.get("created_at"),
@@ -46,10 +47,11 @@ class MuaBody(BaseModel):
 
 
 class CapNhatBody(BaseModel):
-    pos_x: Optional[float] = None
-    pos_y: Optional[float] = None
-    layer: Optional[int] = None
-    an: Optional[bool] = None
+    pos_x:  Optional[float] = None
+    pos_y:  Optional[float] = None
+    layer:  Optional[int]   = None
+    an:     Optional[bool]  = None
+    scale:  Optional[float] = None
 
 
 async def _lay_tank(user_id: str, tank_id: Optional[str]) -> str:
@@ -135,7 +137,8 @@ async def cap_nhat(
     if body.pos_x is not None: updates["pos_x"]      = max(0.01, min(0.99, body.pos_x))
     if body.pos_y is not None: updates["pos_y"]      = max(0.05, min(0.97, body.pos_y))
     if body.layer is not None: updates["layer"]      = max(1, min(3, body.layer))
-    if body.an    is not None: updates["is_visible"] = not body.an  # an=False → visible=True
+    if body.an    is not None: updates["is_visible"] = not body.an
+    if body.scale is not None: updates["scale"]      = max(0.3, min(3.0, body.scale))
 
     if not updates:
         return {"ok": True}
