@@ -1,19 +1,10 @@
 """
 Decoration placement system.
 
-Supabase SQL (run once in dashboard):
-  CREATE TABLE decorations (
-    id          UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-    user_id     TEXT NOT NULL,
-    tank_id     TEXT NOT NULL,
-    loai        TEXT NOT NULL,
-    pos_x       FLOAT NOT NULL DEFAULT 0.5,
-    pos_y       FLOAT NOT NULL DEFAULT 0.85,
-    layer       INT   NOT NULL DEFAULT 1,
-    an          BOOLEAN NOT NULL DEFAULT TRUE,
-    created_at  TIMESTAMPTZ DEFAULT NOW()
-  );
-  CREATE INDEX idx_decorations_user_tank ON decorations(user_id, tank_id);
+Actual Supabase table schema:
+  id, tank_id, user_id, loai_trang_tri,
+  pos_x, pos_y, layer, is_visible, is_premium,
+  ngay_mua, created_at
 """
 from fastapi import APIRouter, Depends, HTTPException, Query
 from typing import Optional
@@ -31,6 +22,22 @@ GIA_TRANG_TRI = {
     "vo_oc":      40,
     "hai_quy":    120,
 }
+
+
+def _to_frontend(d: dict) -> dict:
+    """Map DB column names → frontend field names."""
+    return {
+        "id":         d["id"],
+        "user_id":    d["user_id"],
+        "tank_id":    d["tank_id"],
+        "loai":       d["loai_trang_tri"],
+        "pos_x":      d.get("pos_x", 0.5),
+        "pos_y":      d.get("pos_y", 0.85),
+        "layer":      d.get("layer", 1),
+        # is_visible=True → visible → an=False; is_visible=False → hidden → an=True
+        "an":         not d.get("is_visible", False),
+        "created_at": d.get("created_at"),
+    }
 
 
 class MuaBody(BaseModel):
@@ -69,7 +76,7 @@ async def lay_danh_sach(
         .order("created_at")
         .execute()
     )
-    return {"danh_sach": res.data or []}
+    return {"danh_sach": [_to_frontend(d) for d in (res.data or [])]}
 
 
 @router.post("/mua")
@@ -93,19 +100,19 @@ async def mua_trang_tri(
     if coins < gia:
         raise HTTPException(402, f"Không đủ coins (cần {gia}, có {coins})")
 
-    decor = {
-        "user_id": user_id,
-        "tank_id": tid,
-        "loai":    body.loai,
-        "pos_x":   0.5,
-        "pos_y":   0.85,
-        "layer":   1,
-        "an":      True,
+    decor_row = {
+        "user_id":       user_id,
+        "tank_id":       tid,
+        "loai_trang_tri": body.loai,
+        "pos_x":         0.5,
+        "pos_y":         0.85,
+        "layer":         1,
+        "is_visible":    False,   # mới mua → chưa đặt → ẩn
     }
-    result = supabase_admin.table("decorations").insert(decor).execute()
+    result = supabase_admin.table("decorations").insert(decor_row).execute()
     coins_con_lai = coins - gia
     supabase_admin.table("profiles").update({"coins": coins_con_lai}).eq("id", user_id).execute()
-    return {"decor": result.data[0], "coins_con_lai": coins_con_lai}
+    return {"decor": _to_frontend(result.data[0]), "coins_con_lai": coins_con_lai}
 
 
 @router.patch("/{decor_id}")
@@ -125,16 +132,16 @@ async def cap_nhat(
         raise HTTPException(404, "Không tìm thấy trang trí")
 
     updates = {}
-    if body.pos_x is not None: updates["pos_x"] = max(0.01, min(0.99, body.pos_x))
-    if body.pos_y is not None: updates["pos_y"] = max(0.05, min(0.97, body.pos_y))
-    if body.layer is not None: updates["layer"] = max(1, min(3, body.layer))
-    if body.an    is not None: updates["an"]    = body.an
+    if body.pos_x is not None: updates["pos_x"]      = max(0.01, min(0.99, body.pos_x))
+    if body.pos_y is not None: updates["pos_y"]      = max(0.05, min(0.97, body.pos_y))
+    if body.layer is not None: updates["layer"]      = max(1, min(3, body.layer))
+    if body.an    is not None: updates["is_visible"] = not body.an  # an=False → visible=True
 
     if not updates:
         return {"ok": True}
 
     result = supabase_admin.table("decorations").update(updates).eq("id", decor_id).execute()
-    return {"decor": result.data[0] if result.data else None}
+    return {"decor": _to_frontend(result.data[0]) if result.data else None}
 
 
 @router.delete("/{decor_id}")
