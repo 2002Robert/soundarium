@@ -109,14 +109,27 @@ async def mua_trang_tri(
     if coins < gia:
         raise HTTPException(402, f"Không đủ coins (cần {gia}, có {coins})")
 
+    is_ngoc = body.loai == "ngoc_trai"
+    # Ngọc trai: nếu đã có rồi thì trả về bản ghi hiện tại, không tạo thêm
+    if is_ngoc:
+        existing = (
+            supabase_admin.table("decorations")
+            .select("*")
+            .eq("user_id", user_id)
+            .eq("loai_trang_tri", "ngoc_trai")
+            .execute()
+        )
+        if existing.data:
+            return {"decor": _to_frontend(existing.data[0]), "coins_con_lai": coins}
+
     decor_row = {
-        "user_id":       user_id,
-        "tank_id":       tid,
+        "user_id":        user_id,
+        "tank_id":        tid,
         "loai_trang_tri": body.loai,
-        "pos_x":         0.5,
-        "pos_y":         0.85,
-        "layer":         1,
-        "is_visible":    False,   # mới mua → chưa đặt → ẩn
+        "pos_x":          0.5,
+        "pos_y":          0.96 if is_ngoc else 0.85,
+        "layer":          0    if is_ngoc else 1,
+        "is_visible":     True if is_ngoc else False,
     }
     result = supabase_admin.table("decorations").insert(decor_row).execute()
     coins_con_lai = coins - gia

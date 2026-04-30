@@ -34,7 +34,15 @@ async function syncScalesLSToDB(list) {
     try {
       await API.capNhatDecor(d.id, { scale })
       localStorage.removeItem('snd_sc_' + d.id)
-    } catch { /* cột chưa có — bỏ qua */ }
+    } catch (e) {
+      console.error(
+        '[scale-sync] Lỗi — cột scale có thể chưa tồn tại trong DB.\n' +
+        'Chạy SQL trong Supabase:\n' +
+        '  ALTER TABLE decorations ADD COLUMN IF NOT EXISTS scale FLOAT DEFAULT 1.0;\n' +
+        '  NOTIFY pgrst, \'reload schema\';\n',
+        e?.message
+      )
+    }
   }
 }
 
@@ -468,12 +476,16 @@ export default function Home() {
         setDanhSachDecor(mergeScaleLS(filtered1))
         // Truyền list raw (chưa merge LS) để so sánh DB vs localStorage đúng
         syncScalesLSToDB(filtered1)
-        // Migration: user đã có oyster trong localStorage nhưng chưa có trong DB → tạo
         const hasNgocTraiInDB = allDecors.some(d => d.loai === 'ngoc_trai')
         if (!hasNgocTraiInDB) {
           const savedCT = JSON.parse(localStorage.getItem('snd_con_trai') || 'null')
           if (Array.isArray(savedCT) && savedCT.length > 0) {
-            API.muaDecor({ loai: 'ngoc_trai', tank_id: tid }).catch(() => {})
+            // User cũ có oyster trong localStorage nhưng chưa có DB record → tạo (giá 0 coins)
+            API.muaDecor('ngoc_trai', tid).catch(() => {})
+          } else {
+            // Không có oyster ở cả DB lẫn localStorage → xóa stale data từ session cũ
+            localStorage.removeItem('snd_con_trai')
+            setConTrai([])
           }
         }
       }
