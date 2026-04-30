@@ -464,9 +464,10 @@ export default function Home() {
         setDanhSachCa(fishRes.danh_sach_ca || [])
         const allDecors = decorRes.danh_sach || []
         // Ngọc trai được render qua hệ thống conTrai local, không qua decorations
-        const merged1 = mergeScaleLS(allDecors.filter(d => d.loai !== 'ngoc_trai'))
-        setDanhSachDecor(merged1)
-        syncScalesLSToDB(merged1)
+        const filtered1 = allDecors.filter(d => d.loai !== 'ngoc_trai')
+        setDanhSachDecor(mergeScaleLS(filtered1))
+        // Truyền list raw (chưa merge LS) để so sánh DB vs localStorage đúng
+        syncScalesLSToDB(filtered1)
         // Migration: user đã có oyster trong localStorage nhưng chưa có trong DB → tạo
         const hasNgocTraiInDB = allDecors.some(d => d.loai === 'ngoc_trai')
         if (!hasNgocTraiInDB) {
@@ -538,9 +539,9 @@ export default function Home() {
         API.layDecor(tankId).catch(() => ({ danh_sach: [] })),
       ])
       setDanhSachCa(fishRes.danh_sach_ca || [])
-      const merged2 = mergeScaleLS((decorRes.danh_sach || []).filter(d => d.loai !== 'ngoc_trai'))
-      setDanhSachDecor(merged2)
-      syncScalesLSToDB(merged2)
+      const filtered2 = (decorRes.danh_sach || []).filter(d => d.loai !== 'ngoc_trai')
+      setDanhSachDecor(mergeScaleLS(filtered2))
+      syncScalesLSToDB(filtered2)
     } catch {
       hienToast('Không tải được hồ', 'loi')
     }
@@ -610,16 +611,18 @@ export default function Home() {
   async function doiScaleDecor(id, delta) {
     const d = danhSachDecor.find(x => x.id === id)
     if (!d) return
-    const stored = parseFloat(localStorage.getItem('snd_sc_' + id) || '1') || 1.0
-    const cur = d.scale ?? stored
-    const newScale = Math.round(Math.max(0.1, cur + delta) * 10) / 10
+    const newScale = Math.round(Math.max(0.1, (d.scale ?? 1.0) + delta) * 10) / 10
     setDanhSachDecor(prev => prev.map(x => x.id === id ? { ...x, scale: newScale } : x))
     setMenuDecor(prev => prev ? { ...prev, decor: { ...prev.decor, scale: newScale } } : null)
+    // Lưu tạm localStorage để fallback nếu API lỗi
     localStorage.setItem('snd_sc_' + id, String(newScale))
     try {
       await API.capNhatDecor(id, { scale: newScale })
+      // API thành công → xóa localStorage, DB là source of truth
+      localStorage.removeItem('snd_sc_' + id)
     } catch (e) {
-      console.warn('[decor] scale chưa lưu DB — chạy SQL:\nALTER TABLE decorations ADD COLUMN IF NOT EXISTS scale FLOAT DEFAULT 1.0;\nNOTIFY pgrst, \'reload schema\';', e.message)
+      // Giữ localStorage để syncScalesLSToDB retry lần sau
+      console.warn('[decor] scale sync thất bại, sẽ retry lần load sau', e.message)
     }
   }
 

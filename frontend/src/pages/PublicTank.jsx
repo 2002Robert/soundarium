@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react'
 import { useParams } from 'react-router-dom'
 import { API } from '../lib/api'
 import AquariumCanvas from '../components/AquariumCanvas'
+import { normalizeDecorDB } from '../utils/drawDecorations'
 import YouTubePlayer from '../components/YouTubePlayer'
 import MusicPlayerBar from '../components/MusicPlayerBar'
 import PublicFishPanel from '../components/PublicFishPanel'
@@ -18,15 +19,7 @@ export default function PublicTank() {
   const danhSachCa      = tank?.fish || []
   const danhSachSua     = danhSachCa.filter(c => c.loai_ca === 'sua_gai')
   const danhSachCaThuong = danhSachCa.filter(c => c.loai_ca !== 'sua_gai')
-  const decorList       = (tank?.decorations || []).map(d => ({
-    id:    d.id,
-    loai:  d.loai_trang_tri,
-    pos_x: d.pos_x ?? 0.5,
-    pos_y: d.pos_y ?? 0.85,
-    layer: d.layer ?? 1,
-    scale: d.scale ?? 1.0,
-    an:    !d.is_visible,
-  }))
+  const decorList       = (tank?.decorations || []).map(normalizeDecorDB)
   const caDangPhat = danhSachCa.find(c => c.id === dangPhat) ?? null
 
   useEffect(() => {
