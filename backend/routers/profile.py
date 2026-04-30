@@ -2,6 +2,7 @@ from fastapi import APIRouter, Depends, HTTPException
 from database import supabase_admin
 from auth import lay_user_id
 from pydantic import BaseModel, field_validator
+from rate_limit import check as rate_check
 import re
 
 router = APIRouter(prefix="/api/profile", tags=["profile"])
@@ -153,6 +154,7 @@ async def mua_sua_gai(user_id: str = Depends(lay_user_id)):
 @router.post("/thu-ngoc")
 async def thu_ngoc_trai(user_id: str = Depends(lay_user_id)):
     """Người dùng bắt sứa → nhận 1 ngọc trai."""
+    rate_check(user_id, "thu-ngoc", 60)  # tối đa 1 lần/phút
     profile = (
         supabase_admin.table("profiles")
         .select("ngoc_trai")
@@ -235,6 +237,7 @@ async def mua_con_trai(user_id: str = Depends(lay_user_id)):
 @router.post("/nhat-ngoc")
 async def nhat_ngoc(user_id: str = Depends(lay_user_id)):
     """Người dùng nhặt ngọc từ con trai mở → +10 coins."""
+    rate_check(user_id, "nhat-ngoc", 14 * 60)  # 14 phút (oyster mở mỗi 15 phút)
     profile = (
         supabase_admin.table("profiles")
         .select("coins")
