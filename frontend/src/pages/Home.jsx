@@ -75,21 +75,27 @@ function PlacementOverlay({ icon, playerBarHeight, onPlace, onCancel }) {
 function FishFoodIcon() {
   return (
     <svg width="20" height="24" viewBox="0 0 20 26" fill="none">
-      {/* Lid */}
-      <rect x="2" y="1" width="16" height="4.5" rx="2" fill="#c0400e"/>
-      <rect x="3" y="4.2" width="14" height="1.5" fill="#a83508"/>
-      {/* Body */}
-      <rect x="3" y="5.5" width="14" height="12.5" rx="1.5" fill="#e8541a"/>
-      {/* Label */}
-      <rect x="4.5" y="7.5" width="11" height="8" rx="1" fill="rgba(255,255,255,0.12)"/>
-      {/* Tiny fish — white silhouette */}
-      <path d="M 6.5 11.5 L 5 9.5 L 5 13.5 Z" fill="rgba(255,255,255,0.7)"/>
-      <ellipse cx="9.5" cy="11.5" rx="3.2" ry="2" fill="rgba(255,255,255,0.7)"/>
-      <circle cx="11.6" cy="10.9" r="0.55" fill="rgba(200,75,5,0.65)"/>
-      {/* Pellets falling */}
-      <circle cx="6" cy="21.5" r="1.3" fill="#e8541a"/>
-      <circle cx="10.5" cy="24" r="1.1" fill="#e8541a" opacity="0.8"/>
-      <circle cx="15" cy="21" r="1.2" fill="#e8541a" opacity="0.85"/>
+      {/* Container body */}
+      <rect x="2" y="1" width="16" height="20" rx="3" fill="#e8541a"/>
+      {/* Cap — dark, covers top 36% */}
+      <rect x="2" y="1" width="16" height="7.5" rx="3" fill="#7d2008"/>
+      {/* Cap seal line */}
+      <rect x="2" y="7.5" width="16" height="2" fill="#611604"/>
+      {/* Cap highlight */}
+      <ellipse cx="10" cy="3.5" rx="5" ry="1.5" fill="rgba(255,255,255,0.1)"/>
+      {/* Left body shine */}
+      <rect x="4" y="11" width="2.5" height="8" rx="1.25" fill="rgba(255,255,255,0.17)"/>
+      {/* Label border lines */}
+      <rect x="2" y="11.5" width="16" height="0.8" fill="rgba(255,255,255,0.28)"/>
+      <rect x="2" y="19" width="16" height="0.8" fill="rgba(255,255,255,0.28)"/>
+      {/* Fish silhouette on label */}
+      <path d="M 5.5 15.3 L 3.8 13.2 L 3.8 17.3 Z" fill="rgba(255,255,255,0.72)"/>
+      <ellipse cx="10" cy="15.3" rx="4.2" ry="2.5" fill="rgba(255,255,255,0.72)"/>
+      <circle cx="13.2" cy="14.6" r="0.72" fill="rgba(100,22,0,0.6)"/>
+      {/* Pellets — golden amber, clearly distinct */}
+      <circle cx="5"   cy="23.2" r="1.7" fill="#c87510"/>
+      <circle cx="10"  cy="25"   r="1.4" fill="#c87510" opacity="0.82"/>
+      <circle cx="15"  cy="22.8" r="1.5" fill="#c87510" opacity="0.72"/>
     </svg>
   )
 }
