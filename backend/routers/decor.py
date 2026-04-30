@@ -15,6 +15,7 @@ from auth import lay_user_id
 router = APIRouter(prefix="/api/decor", tags=["decor"])
 
 GIA_TRANG_TRI = {
+    "ngoc_trai":     0,
     "rong_bien":     50,
     "san_ho_cay":    80,
     "da_cuoi":       30,

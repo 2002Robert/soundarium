@@ -198,6 +198,34 @@ async def mua_con_trai(user_id: str = Depends(lay_user_id)):
         {"coins": coins_con_lai}
     ).eq("id", user_id).execute()
 
+    # Tạo decoration ngọc trai trong DB để hồ public hiện được
+    tank = (
+        supabase_admin.table("tanks")
+        .select("id")
+        .eq("user_id", user_id)
+        .order("created_at")
+        .limit(1)
+        .execute()
+    )
+    if tank.data:
+        existing = (
+            supabase_admin.table("decorations")
+            .select("id")
+            .eq("user_id", user_id)
+            .eq("loai_trang_tri", "ngoc_trai")
+            .execute()
+        )
+        if not existing.data:
+            supabase_admin.table("decorations").insert({
+                "user_id":        user_id,
+                "tank_id":        tank.data[0]["id"],
+                "loai_trang_tri": "ngoc_trai",
+                "pos_x":          0.5,
+                "pos_y":          0.96,
+                "layer":          0,
+                "is_visible":     True,
+            }).execute()
+
     return {"coins_con_lai": coins_con_lai, "so_con_trai": _SO_CON_TRAI}
 
 

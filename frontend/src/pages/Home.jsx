@@ -462,9 +462,19 @@ export default function Home() {
           API.layDecor(tid).catch(() => ({ danh_sach: [] })),
         ])
         setDanhSachCa(fishRes.danh_sach_ca || [])
-        const merged1 = mergeScaleLS(decorRes.danh_sach || [])
+        const allDecors = decorRes.danh_sach || []
+        // Ngọc trai được render qua hệ thống conTrai local, không qua decorations
+        const merged1 = mergeScaleLS(allDecors.filter(d => d.loai !== 'ngoc_trai'))
         setDanhSachDecor(merged1)
         syncScalesLSToDB(merged1)
+        // Migration: user đã có oyster trong localStorage nhưng chưa có trong DB → tạo
+        const hasNgocTraiInDB = allDecors.some(d => d.loai === 'ngoc_trai')
+        if (!hasNgocTraiInDB) {
+          const savedCT = JSON.parse(localStorage.getItem('snd_con_trai') || 'null')
+          if (Array.isArray(savedCT) && savedCT.length > 0) {
+            API.muaDecor({ loai: 'ngoc_trai', tank_id: tid }).catch(() => {})
+          }
+        }
       }
       setDangKhoiDong(false)
     } catch {
@@ -528,7 +538,7 @@ export default function Home() {
         API.layDecor(tankId).catch(() => ({ danh_sach: [] })),
       ])
       setDanhSachCa(fishRes.danh_sach_ca || [])
-      const merged2 = mergeScaleLS(decorRes.danh_sach || [])
+      const merged2 = mergeScaleLS((decorRes.danh_sach || []).filter(d => d.loai !== 'ngoc_trai'))
       setDanhSachDecor(merged2)
       syncScalesLSToDB(merged2)
     } catch {

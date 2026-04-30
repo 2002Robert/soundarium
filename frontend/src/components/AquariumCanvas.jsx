@@ -1035,83 +1035,105 @@ function veCungDien(ctx, s) {
 }
 
 function veXacTau(ctx, s) {
-  // Shadow
-  ctx.fillStyle = 'rgba(0,0,0,0.14)'
-  ctx.beginPath(); ctx.ellipse(0, s*0.09, s*0.72, s*0.09, 0, 0, Math.PI*2); ctx.fill()
+  ctx.fillStyle = 'rgba(0,0,0,0.13)'
+  ctx.beginPath(); ctx.ellipse(0, s*0.10, s*0.68, s*0.075, 0, 0, Math.PI*2); ctx.fill()
 
-  // ── Đuôi tàu (trái) — nghiêng phải ──────────────────────────
-  ctx.save()
-  ctx.translate(-s*0.28, 0)
-  ctx.rotate(0.22)
-  const hg1 = ctx.createLinearGradient(0, -s*0.32, 0, s*0.06)
-  hg1.addColorStop(0, '#5C3D1C'); hg1.addColorStop(1, '#281606')
-  ctx.fillStyle = hg1
-  ctx.beginPath()
-  ctx.moveTo(-s*0.44, s*0.05)
-  ctx.quadraticCurveTo(-s*0.50, -s*0.10, -s*0.42, -s*0.30)
-  ctx.lineTo(s*0.04, -s*0.30)
-  // Cạnh gãy răng cưa
-  ctx.lineTo(s*0.08, -s*0.20); ctx.lineTo(s*0.02, -s*0.12)
-  ctx.lineTo(s*0.10, -s*0.04); ctx.lineTo(s*0.04, s*0.05)
-  ctx.closePath(); ctx.fill()
-  // Sọc boong
-  ctx.strokeStyle = 'rgba(14,7,2,0.40)'; ctx.lineWidth = s*0.032
-  ctx.beginPath(); ctx.moveTo(-s*0.40, -s*0.15); ctx.lineTo(s*0.01, -s*0.15); ctx.stroke()
-  // Ván dọc
-  ctx.lineWidth = s*0.020; ctx.strokeStyle = 'rgba(14,7,2,0.25)'
-  for (const xf of [-0.30, -0.16]) { ctx.beginPath(); ctx.moveTo(xf*s, -s*0.30); ctx.lineTo(xf*s*0.88, s*0.04); ctx.stroke() }
-  // Cột buồm bị gãy (chỉ còn gốc)
-  ctx.fillStyle = '#3A2010'
-  ctx.beginPath(); ctx.rect(-s*0.16, -s*0.30, s*0.09, -s*0.22); ctx.fill()
-  // Cờ rách trên gốc buồm
-  ctx.fillStyle = 'rgba(180,30,30,0.70)'
-  ctx.beginPath(); ctx.moveTo(-s*0.07, -s*0.52); ctx.lineTo(s*0.08, -s*0.46); ctx.lineTo(-s*0.07, -s*0.40); ctx.closePath(); ctx.fill()
-  // Rong biển
-  ctx.fillStyle = 'rgba(22,88,28,0.60)'
-  ctx.beginPath(); ctx.ellipse(-s*0.34, -s*0.03, s*0.055, s*0.13, -0.28, 0, Math.PI*2); ctx.fill()
-  ctx.beginPath(); ctx.ellipse(-s*0.40, -s*0.10, s*0.042, s*0.09, 0.38, 0, Math.PI*2); ctx.fill()
-  ctx.restore()
+  function veNua(ox, oy, rot, isBow) {
+    ctx.save()
+    ctx.translate(ox, oy)
+    ctx.rotate(rot)
 
-  // ── Mũi tàu (phải) — nghiêng trái, mũi chúc xuống ───────────
-  ctx.save()
-  ctx.translate(s*0.28, 0)
-  ctx.rotate(-0.24)
-  const hg2 = ctx.createLinearGradient(0, -s*0.32, 0, s*0.06)
-  hg2.addColorStop(0, '#5C3D1C'); hg2.addColorStop(1, '#281606')
-  ctx.fillStyle = hg2
-  ctx.beginPath()
-  ctx.moveTo(s*0.46, s*0.05)
-  ctx.quadraticCurveTo(s*0.52, -s*0.08, s*0.44, -s*0.26)
-  ctx.lineTo(-s*0.04, -s*0.26)
-  // Cạnh gãy
-  ctx.lineTo(-s*0.08, -s*0.16); ctx.lineTo(-s*0.02, -s*0.08)
-  ctx.lineTo(-s*0.10, 0); ctx.lineTo(-s*0.04, s*0.05)
-  ctx.closePath(); ctx.fill()
-  // Sọc boong
-  ctx.strokeStyle = 'rgba(14,7,2,0.40)'; ctx.lineWidth = s*0.032
-  ctx.beginPath(); ctx.moveTo(s*0.42, -s*0.15); ctx.lineTo(-s*0.01, -s*0.15); ctx.stroke()
-  // Ván dọc
-  ctx.lineWidth = s*0.020; ctx.strokeStyle = 'rgba(14,7,2,0.25)'
-  for (const xf of [0.30, 0.16]) { ctx.beginPath(); ctx.moveTo(xf*s, -s*0.26); ctx.lineTo(xf*s*0.85, s*0.04); ctx.stroke() }
-  // Cửa sổ hầm tàu
-  ctx.fillStyle = 'rgba(6,2,1,0.82)'
-  ctx.beginPath(); ctx.ellipse(s*0.24, -s*0.19, s*0.10, s*0.068, 0.18, 0, Math.PI*2); ctx.fill()
-  // Cột buồm chính gãy chổng ngược
-  ctx.strokeStyle = '#3A2010'; ctx.lineWidth = s*0.072; ctx.lineCap = 'round'
-  ctx.beginPath(); ctx.moveTo(s*0.10, -s*0.26); ctx.lineTo(s*0.34, -s*0.78); ctx.stroke()
-  ctx.lineWidth = s*0.048
-  ctx.beginPath(); ctx.moveTo(s*0.14, -s*0.54); ctx.lineTo(s*0.40, -s*0.48); ctx.stroke()
-  // Rong biển mũi
-  ctx.fillStyle = 'rgba(22,88,28,0.50)'
-  ctx.beginPath(); ctx.ellipse(s*0.38, -s*0.03, s*0.045, s*0.10, 0.22, 0, Math.PI*2); ctx.fill()
-  ctx.restore()
+    const hg = ctx.createLinearGradient(0, -s*0.28, 0, s*0.10)
+    hg.addColorStop(0, '#7a4520'); hg.addColorStop(0.55, '#5a3012'); hg.addColorStop(1, '#341808')
+    ctx.fillStyle = hg
 
-  // ── Mảnh ván vỡ rơi ở khoảng giữa ───────────────────────────
-  ctx.strokeStyle = '#4A2C0E'; ctx.lineWidth = s*0.045; ctx.lineCap = 'round'
-  ctx.beginPath(); ctx.moveTo(-s*0.10, -s*0.22); ctx.lineTo(s*0.07, -s*0.04); ctx.stroke()
-  ctx.beginPath(); ctx.moveTo(s*0.06, -s*0.24); ctx.lineTo(-s*0.07, -s*0.06); ctx.stroke()
-  ctx.lineWidth = s*0.030
-  ctx.beginPath(); ctx.moveTo(-s*0.04, -s*0.30); ctx.lineTo(s*0.04, -s*0.10); ctx.stroke()
+    // Thân tàu
+    ctx.beginPath()
+    if (isBow) {
+      // Mũi: trái = cạnh gãy, phải = mũi nhọn, đáy cong
+      ctx.moveTo(-s*0.05, s*0.09)
+      ctx.lineTo(-s*0.07, -s*0.25)
+      ctx.lineTo(s*0.38, -s*0.22)
+      ctx.quadraticCurveTo(s*0.52, -s*0.05, s*0.46, s*0.09)
+      ctx.quadraticCurveTo(s*0.22, s*0.15, -s*0.05, s*0.09)
+    } else {
+      // Đuôi: phải = cạnh gãy, trái = đuôi, đáy cong
+      ctx.moveTo(s*0.05, s*0.09)
+      ctx.lineTo(s*0.07, -s*0.25)
+      ctx.lineTo(-s*0.36, -s*0.28)
+      ctx.quadraticCurveTo(-s*0.48, -s*0.10, -s*0.42, s*0.09)
+      ctx.quadraticCurveTo(-s*0.20, s*0.15, s*0.05, s*0.09)
+    }
+    ctx.fill()
+    ctx.clip()
+
+    // Boong tàu (dải sáng trên cùng)
+    ctx.fillStyle = '#9e6030'
+    if (isBow) ctx.fillRect(-s*0.06, -s*0.32, s*0.44, s*0.08)
+    else       ctx.fillRect(-s*0.38, -s*0.34, s*0.44, s*0.10)
+
+    // Sọc mớn nước (tối)
+    ctx.fillStyle = 'rgba(18,6,0,0.55)'
+    if (isBow) ctx.fillRect(-s*0.06, -s*0.06, s*0.51, s*0.05)
+    else       ctx.fillRect(-s*0.48, -s*0.06, s*0.53, s*0.05)
+
+    // Ván dọc
+    ctx.strokeStyle = 'rgba(0,0,0,0.22)'; ctx.lineWidth = s*0.016
+    const planks = isBow ? [0.12, 0.26] : [-0.26, -0.12]
+    planks.forEach(xf => {
+      ctx.beginPath(); ctx.moveTo(xf*s, -s*0.24); ctx.lineTo(xf*s*0.90, s*0.08); ctx.stroke()
+    })
+
+    ctx.restore()
+
+    // ── Boong (đường viền ngoài clip) ────────────────────────
+    ctx.save(); ctx.translate(ox, oy); ctx.rotate(rot)
+    ctx.strokeStyle = '#4a2208'; ctx.lineWidth = s*0.022
+    if (isBow) {
+      ctx.beginPath(); ctx.moveTo(-s*0.06, -s*0.24); ctx.lineTo(s*0.38, -s*0.22); ctx.stroke()
+    } else {
+      ctx.beginPath(); ctx.moveTo(s*0.06, -s*0.25); ctx.lineTo(-s*0.35, -s*0.28); ctx.stroke()
+    }
+
+    if (!isBow) {
+      // Cột buồm + cánh ngang + buồm rách
+      ctx.fillStyle = '#2a1200'
+      ctx.fillRect(-s*0.18, -s*0.28, s*0.08, -s*0.26)
+      ctx.strokeStyle = '#2a1200'; ctx.lineWidth = s*0.06; ctx.lineCap = 'round'
+      ctx.beginPath(); ctx.moveTo(-s*0.22, -s*0.50); ctx.lineTo(s*0.02, -s*0.44); ctx.stroke()
+      ctx.fillStyle = 'rgba(185,165,110,0.48)'
+      ctx.beginPath()
+      ctx.moveTo(-s*0.22, -s*0.50); ctx.lineTo(s*0.02, -s*0.44); ctx.lineTo(-s*0.04, -s*0.28); ctx.lineTo(-s*0.16, -s*0.30)
+      ctx.closePath(); ctx.fill()
+      // Rong biển đuôi
+      ctx.fillStyle = 'rgba(14,78,20,0.65)'
+      ctx.beginPath(); ctx.ellipse(-s*0.35, s*0.04, s*0.052, s*0.12, -0.22, 0, Math.PI*2); ctx.fill()
+      ctx.beginPath(); ctx.ellipse(-s*0.41, -s*0.02, s*0.038, s*0.085, 0.32, 0, Math.PI*2); ctx.fill()
+    } else {
+      // Cửa sổ tròn (porthole)
+      ctx.fillStyle = 'rgba(6,2,0,0.90)'
+      ctx.beginPath(); ctx.arc(s*0.22, -s*0.14, s*0.068, 0, Math.PI*2); ctx.fill()
+      ctx.strokeStyle = 'rgba(135,78,18,0.80)'; ctx.lineWidth = s*0.026
+      ctx.beginPath(); ctx.arc(s*0.22, -s*0.14, s*0.068, 0, Math.PI*2); ctx.stroke()
+      ctx.fillStyle = 'rgba(60,160,255,0.10)'
+      ctx.beginPath(); ctx.arc(s*0.22, -s*0.14, s*0.068, 0, Math.PI*2); ctx.fill()
+      // Rong biển mũi
+      ctx.fillStyle = 'rgba(14,78,20,0.55)'
+      ctx.beginPath(); ctx.ellipse(s*0.40, s*0.04, s*0.040, s*0.095, 0.20, 0, Math.PI*2); ctx.fill()
+    }
+    ctx.restore()
+  }
+
+  // Đuôi (trái, nghiêng phải nhẹ)
+  veNua(-s*0.24, s*0.02, 0.14, false)
+  // Mũi (phải, chúc xuống)
+  veNua(s*0.24, -s*0.02, -0.28, true)
+
+  // Mảnh ván trôi giữa chỗ gãy
+  ctx.lineCap = 'round'; ctx.strokeStyle = '#7a4518'
+  ctx.lineWidth = s*0.042; ctx.beginPath(); ctx.moveTo(-s*0.05, -s*0.22); ctx.lineTo(s*0.07, -s*0.04); ctx.stroke()
+  ctx.lineWidth = s*0.028; ctx.beginPath(); ctx.moveTo(s*0.06, -s*0.26); ctx.lineTo(-s*0.07, -s*0.06); ctx.stroke()
+  ctx.lineWidth = s*0.018; ctx.beginPath(); ctx.moveTo(-s*0.02, -s*0.30); ctx.lineTo(s*0.03, -s*0.10); ctx.stroke()
 }
 
 function veNamPhatSang(ctx, s, t) {
@@ -1160,8 +1182,9 @@ function veVatTrangTri(ctx, item, w, h, t) {
     case 'ruong_go':      veRuongGo(ctx, s);         break
     case 'cot_da_co':     veCotDaCo(ctx, s);         break
     case 'cung_dien':     veCungDien(ctx, s);        break
-    case 'xac_tau':       veXacTau(ctx, s, t);       break
+    case 'xac_tau':       veXacTau(ctx, s);           break
     case 'nam_phat_sang': veNamPhatSang(ctx, s, t);  break
+    case 'ngoc_trai':     veConTrai(ctx, 0, 0, s * 1.2, false); break
   }
   ctx.restore()
 }
