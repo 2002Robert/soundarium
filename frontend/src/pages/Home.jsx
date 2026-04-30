@@ -72,30 +72,77 @@ function PlacementOverlay({ icon, playerBarHeight, onPlace, onCancel }) {
   )
 }
 
-function FishFoodIcon() {
+// ── Left-bar icons — stroke="currentColor", 22×22 ────────────────
+function IcoShare() {
   return (
-    <svg width="20" height="24" viewBox="0 0 20 26" fill="none">
-      {/* Container body */}
-      <rect x="2" y="1" width="16" height="20" rx="3" fill="#e8541a"/>
-      {/* Cap — dark, covers top 36% */}
-      <rect x="2" y="1" width="16" height="7.5" rx="3" fill="#7d2008"/>
-      {/* Cap seal line */}
-      <rect x="2" y="7.5" width="16" height="2" fill="#611604"/>
-      {/* Cap highlight */}
-      <ellipse cx="10" cy="3.5" rx="5" ry="1.5" fill="rgba(255,255,255,0.1)"/>
-      {/* Left body shine */}
-      <rect x="4" y="11" width="2.5" height="8" rx="1.25" fill="rgba(255,255,255,0.17)"/>
-      {/* Label border lines */}
-      <rect x="2" y="11.5" width="16" height="0.8" fill="rgba(255,255,255,0.28)"/>
-      <rect x="2" y="19" width="16" height="0.8" fill="rgba(255,255,255,0.28)"/>
-      {/* Fish silhouette on label */}
-      <path d="M 5.5 15.3 L 3.8 13.2 L 3.8 17.3 Z" fill="rgba(255,255,255,0.72)"/>
-      <ellipse cx="10" cy="15.3" rx="4.2" ry="2.5" fill="rgba(255,255,255,0.72)"/>
-      <circle cx="13.2" cy="14.6" r="0.72" fill="rgba(100,22,0,0.6)"/>
-      {/* Pellets — golden amber, clearly distinct */}
-      <circle cx="5"   cy="23.2" r="1.7" fill="#c87510"/>
-      <circle cx="10"  cy="25"   r="1.4" fill="#c87510" opacity="0.82"/>
-      <circle cx="15"  cy="22.8" r="1.5" fill="#c87510" opacity="0.72"/>
+    <svg width="22" height="22" viewBox="0 0 22 22" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+      <circle cx="17" cy="5"  r="2.5"/>
+      <circle cx="5"  cy="11" r="2.5"/>
+      <circle cx="17" cy="17" r="2.5"/>
+      <line x1="7.2" y1="9.7"  x2="14.8" y2="6.3"/>
+      <line x1="7.2" y1="12.3" x2="14.8" y2="15.7"/>
+    </svg>
+  )
+}
+
+function IcoCamera() {
+  return (
+    <svg width="22" height="22" viewBox="0 0 22 22" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+      <rect x="2" y="7" width="18" height="13" rx="2"/>
+      <path d="M8 7V5.5Q8 4.5 9 4.5H13Q14 4.5 14 5.5V7"/>
+      <circle cx="11" cy="13.5" r="3.5"/>
+    </svg>
+  )
+}
+
+function IcoFood() {
+  return (
+    <svg width="22" height="22" viewBox="0 0 22 22" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round">
+      <rect x="3.5" y="1" width="15" height="16" rx="2.5"/>
+      <line x1="3.5" y1="8" x2="18.5" y2="8"/>
+      <path d="M7.5 12.5 L6 10.8 L6 14.2 Z" fill="currentColor" stroke="none"/>
+      <ellipse cx="11.5" cy="12.5" rx="3.8" ry="2.2"/>
+      <circle cx="5.5"  cy="19.5" r="1.3" fill="currentColor" stroke="none"/>
+      <circle cx="11"   cy="21"   r="1.1" fill="currentColor" stroke="none" opacity="0.78"/>
+      <circle cx="16.5" cy="19.5" r="1.2" fill="currentColor" stroke="none" opacity="0.85"/>
+    </svg>
+  )
+}
+
+function IcoSearch() {
+  return (
+    <svg width="22" height="22" viewBox="0 0 22 22" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round">
+      <circle cx="9.5" cy="9.5" r="6.5"/>
+      <line x1="14.5" y1="14.5" x2="20" y2="20"/>
+    </svg>
+  )
+}
+
+function IcoShop() {
+  return (
+    <svg width="22" height="22" viewBox="0 0 22 22" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M8 9Q8 5 11 5Q14 5 14 9"/>
+      <path d="M4.5 9H17.5L16 19Q15.8 20 14.8 20H7.2Q6.2 20 6 19Z"/>
+    </svg>
+  )
+}
+
+function IcoHouse() {
+  return (
+    <svg width="22" height="22" viewBox="0 0 22 22" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+      <polyline points="3,10 11,3 19,10"/>
+      <path d="M5 10V19Q5 20 6 20H16Q17 20 17 19V10"/>
+      <path d="M9 20V15Q9 14 11 14Q13 14 13 15V20"/>
+    </svg>
+  )
+}
+
+function IcoExit() {
+  return (
+    <svg width="22" height="22" viewBox="0 0 22 22" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M10 4H5Q4 4 4 5V17Q4 18 5 18H10"/>
+      <line x1="9" y1="11" x2="19" y2="11"/>
+      <polyline points="15.5,7.5 19,11 15.5,14.5"/>
     </svg>
   )
 }
@@ -105,7 +152,7 @@ function IconBtn({ onClick, title, children, className = '' }) {
     <button
       onClick={onClick}
       title={title}
-      className={`w-9 h-9 flex items-center justify-center bg-ho-nong/70 hover:bg-ho-nong border border-ho-anh/20 hover:border-ho-anh/40 rounded-xl text-ho-anh/70 hover:text-ho-anh transition text-base ${className}`}
+      className={`w-11 h-11 flex items-center justify-center bg-ho-nong/70 hover:bg-ho-nong border border-ho-anh/20 hover:border-ho-anh/40 rounded-xl text-white/70 hover:text-white transition ${className}`}
     >
       {children}
     </button>
@@ -829,11 +876,11 @@ export default function Home() {
             }}
         />
         <div className="flex flex-col gap-1.5 mt-2">
-          <IconBtn onClick={chiaSe} title="Chia sẻ hồ">🔗</IconBtn>
-          <IconBtn onClick={chupAnhHo} title="Chụp ảnh hồ">📷</IconBtn>
-          <IconBtn onClick={choAn} title="Cho cá ăn"><FishFoodIcon /></IconBtn>
-          <IconBtn onClick={() => setHienExplore(true)} title="Khám phá">🔍</IconBtn>
-          <IconBtn onClick={() => setHienShop(true)} title="Cửa hàng">🛒</IconBtn>
+          <IconBtn onClick={chiaSe} title="Chia sẻ hồ"><IcoShare /></IconBtn>
+          <IconBtn onClick={chupAnhHo} title="Chụp ảnh hồ"><IcoCamera /></IconBtn>
+          <IconBtn onClick={choAn} title="Cho cá ăn"><IcoFood /></IconBtn>
+          <IconBtn onClick={() => setHienExplore(true)} title="Khám phá"><IcoSearch /></IconBtn>
+          <IconBtn onClick={() => setHienShop(true)} title="Cửa hàng"><IcoShop /></IconBtn>
           <TankSwitcher
             danhSachTank={danhSachTank}
             selectedId={selectedTankId}
@@ -841,7 +888,7 @@ export default function Home() {
             onTaoMoi={taoTankMoi}
             dangTao={dangTaoTank}
           />
-          <IconBtn onClick={() => setHienLogout(true)} title="Đăng xuất" className="text-ho-anh/40">🚪</IconBtn>
+          <IconBtn onClick={() => setHienLogout(true)} title="Đăng xuất" className="text-white/35 hover:text-red-400"><IcoExit /></IconBtn>
         </div>
       </div>
 

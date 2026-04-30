@@ -1,7 +1,7 @@
 import { useState } from 'react'
 
 const MAX_TANKS = 3
-const BTN = 'w-9 h-9 flex items-center justify-center bg-ho-nong/70 hover:bg-ho-nong border border-ho-anh/20 hover:border-ho-anh/40 rounded-xl text-ho-anh/70 hover:text-ho-anh transition text-base'
+const BTN = 'w-11 h-11 flex items-center justify-center bg-ho-nong/70 hover:bg-ho-nong border border-ho-anh/20 hover:border-ho-anh/40 rounded-xl text-white/70 hover:text-white transition'
 
 export default function TankSwitcher({ danhSachTank, selectedId, onChon, onTaoMoi, dangTao }) {
   const [hienMenu, setHienMenu] = useState(false)
@@ -13,7 +13,11 @@ export default function TankSwitcher({ danhSachTank, selectedId, onChon, onTaoMo
         title="Hồ của tôi"
         className={BTN}
       >
-        🏠
+        <svg width="22" height="22" viewBox="0 0 22 22" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+          <polyline points="3,10 11,3 19,10"/>
+          <path d="M5 10V19Q5 20 6 20H16Q17 20 17 19V10"/>
+          <path d="M9 20V15Q9 14 11 14Q13 14 13 15V20"/>
+        </svg>
       </button>
 
       {hienMenu && (
