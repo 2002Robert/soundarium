@@ -49,7 +49,7 @@ async def _lay_tank(user_id: str, tank_id: Optional[str]) -> str:
     q = supabase_admin.table("tanks").select("id").eq("user_id", user_id)
     if tank_id:
         q = q.eq("id", tank_id)
-    res = q.order("created_at").limit(1).execute()
+    res = q.order("created_at").execute()
     if not res.data:
         raise HTTPException(404, "Không tìm thấy hồ")
     return res.data[0]["id"]
