@@ -221,8 +221,8 @@ async def mua_con_trai(user_id: str = Depends(lay_user_id)):
                 "tank_id":        tank.data[0]["id"],
                 "loai_trang_tri": "ngoc_trai",
                 "pos_x":          0.5,
-                "pos_y":          0.96,
-                "layer":          0,
+                "pos_y":          0.90,
+                "layer":          1,
                 "is_visible":     True,
             }).execute()
 

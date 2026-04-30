@@ -127,8 +127,8 @@ async def mua_trang_tri(
         "tank_id":        tid,
         "loai_trang_tri": body.loai,
         "pos_x":          0.5,
-        "pos_y":          0.96 if is_ngoc else 0.85,
-        "layer":          0    if is_ngoc else 1,
+        "pos_y":          0.90 if is_ngoc else 0.85,
+        "layer":          1,
         "is_visible":     True if is_ngoc else False,
     }
     result = supabase_admin.table("decorations").insert(decor_row).execute()
