@@ -1146,6 +1146,18 @@ function veNamPhatSang(ctx, s, t) {
 
 function veVatTrangTri(ctx, item, w, h, t) {
   if (item.an) return
+
+  // Ngọc trai: dùng cùng kích thước & vị trí với hệ thống conTrai ở home
+  if (item.loai === 'ngoc_trai') {
+    const oysterR = Math.min(w * 0.07, 55)
+    const sandY   = h - 60 + 12                  // dayH=60, giống canvas loop
+    ctx.save()
+    ctx.translate(item.pos_x * w, sandY - oysterR * 0.42)
+    veConTrai(ctx, 0, 0, oysterR, false)
+    ctx.restore()
+    return
+  }
+
   const x  = item.pos_x * w
   const y  = item.pos_y * h
   const s  = Math.min(w, h) * 0.038
