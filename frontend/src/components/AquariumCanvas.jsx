@@ -1035,105 +1035,190 @@ function veCungDien(ctx, s) {
 }
 
 function veXacTau(ctx, s) {
-  ctx.fillStyle = 'rgba(0,0,0,0.13)'
-  ctx.beginPath(); ctx.ellipse(0, s*0.10, s*0.68, s*0.075, 0, 0, Math.PI*2); ctx.fill()
+  // Shadow (two layers simulate blur)
+  ctx.fillStyle = 'rgba(0,0,0,0.18)'
+  ctx.beginPath(); ctx.ellipse(0, s*0.62, s*2.2, s*0.18, 0, 0, Math.PI*2); ctx.fill()
+  ctx.fillStyle = 'rgba(0,0,0,0.09)'
+  ctx.beginPath(); ctx.ellipse(0, s*0.64, s*2.6, s*0.26, 0, 0, Math.PI*2); ctx.fill()
 
-  function veNua(ox, oy, rot, isBow) {
-    ctx.save()
-    ctx.translate(ox, oy)
-    ctx.rotate(rot)
-
-    const hg = ctx.createLinearGradient(0, -s*0.28, 0, s*0.10)
-    hg.addColorStop(0, '#7a4520'); hg.addColorStop(0.55, '#5a3012'); hg.addColorStop(1, '#341808')
-    ctx.fillStyle = hg
-
-    // Thân tàu
+  function veHull(isBow) {
+    const g = ctx.createLinearGradient(0, -s*0.50, 0, s*0.28)
+    g.addColorStop(0, '#6a4a30'); g.addColorStop(0.45, '#4a3220'); g.addColorStop(1, '#2a1a0a')
+    ctx.fillStyle = g
     ctx.beginPath()
     if (isBow) {
-      // Mũi: trái = cạnh gãy, phải = mũi nhọn, đáy cong
-      ctx.moveTo(-s*0.05, s*0.09)
-      ctx.lineTo(-s*0.07, -s*0.25)
-      ctx.lineTo(s*0.38, -s*0.22)
-      ctx.quadraticCurveTo(s*0.52, -s*0.05, s*0.46, s*0.09)
-      ctx.quadraticCurveTo(s*0.22, s*0.15, -s*0.05, s*0.09)
+      ctx.moveTo(s*0.70, -s*0.35)
+      ctx.lineTo(s*0.70, s*0.22)
+      ctx.quadraticCurveTo(s*0.30, s*0.34, -s*0.85, s*0.10)
+      ctx.lineTo(-s*0.98, 0)
+      ctx.lineTo(-s*0.85, -s*0.24)
+      ctx.quadraticCurveTo(s*0.05, -s*0.50, s*0.70, -s*0.35)
     } else {
-      // Đuôi: phải = cạnh gãy, trái = đuôi, đáy cong
-      ctx.moveTo(s*0.05, s*0.09)
-      ctx.lineTo(s*0.07, -s*0.25)
-      ctx.lineTo(-s*0.36, -s*0.28)
-      ctx.quadraticCurveTo(-s*0.48, -s*0.10, -s*0.42, s*0.09)
-      ctx.quadraticCurveTo(-s*0.20, s*0.15, s*0.05, s*0.09)
+      ctx.moveTo(-s*0.70, -s*0.38)
+      ctx.lineTo(-s*0.70, s*0.22)
+      ctx.quadraticCurveTo(-s*0.28, s*0.34, s*0.68, s*0.18)
+      ctx.lineTo(s*0.82, -s*0.05)
+      ctx.lineTo(s*0.72, -s*0.34)
+      ctx.quadraticCurveTo(s*0.10, -s*0.52, -s*0.70, -s*0.38)
     }
+    ctx.closePath()
     ctx.fill()
+    ctx.save()
     ctx.clip()
-
-    // Boong tàu (dải sáng trên cùng)
-    ctx.fillStyle = '#9e6030'
-    if (isBow) ctx.fillRect(-s*0.06, -s*0.32, s*0.44, s*0.08)
-    else       ctx.fillRect(-s*0.38, -s*0.34, s*0.44, s*0.10)
-
-    // Sọc mớn nước (tối)
-    ctx.fillStyle = 'rgba(18,6,0,0.55)'
-    if (isBow) ctx.fillRect(-s*0.06, -s*0.06, s*0.51, s*0.05)
-    else       ctx.fillRect(-s*0.48, -s*0.06, s*0.53, s*0.05)
-
-    // Ván dọc
-    ctx.strokeStyle = 'rgba(0,0,0,0.22)'; ctx.lineWidth = s*0.016
-    const planks = isBow ? [0.12, 0.26] : [-0.26, -0.12]
-    planks.forEach(xf => {
-      ctx.beginPath(); ctx.moveTo(xf*s, -s*0.24); ctx.lineTo(xf*s*0.90, s*0.08); ctx.stroke()
-    })
-
-    ctx.restore()
-
-    // ── Boong (đường viền ngoài clip) ────────────────────────
-    ctx.save(); ctx.translate(ox, oy); ctx.rotate(rot)
-    ctx.strokeStyle = '#4a2208'; ctx.lineWidth = s*0.022
-    if (isBow) {
-      ctx.beginPath(); ctx.moveTo(-s*0.06, -s*0.24); ctx.lineTo(s*0.38, -s*0.22); ctx.stroke()
-    } else {
-      ctx.beginPath(); ctx.moveTo(s*0.06, -s*0.25); ctx.lineTo(-s*0.35, -s*0.28); ctx.stroke()
-    }
-
-    if (!isBow) {
-      // Cột buồm + cánh ngang + buồm rách
-      ctx.fillStyle = '#2a1200'
-      ctx.fillRect(-s*0.18, -s*0.28, s*0.08, -s*0.26)
-      ctx.strokeStyle = '#2a1200'; ctx.lineWidth = s*0.06; ctx.lineCap = 'round'
-      ctx.beginPath(); ctx.moveTo(-s*0.22, -s*0.50); ctx.lineTo(s*0.02, -s*0.44); ctx.stroke()
-      ctx.fillStyle = 'rgba(185,165,110,0.48)'
+    // Grain lines
+    ctx.strokeStyle = '#3a2515'; ctx.lineWidth = s*0.018; ctx.lineCap = 'butt'
+    for (let i = 0; i < 4; i++) {
+      const yg = -s*0.30 + i * s*0.14
       ctx.beginPath()
-      ctx.moveTo(-s*0.22, -s*0.50); ctx.lineTo(s*0.02, -s*0.44); ctx.lineTo(-s*0.04, -s*0.28); ctx.lineTo(-s*0.16, -s*0.30)
-      ctx.closePath(); ctx.fill()
-      // Rong biển đuôi
-      ctx.fillStyle = 'rgba(14,78,20,0.65)'
-      ctx.beginPath(); ctx.ellipse(-s*0.35, s*0.04, s*0.052, s*0.12, -0.22, 0, Math.PI*2); ctx.fill()
-      ctx.beginPath(); ctx.ellipse(-s*0.41, -s*0.02, s*0.038, s*0.085, 0.32, 0, Math.PI*2); ctx.fill()
-    } else {
-      // Cửa sổ tròn (porthole)
-      ctx.fillStyle = 'rgba(6,2,0,0.90)'
-      ctx.beginPath(); ctx.arc(s*0.22, -s*0.14, s*0.068, 0, Math.PI*2); ctx.fill()
-      ctx.strokeStyle = 'rgba(135,78,18,0.80)'; ctx.lineWidth = s*0.026
-      ctx.beginPath(); ctx.arc(s*0.22, -s*0.14, s*0.068, 0, Math.PI*2); ctx.stroke()
-      ctx.fillStyle = 'rgba(60,160,255,0.10)'
-      ctx.beginPath(); ctx.arc(s*0.22, -s*0.14, s*0.068, 0, Math.PI*2); ctx.fill()
-      // Rong biển mũi
-      ctx.fillStyle = 'rgba(14,78,20,0.55)'
-      ctx.beginPath(); ctx.ellipse(s*0.40, s*0.04, s*0.040, s*0.095, 0.20, 0, Math.PI*2); ctx.fill()
+      if (isBow) { ctx.moveTo(-s*0.80 + i*s*0.04, yg); ctx.lineTo(s*0.68, yg) }
+      else        { ctx.moveTo(-s*0.68, yg); ctx.lineTo(s*0.74, yg + i*s*0.014) }
+      ctx.stroke()
     }
+    // Waterline stripe
+    ctx.fillStyle = 'rgba(12,4,0,0.5)'
+    if (isBow) ctx.fillRect(-s*0.95, s*0.03, s*1.68, s*0.10)
+    else       ctx.fillRect(-s*0.70, s*0.03, s*1.45, s*0.10)
     ctx.restore()
+    // Top rail thick
+    ctx.strokeStyle = '#8a6040'; ctx.lineWidth = s*0.085; ctx.lineCap = 'round'
+    ctx.beginPath()
+    if (isBow) { ctx.moveTo(-s*0.85, -s*0.24); ctx.quadraticCurveTo(s*0.05, -s*0.50, s*0.70, -s*0.35) }
+    else       { ctx.moveTo(-s*0.70, -s*0.38); ctx.quadraticCurveTo(s*0.10, -s*0.52, s*0.72, -s*0.34) }
+    ctx.stroke()
+    // Outline
+    ctx.strokeStyle = '#2a1a0a'; ctx.lineWidth = s*0.024
+    ctx.beginPath()
+    if (isBow) {
+      ctx.moveTo(s*0.70, -s*0.35); ctx.lineTo(s*0.70, s*0.22)
+      ctx.quadraticCurveTo(s*0.30, s*0.34, -s*0.85, s*0.10)
+      ctx.lineTo(-s*0.98, 0); ctx.lineTo(-s*0.85, -s*0.24)
+      ctx.quadraticCurveTo(s*0.05, -s*0.50, s*0.70, -s*0.35)
+    } else {
+      ctx.moveTo(-s*0.70, -s*0.38); ctx.lineTo(-s*0.70, s*0.22)
+      ctx.quadraticCurveTo(-s*0.28, s*0.34, s*0.68, s*0.18)
+      ctx.lineTo(s*0.82, -s*0.05); ctx.lineTo(s*0.72, -s*0.34)
+      ctx.quadraticCurveTo(s*0.10, -s*0.52, -s*0.70, -s*0.38)
+    }
+    ctx.stroke()
   }
 
-  // Đuôi (trái, nghiêng phải nhẹ)
-  veNua(-s*0.24, s*0.02, 0.14, false)
-  // Mũi (phải, chúc xuống)
-  veNua(s*0.24, -s*0.02, -0.28, true)
+  // ── Bow piece (left, tip points left, ~20° down tilt) ──
+  ctx.save()
+  ctx.translate(-s*1.05, s*0.06)
+  ctx.rotate(0.30)
+  veHull(true)
+  // Portholes
+  for (const [px, py, cracked] of [[-s*0.05, -s*0.10, false], [s*0.38, -s*0.12, true]]) {
+    const r = s*0.13
+    const pg = ctx.createRadialGradient(px, py, 0, px, py, r)
+    pg.addColorStop(0, 'rgba(25,65,105,0.7)'); pg.addColorStop(1, '#040201')
+    ctx.fillStyle = pg; ctx.beginPath(); ctx.arc(px, py, r, 0, Math.PI*2); ctx.fill()
+    ctx.strokeStyle = '#2a1a0a'; ctx.lineWidth = s*0.030
+    ctx.beginPath(); ctx.arc(px, py, r, 0, Math.PI*2); ctx.stroke()
+    if (cracked) {
+      ctx.strokeStyle = 'rgba(0,0,0,0.80)'; ctx.lineWidth = s*0.011
+      for (let a = 0; a < 5; a++) {
+        const ang = (a / 5) * Math.PI * 2 + 0.5
+        ctx.beginPath(); ctx.moveTo(px, py)
+        ctx.lineTo(px + Math.cos(ang) * r * 1.4, py + Math.sin(ang) * r * 1.4)
+        ctx.stroke()
+      }
+    }
+  }
+  // Zigzag break edge (right)
+  ctx.strokeStyle = '#8a6a48'; ctx.lineWidth = s*0.022
+  ctx.beginPath()
+  ctx.moveTo(s*0.70, -s*0.35)
+  ctx.lineTo(s*0.78, -s*0.22); ctx.lineTo(s*0.70, -s*0.09)
+  ctx.lineTo(s*0.78, s*0.04);  ctx.lineTo(s*0.70, s*0.15)
+  ctx.lineTo(s*0.70, s*0.22)
+  ctx.stroke()
+  ctx.restore()
 
-  // Mảnh ván trôi giữa chỗ gãy
-  ctx.lineCap = 'round'; ctx.strokeStyle = '#7a4518'
-  ctx.lineWidth = s*0.042; ctx.beginPath(); ctx.moveTo(-s*0.05, -s*0.22); ctx.lineTo(s*0.07, -s*0.04); ctx.stroke()
-  ctx.lineWidth = s*0.028; ctx.beginPath(); ctx.moveTo(s*0.06, -s*0.26); ctx.lineTo(-s*0.07, -s*0.06); ctx.stroke()
-  ctx.lineWidth = s*0.018; ctx.beginPath(); ctx.moveTo(-s*0.02, -s*0.30); ctx.lineTo(s*0.03, -s*0.10); ctx.stroke()
+  // ── Stern piece (right, ~15° upward tilt) ──
+  ctx.save()
+  ctx.translate(s*1.05, -s*0.08)
+  ctx.rotate(-0.26)
+  veHull(false)
+  // Porthole
+  const r3 = s*0.13, px3 = s*0.18, py3 = -s*0.14
+  const pg3 = ctx.createRadialGradient(px3, py3, 0, px3, py3, r3)
+  pg3.addColorStop(0, 'rgba(25,65,105,0.7)'); pg3.addColorStop(1, '#040201')
+  ctx.fillStyle = pg3; ctx.beginPath(); ctx.arc(px3, py3, r3, 0, Math.PI*2); ctx.fill()
+  ctx.strokeStyle = '#2a1a0a'; ctx.lineWidth = s*0.030
+  ctx.beginPath(); ctx.arc(px3, py3, r3, 0, Math.PI*2); ctx.stroke()
+  // Rudder
+  ctx.fillStyle = '#4a3220'
+  ctx.beginPath()
+  ctx.moveTo(s*0.72, s*0.06); ctx.lineTo(s*0.96, s*0.20)
+  ctx.lineTo(s*0.80, s*0.26); ctx.lineTo(s*0.72, s*0.22)
+  ctx.closePath(); ctx.fill()
+  ctx.fillStyle = '#2a1a0a'
+  ctx.beginPath(); ctx.rect(s*0.70, -s*0.04, s*0.06, s*0.30); ctx.fill()
+  ctx.strokeStyle = '#1a0a00'; ctx.lineWidth = s*0.016
+  ctx.beginPath()
+  ctx.moveTo(s*0.72, s*0.06); ctx.lineTo(s*0.96, s*0.20)
+  ctx.lineTo(s*0.80, s*0.26); ctx.lineTo(s*0.72, s*0.22)
+  ctx.closePath(); ctx.stroke()
+  // Zigzag break edge (left)
+  ctx.strokeStyle = '#8a6a48'; ctx.lineWidth = s*0.022
+  ctx.beginPath()
+  ctx.moveTo(-s*0.70, -s*0.38)
+  ctx.lineTo(-s*0.78, -s*0.25); ctx.lineTo(-s*0.70, -s*0.12)
+  ctx.lineTo(-s*0.78, s*0.01);  ctx.lineTo(-s*0.70, s*0.14)
+  ctx.lineTo(-s*0.70, s*0.22)
+  ctx.stroke()
+  // Broken mast (~45°, 60% height)
+  const mx = s*0.05, my = -s*0.38
+  ctx.strokeStyle = '#5a3a20'; ctx.lineWidth = s*0.055; ctx.lineCap = 'round'
+  ctx.beginPath(); ctx.moveTo(mx, my); ctx.lineTo(mx + s*0.18, my - s*0.22); ctx.stroke()
+  ctx.beginPath(); ctx.moveTo(mx + s*0.18, my - s*0.22); ctx.lineTo(mx + s*0.62, my - s*0.02); ctx.stroke()
+  // Torn sail
+  ctx.fillStyle = 'rgba(200,168,112,0.58)'
+  ctx.beginPath()
+  ctx.moveTo(mx + s*0.18, my - s*0.22)
+  ctx.lineTo(mx + s*0.62, my - s*0.02)
+  ctx.quadraticCurveTo(mx + s*0.54, my - s*0.42, mx + s*0.22, my - s*0.45)
+  ctx.closePath(); ctx.fill()
+  ctx.strokeStyle = '#b89858'; ctx.lineWidth = s*0.010
+  ctx.beginPath()
+  ctx.moveTo(mx + s*0.18, my - s*0.22)
+  ctx.lineTo(mx + s*0.62, my - s*0.02)
+  ctx.quadraticCurveTo(mx + s*0.54, my - s*0.42, mx + s*0.22, my - s*0.45)
+  ctx.closePath(); ctx.stroke()
+  // Ropes (bezier)
+  ctx.strokeStyle = '#8a6a40'; ctx.lineWidth = s*0.015; ctx.lineCap = 'round'
+  ctx.beginPath()
+  ctx.moveTo(mx, my - s*0.05)
+  ctx.bezierCurveTo(mx + s*0.12, my + s*0.10, mx + s*0.42, my + s*0.02, mx + s*0.62, my - s*0.02)
+  ctx.stroke()
+  ctx.beginPath()
+  ctx.moveTo(mx + s*0.06, my - s*0.14)
+  ctx.bezierCurveTo(mx + s*0.28, my - s*0.04, mx + s*0.50, my - s*0.04, mx + s*0.62, my - s*0.02)
+  ctx.stroke()
+  ctx.restore()
+
+  // ── Wood fragments at break ──
+  const frags = [
+    [s*0.02, -s*0.14, 0.55, s*0.32, s*0.06],
+    [-s*0.06, s*0.03, -0.75, s*0.24, s*0.05],
+    [s*0.08, -s*0.28, 1.20, s*0.18, s*0.04],
+    [-s*0.04, s*0.15, -0.32, s*0.26, s*0.055],
+  ]
+  frags.forEach(([fx, fy, fr, fw, fh]) => {
+    ctx.save(); ctx.translate(fx, fy); ctx.rotate(fr)
+    ctx.fillStyle = '#7a5a38'; ctx.fillRect(-fw/2, -fh/2, fw, fh)
+    ctx.strokeStyle = '#2a1a0a'; ctx.lineWidth = s*0.012
+    ctx.strokeRect(-fw/2, -fh/2, fw, fh)
+    ctx.restore()
+  })
+
+  // ── Algae ──
+  ctx.fillStyle = '#2d7a3a'; ctx.globalAlpha = 0.78
+  ctx.beginPath(); ctx.ellipse(-s*1.85, s*0.22, s*0.11, s*0.27, -0.22, 0, Math.PI*2); ctx.fill()
+  ctx.beginPath(); ctx.ellipse(-s*1.66, s*0.12, s*0.08, s*0.19, 0.30, 0, Math.PI*2); ctx.fill()
+  ctx.beginPath(); ctx.ellipse(s*0.02, s*0.36, s*0.09, s*0.21, 0.12, 0, Math.PI*2); ctx.fill()
+  ctx.globalAlpha = 1.0
 }
 
 function veNamPhatSang(ctx, s, t) {
