@@ -72,6 +72,28 @@ function PlacementOverlay({ icon, playerBarHeight, onPlace, onCancel }) {
   )
 }
 
+function FishFoodIcon() {
+  return (
+    <svg width="20" height="24" viewBox="0 0 20 26" fill="none">
+      {/* Lid */}
+      <rect x="2" y="1" width="16" height="4.5" rx="2" fill="#c0400e"/>
+      <rect x="3" y="4.2" width="14" height="1.5" fill="#a83508"/>
+      {/* Body */}
+      <rect x="3" y="5.5" width="14" height="12.5" rx="1.5" fill="#e8541a"/>
+      {/* Label */}
+      <rect x="4.5" y="7.5" width="11" height="8" rx="1" fill="rgba(255,255,255,0.12)"/>
+      {/* Tiny fish — white silhouette */}
+      <path d="M 6.5 11.5 L 5 9.5 L 5 13.5 Z" fill="rgba(255,255,255,0.7)"/>
+      <ellipse cx="9.5" cy="11.5" rx="3.2" ry="2" fill="rgba(255,255,255,0.7)"/>
+      <circle cx="11.6" cy="10.9" r="0.55" fill="rgba(200,75,5,0.65)"/>
+      {/* Pellets falling */}
+      <circle cx="6" cy="21.5" r="1.3" fill="#e8541a"/>
+      <circle cx="10.5" cy="24" r="1.1" fill="#e8541a" opacity="0.8"/>
+      <circle cx="15" cy="21" r="1.2" fill="#e8541a" opacity="0.85"/>
+    </svg>
+  )
+}
+
 function IconBtn({ onClick, title, children, className = '' }) {
   return (
     <button
@@ -803,7 +825,7 @@ export default function Home() {
         <div className="flex flex-col gap-1.5 mt-2">
           <IconBtn onClick={chiaSe} title="Chia sẻ hồ">🔗</IconBtn>
           <IconBtn onClick={chupAnhHo} title="Chụp ảnh hồ">📷</IconBtn>
-          <IconBtn onClick={choAn} title="Cho cá ăn">🍖</IconBtn>
+          <IconBtn onClick={choAn} title="Cho cá ăn"><FishFoodIcon /></IconBtn>
           <IconBtn onClick={() => setHienExplore(true)} title="Khám phá">🔍</IconBtn>
           <IconBtn onClick={() => setHienShop(true)} title="Cửa hàng">🛒</IconBtn>
           <TankSwitcher
