@@ -15,7 +15,18 @@ export default function PublicTank() {
   const [ytPlayer, setYtPlayer] = useState(null)
   const [infoCa, setInfoCa]     = useState(null)  // { ca, x, y }
 
-  const danhSachCa = tank?.fish || []
+  const danhSachCa      = tank?.fish || []
+  const danhSachSua     = danhSachCa.filter(c => c.loai_ca === 'sua_gai')
+  const danhSachCaThuong = danhSachCa.filter(c => c.loai_ca !== 'sua_gai')
+  const decorList       = (tank?.decorations || []).map(d => ({
+    id:    d.id,
+    loai:  d.loai_trang_tri,
+    pos_x: d.pos_x ?? 0.5,
+    pos_y: d.pos_y ?? 0.85,
+    layer: d.layer ?? 1,
+    scale: d.scale ?? 1.0,
+    an:    !d.is_visible,
+  }))
   const caDangPhat = danhSachCa.find(c => c.id === dangPhat) ?? null
 
   useEffect(() => {
@@ -93,10 +104,14 @@ export default function PublicTank() {
   return (
     <div className="fixed inset-0 overflow-hidden">
       <AquariumCanvas
-        danhSachCa={danhSachCa}
+        danhSachCa={danhSachCaThuong}
         dangPhat={dangPhat}
         onClickCa={clickCa}
         onGiuCa={(ca, x, y) => setInfoCa({ ca, x, y })}
+        suaGai={danhSachSua}
+        decorations={decorList}
+        nenHo={tank?.nen_ho || 'ocean-shallow'}
+        dayHo={tank?.day_ho || 'cat_trang'}
       />
 
       {/* Header */}

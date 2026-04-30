@@ -35,7 +35,7 @@ async def thu_hoach_coins(user_id: str = Depends(lay_user_id)):
     if tank.data:
         ca_res = (
             supabase_admin.table("fish")
-            .select("level")
+            .select("level, loai_ca, lan_cho_an_cuoi")
             .eq("tank_id", tank.data["id"])
             .execute()
         )

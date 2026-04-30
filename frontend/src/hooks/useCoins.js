@@ -7,10 +7,9 @@ export function useCoins() {
 
   const thuHoach = useCallback(async () => {
     try {
-      const data = await API.thuHoachCoins()
-      setCoins(data.coins_hien_tai)
-      setTocDoMoiGio(data.toc_do_moi_gio)
-      return data.coins_nhan_duoc
+      const data = await API.xemSoDuCoins()
+      setCoins(data.coins)
+      return 0
     } catch {
       return 0
     }

@@ -1461,6 +1461,20 @@ export default function AquariumCanvas({
         const sr  = Math.min(w, h) * 0.038
         veSua(ctx, rx, ry, sr, pha, t)
         suaPosRef.current[sua.id] = { x: rx, y: ry, r: sr, obj: sua }
+        const tenSua = sua.nickname || sua.ten_bai || ''
+        if (tenSua) {
+          const txt = tenSua.length > 18 ? tenSua.slice(0, 16) + '…' : tenSua
+          ctx.save()
+          ctx.globalAlpha = 0.72
+          ctx.font = `10px sans-serif`
+          ctx.textAlign = 'center'
+          ctx.textBaseline = 'top'
+          ctx.fillStyle = 'rgba(0,0,0,0.55)'
+          ctx.fillText(txt, rx + 1, ry + sr * 2.6 + 1)
+          ctx.fillStyle = '#e0f0ff'
+          ctx.fillText(txt, rx, ry + sr * 2.6)
+          ctx.restore()
+        }
       })
       // Throttle: emit positions to React for overlay click targets (~8fps)
       const now = Date.now()

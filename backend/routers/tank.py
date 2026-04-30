@@ -145,7 +145,7 @@ async def xem_tank_cong_khai(username: str):
 
     tank = (
         supabase_admin.table("tanks")
-        .select("*, fish(*)")
+        .select("*, fish(*), decorations(*)")
         .eq("user_id", profile_data["id"])
         .eq("la_cong_khai", True)
         .execute()
