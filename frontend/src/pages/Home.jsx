@@ -18,6 +18,13 @@ import TankSwitcher from '../components/TankSwitcher'
 import { tinhLevel, TIEU_DE_LEVEL } from '../utils/playerLevel'
 
 
+function mergeScaleLS(list) {
+  return list.map(d => {
+    const stored = localStorage.getItem('snd_sc_' + d.id)
+    return { ...d, scale: stored ? parseFloat(stored) : (d.scale ?? 1.0) }
+  })
+}
+
 const DECOR_ICON = {
   rong_bien: '🌿', san_ho_cay: '🪸', da_cuoi: '🪨',
   kho_bau: '🏺',  vo_oc: '🐚',       hai_quy: '🌺',
@@ -442,7 +449,7 @@ export default function Home() {
           API.layDecor(tid).catch(() => ({ danh_sach: [] })),
         ])
         setDanhSachCa(fishRes.danh_sach_ca || [])
-        setDanhSachDecor(decorRes.danh_sach || [])
+        setDanhSachDecor(mergeScaleLS(decorRes.danh_sach || []))
       }
       setDangKhoiDong(false)
     } catch {
@@ -576,11 +583,17 @@ export default function Home() {
   async function doiScaleDecor(id, delta) {
     const d = danhSachDecor.find(x => x.id === id)
     if (!d) return
-    const cur = d.scale ?? 1.0
+    const stored = parseFloat(localStorage.getItem('snd_sc_' + id) || '1') || 1.0
+    const cur = d.scale ?? stored
     const newScale = Math.round(Math.max(0.3, Math.min(10.0, cur + delta)) * 10) / 10
     setDanhSachDecor(prev => prev.map(x => x.id === id ? { ...x, scale: newScale } : x))
     setMenuDecor(prev => prev ? { ...prev, decor: { ...prev.decor, scale: newScale } } : null)
-    try { await API.capNhatDecor(id, { scale: newScale }) } catch {}
+    localStorage.setItem('snd_sc_' + id, String(newScale))
+    try {
+      await API.capNhatDecor(id, { scale: newScale })
+    } catch (e) {
+      console.warn('[decor] scale chưa lưu DB — chạy SQL:\nALTER TABLE decorations ADD COLUMN IF NOT EXISTS scale FLOAT DEFAULT 1.0;\nNOTIFY pgrst, \'reload schema\';', e.message)
+    }
   }
 
   async function anDecor(id, an) {
