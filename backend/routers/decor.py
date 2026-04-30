@@ -144,7 +144,7 @@ async def cap_nhat(
     if body.pos_y is not None: updates["pos_y"]      = max(0.05, min(0.97, body.pos_y))
     if body.layer is not None: updates["layer"]      = max(0, min(10, body.layer))
     if body.an    is not None: updates["is_visible"] = not body.an
-    if body.scale is not None: updates["scale"]      = max(0.3, min(3.0, body.scale))
+    if body.scale is not None: updates["scale"]      = max(0.3, min(10.0, body.scale))
 
     if not updates:
         return {"ok": True}
