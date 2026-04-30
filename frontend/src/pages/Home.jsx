@@ -452,6 +452,7 @@ export default function Home() {
 
   // ── Decoration handlers ─────────────────────────────────────────────
   async function muaDecor(loai) {
+    console.log('[muaDecor] gọi với loai=', loai, 'tank=', selectedTankId, 'coins=', coins)
     try {
       const res = await API.muaDecor(loai, selectedTankId)
       setDanhSachDecor(prev => [...prev, res.decor])
