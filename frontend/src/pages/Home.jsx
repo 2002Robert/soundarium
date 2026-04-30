@@ -25,6 +25,19 @@ function mergeScaleLS(list) {
   })
 }
 
+async function syncScalesLSToDB(list) {
+  for (const d of list) {
+    const stored = localStorage.getItem('snd_sc_' + d.id)
+    if (!stored) continue
+    const scale = parseFloat(stored)
+    if (Math.abs(scale - (d.scale ?? 1.0)) < 0.01) continue
+    try {
+      await API.capNhatDecor(d.id, { scale })
+      localStorage.removeItem('snd_sc_' + d.id)
+    } catch { /* cột chưa có — bỏ qua */ }
+  }
+}
+
 const DECOR_ICON = {
   rong_bien: '🌿', san_ho_cay: '🪸', da_cuoi: '🪨',
   kho_bau: '🏺',  vo_oc: '🐚',       hai_quy: '🌺',
@@ -449,7 +462,9 @@ export default function Home() {
           API.layDecor(tid).catch(() => ({ danh_sach: [] })),
         ])
         setDanhSachCa(fishRes.danh_sach_ca || [])
-        setDanhSachDecor(mergeScaleLS(decorRes.danh_sach || []))
+        const merged1 = mergeScaleLS(decorRes.danh_sach || [])
+        setDanhSachDecor(merged1)
+        syncScalesLSToDB(merged1)
       }
       setDangKhoiDong(false)
     } catch {
@@ -513,7 +528,9 @@ export default function Home() {
         API.layDecor(tankId).catch(() => ({ danh_sach: [] })),
       ])
       setDanhSachCa(fishRes.danh_sach_ca || [])
-      setDanhSachDecor(decorRes.danh_sach || [])
+      const merged2 = mergeScaleLS(decorRes.danh_sach || [])
+      setDanhSachDecor(merged2)
+      syncScalesLSToDB(merged2)
     } catch {
       hienToast('Không tải được hồ', 'loi')
     }
