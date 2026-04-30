@@ -287,8 +287,18 @@ export default function Home() {
   const [repeatMode, setRepeatMode] = useState(() => localStorage.getItem('snd_repeat') || 'off')
   const [volume, setVolume]         = useState(() => Number(localStorage.getItem('snd_vol') ?? 70))
 
-  function chonNen(id) { setNenHoState(id); localStorage.setItem('snd_nen', id) }
-  function chonDay(id) { setDayHoState(id); localStorage.setItem('snd_day', id) }
+  function chonNen(id) {
+    setNenHoState(id)
+    localStorage.setItem('snd_nen', id)
+    setDanhSachTank(prev => prev.map(t => t.id === selectedTankId ? { ...t, nen_ho: id } : t))
+    if (selectedTankId) API.capNhatTank({ nen_ho: id }, selectedTankId).catch(() => {})
+  }
+  function chonDay(id) {
+    setDayHoState(id)
+    localStorage.setItem('snd_day', id)
+    setDanhSachTank(prev => prev.map(t => t.id === selectedTankId ? { ...t, day_ho: id } : t))
+    if (selectedTankId) API.capNhatTank({ day_ho: id }, selectedTankId).catch(() => {})
+  }
 
   function doiRepeatMode(mode) { setRepeatMode(mode); localStorage.setItem('snd_repeat', mode) }
   function doiVolume(val) {
@@ -463,8 +473,12 @@ export default function Home() {
       const tanks = tankListRes.tanks || []
       setDanhSachTank(tanks)
       if (tanks.length > 0) {
-        const tid = tanks[0].id
+        const firstTank = tanks[0]
+        const tid = firstTank.id
         setSelectedTankId(tid)
+        // Đồng bộ nen/day từ DB (cross-device consistency)
+        if (firstTank.nen_ho) { setNenHoState(firstTank.nen_ho); localStorage.setItem('snd_nen', firstTank.nen_ho) }
+        if (firstTank.day_ho) { setDayHoState(firstTank.day_ho); localStorage.setItem('snd_day', firstTank.day_ho) }
         const [fishRes, decorRes] = await Promise.all([
           API.layDanhSachCa(tid),
           API.layDecor(tid).catch(() => ({ danh_sach: [] })),
@@ -487,6 +501,13 @@ export default function Home() {
             localStorage.removeItem('snd_con_trai')
             setConTrai([])
           }
+        } else {
+          // Có oyster trong DB → đảm bảo conTrai được init (thiết bị mới không có localStorage)
+          setConTrai(prev => {
+            if (prev.length > 0) return prev
+            const now = Date.now()
+            return [{ id: `ct_${now}_0`, x: 0.5, isOpen: false, lastOpened: 0, createdAt: now }]
+          })
         }
       }
       setDangKhoiDong(false)
@@ -545,6 +566,10 @@ export default function Home() {
     if (tankId === selectedTankId) return
     setSelectedTankId(tankId)
     setInfoCa(null)
+    // Đồng bộ nen/day theo hồ được chọn
+    const tank = danhSachTank.find(t => t.id === tankId)
+    if (tank?.nen_ho) { setNenHoState(tank.nen_ho); localStorage.setItem('snd_nen', tank.nen_ho) }
+    if (tank?.day_ho) { setDayHoState(tank.day_ho); localStorage.setItem('snd_day', tank.day_ho) }
     try {
       const [fishRes, decorRes] = await Promise.all([
         API.layDanhSachCa(tankId),

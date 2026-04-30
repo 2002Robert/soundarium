@@ -1178,7 +1178,6 @@ function veVatTrangTri(ctx, item, w, h, t) {
     case 'cung_dien':     veCungDien(ctx, s);        break
     case 'xac_tau':       veXacTau(ctx, s);           break
     case 'nam_phat_sang': veNamPhatSang(ctx, s, t);  break
-    case 'ngoc_trai':     veConTrai(ctx, 0, 0, s * 1.2, false); break
   }
   ctx.restore()
 }

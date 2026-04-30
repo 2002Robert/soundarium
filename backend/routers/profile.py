@@ -193,6 +193,17 @@ async def mua_con_trai(user_id: str = Depends(lay_user_id)):
     if coins < _GIA_CON_TRAI:
         raise HTTPException(status_code=402, detail=f"Không đủ coins (cần {_GIA_CON_TRAI})")
 
+    # Kiểm tra trước khi trừ coins
+    da_co = (
+        supabase_admin.table("decorations")
+        .select("id")
+        .eq("user_id", user_id)
+        .eq("loai_trang_tri", "ngoc_trai")
+        .execute()
+    )
+    if da_co.data:
+        raise HTTPException(status_code=409, detail="Bạn đã có ngọc trai rồi")
+
     coins_con_lai = coins - _GIA_CON_TRAI
     supabase_admin.table("profiles").update(
         {"coins": coins_con_lai}
@@ -208,23 +219,15 @@ async def mua_con_trai(user_id: str = Depends(lay_user_id)):
         .execute()
     )
     if tank.data:
-        existing = (
-            supabase_admin.table("decorations")
-            .select("id")
-            .eq("user_id", user_id)
-            .eq("loai_trang_tri", "ngoc_trai")
-            .execute()
-        )
-        if not existing.data:
-            supabase_admin.table("decorations").insert({
-                "user_id":        user_id,
-                "tank_id":        tank.data[0]["id"],
-                "loai_trang_tri": "ngoc_trai",
-                "pos_x":          0.5,
-                "pos_y":          0.90,
-                "layer":          1,
-                "is_visible":     True,
-            }).execute()
+        supabase_admin.table("decorations").insert({
+            "user_id":        user_id,
+            "tank_id":        tank.data[0]["id"],
+            "loai_trang_tri": "ngoc_trai",
+            "pos_x":          0.5,
+            "pos_y":          0.90,
+            "layer":          1,
+            "is_visible":     True,
+        }).execute()
 
     return {"coins_con_lai": coins_con_lai, "so_con_trai": _SO_CON_TRAI}
 

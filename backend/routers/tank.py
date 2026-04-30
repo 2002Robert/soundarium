@@ -19,7 +19,7 @@ async def lay_danh_sach_tank(user_id: str = Depends(lay_user_id)):
     """Danh sách tất cả hồ của user (không bao gồm cá)."""
     ket_qua = (
         supabase_admin.table("tanks")
-        .select("id, ten, nen_ho, la_cong_khai")
+        .select("*")
         .eq("user_id", user_id)
         .execute()
     )
