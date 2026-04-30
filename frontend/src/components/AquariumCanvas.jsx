@@ -936,6 +936,157 @@ function veHaiQuy(ctx, s, t) {
   ctx.fillStyle = cg; ctx.beginPath(); ctx.arc(0, 0, s * 0.22, 0, Math.PI * 2); ctx.fill()
 }
 
+function veDenLong(ctx, s, t) {
+  ctx.save()
+  ctx.rotate(Math.sin(t * 0.7) * 0.08)
+  ctx.strokeStyle = 'rgba(160,120,60,0.65)'; ctx.lineWidth = s * 0.04; ctx.lineCap = 'round'
+  ctx.beginPath(); ctx.moveTo(0, -s * 0.85); ctx.lineTo(0, -s * 0.50); ctx.stroke()
+  const glow = ctx.createRadialGradient(0, 0, 0, 0, 0, s * 0.75)
+  glow.addColorStop(0, 'rgba(255,200,80,0.40)'); glow.addColorStop(1, 'rgba(255,170,30,0)')
+  ctx.fillStyle = glow; ctx.beginPath(); ctx.arc(0, 0, s * 0.75, 0, Math.PI * 2); ctx.fill()
+  ctx.fillStyle = '#8B6914'
+  ctx.beginPath(); ctx.ellipse(0, -s*0.48, s*0.20, s*0.065, 0, 0, Math.PI*2); ctx.fill()
+  const lg = ctx.createLinearGradient(-s*0.30, 0, s*0.30, 0)
+  lg.addColorStop(0, 'rgba(200,70,20,0.92)'); lg.addColorStop(0.35, 'rgba(255,160,30,0.95)')
+  lg.addColorStop(0.65, 'rgba(255,160,30,0.95)'); lg.addColorStop(1, 'rgba(200,70,20,0.92)')
+  ctx.fillStyle = lg; ctx.beginPath(); ctx.ellipse(0, 0, s*0.30, s*0.48, 0, 0, Math.PI*2); ctx.fill()
+  ctx.strokeStyle = 'rgba(80,30,8,0.50)'; ctx.lineWidth = s * 0.032
+  for (let i = -1; i <= 1; i++) {
+    ctx.beginPath(); ctx.moveTo(i*s*0.16, -s*0.48); ctx.quadraticCurveTo(i*s*0.26, 0, i*s*0.16, s*0.48); ctx.stroke()
+  }
+  ctx.fillStyle = '#8B6914'
+  ctx.beginPath(); ctx.ellipse(0, s*0.48, s*0.20, s*0.065, 0, 0, Math.PI*2); ctx.fill()
+  ctx.fillStyle = 'rgba(255,235,140,0.50)'
+  ctx.beginPath(); ctx.ellipse(s*0.05, -s*0.10, s*0.08, s*0.18, -0.3, 0, Math.PI*2); ctx.fill()
+  ctx.restore()
+}
+
+function veRuongGo(ctx, s) {
+  ctx.fillStyle = 'rgba(0,0,0,0.12)'
+  ctx.beginPath(); ctx.ellipse(0, s*0.06, s*0.48, s*0.07, 0, 0, Math.PI*2); ctx.fill()
+  const bg = ctx.createLinearGradient(0, -s*0.22, 0, s*0.05)
+  bg.addColorStop(0, '#8B5A2B'); bg.addColorStop(1, '#5D3A1A')
+  ctx.fillStyle = bg; ctx.beginPath(); ctx.rect(-s*0.46, -s*0.22, s*0.92, s*0.27); ctx.fill()
+  ctx.strokeStyle = 'rgba(30,15,5,0.25)'; ctx.lineWidth = 0.6; ctx.stroke()
+  const lg = ctx.createLinearGradient(0, -s*0.33, 0, -s*0.22)
+  lg.addColorStop(0, '#A0693A'); lg.addColorStop(1, '#7A4820')
+  ctx.fillStyle = lg; ctx.beginPath(); ctx.rect(-s*0.46, -s*0.33, s*0.92, s*0.11); ctx.fill()
+  ctx.strokeStyle = 'rgba(30,15,5,0.20)'; ctx.lineWidth = 0.6; ctx.stroke()
+  ctx.strokeStyle = 'rgba(70,40,10,0.60)'; ctx.lineWidth = s*0.052; ctx.lineCap = 'butt'
+  ctx.beginPath(); ctx.moveTo(-s*0.46, -s*0.22); ctx.lineTo(s*0.46, -s*0.22); ctx.stroke()
+  ctx.strokeStyle = 'rgba(40,18,5,0.22)'; ctx.lineWidth = s*0.025
+  for (const xf of [-0.20, 0.20]) { ctx.beginPath(); ctx.moveTo(xf*s, -s*0.33); ctx.lineTo(xf*s, s*0.05); ctx.stroke() }
+  ctx.fillStyle = 'rgba(160,110,40,0.88)'
+  for (const [cx, cy] of [[-s*0.42,-s*0.30],[s*0.42,-s*0.30],[-s*0.42,s*0.02],[s*0.42,s*0.02]]) {
+    ctx.beginPath(); ctx.arc(cx, cy, s*0.055, 0, Math.PI*2); ctx.fill()
+  }
+  ctx.fillStyle = 'rgba(180,130,40,0.92)'; ctx.beginPath(); ctx.arc(0, -s*0.22, s*0.06, 0, Math.PI*2); ctx.fill()
+}
+
+function veCotDaCo(ctx, s) {
+  ctx.fillStyle = 'rgba(0,0,0,0.12)'
+  ctx.beginPath(); ctx.ellipse(0, s*0.06, s*0.24, s*0.065, 0, 0, Math.PI*2); ctx.fill()
+  const bg = ctx.createLinearGradient(-s*0.28, 0, s*0.28, 0)
+  bg.addColorStop(0, '#5A6A5A'); bg.addColorStop(0.5, '#7A8E7A'); bg.addColorStop(1, '#4A5A4A')
+  ctx.fillStyle = bg; ctx.beginPath(); ctx.rect(-s*0.28, -s*0.06, s*0.56, s*0.12); ctx.fill()
+  ctx.strokeStyle = 'rgba(30,40,30,0.18)'; ctx.lineWidth = 0.5; ctx.stroke()
+  const pg = ctx.createLinearGradient(-s*0.15, 0, s*0.15, 0)
+  pg.addColorStop(0, '#4A5A4A'); pg.addColorStop(0.35, '#7A8E7A'); pg.addColorStop(0.65, '#6E806E'); pg.addColorStop(1, '#3A4A3A')
+  ctx.fillStyle = pg; ctx.beginPath(); ctx.rect(-s*0.14, -s*0.86, s*0.28, s*0.80); ctx.fill()
+  ctx.strokeStyle = 'rgba(30,40,30,0.15)'; ctx.lineWidth = 0.5; ctx.stroke()
+  const cg = ctx.createLinearGradient(-s*0.20, 0, s*0.20, 0)
+  cg.addColorStop(0, '#4A5A4A'); cg.addColorStop(0.5, '#6E806E'); cg.addColorStop(1, '#3A4A3A')
+  ctx.fillStyle = cg; ctx.beginPath(); ctx.rect(-s*0.20, -s*0.92, s*0.40, s*0.08); ctx.fill()
+  ctx.fillStyle = 'rgba(55,105,45,0.45)'
+  ctx.beginPath(); ctx.ellipse(-s*0.04, -s*0.52, s*0.07, s*0.12, 0.25, 0, Math.PI*2); ctx.fill()
+  ctx.beginPath(); ctx.ellipse(s*0.07, -s*0.28, s*0.06, s*0.09, -0.3, 0, Math.PI*2); ctx.fill()
+  ctx.beginPath(); ctx.ellipse(-s*0.08, -s*0.72, s*0.05, s*0.07, 0.1, 0, Math.PI*2); ctx.fill()
+  ctx.strokeStyle = 'rgba(25,35,25,0.22)'; ctx.lineWidth = s*0.018; ctx.lineCap = 'round'
+  ctx.beginPath(); ctx.moveTo(s*0.04, -s*0.76); ctx.lineTo(s*0.02, -s*0.62); ctx.stroke()
+  ctx.beginPath(); ctx.moveTo(-s*0.06, -s*0.43); ctx.lineTo(-s*0.03, -s*0.32); ctx.stroke()
+}
+
+function veCungDien(ctx, s) {
+  ctx.fillStyle = 'rgba(0,0,0,0.10)'
+  ctx.beginPath(); ctx.ellipse(0, s*0.06, s*0.52, s*0.07, 0, 0, Math.PI*2); ctx.fill()
+  ctx.fillStyle = '#ccd8ea'
+  ctx.beginPath(); ctx.rect(-s*0.48, -s*0.06, s*0.96, s*0.12); ctx.fill()
+  ctx.beginPath(); ctx.rect(-s*0.40, -s*0.14, s*0.80, s*0.10); ctx.fill()
+  ctx.beginPath(); ctx.rect(-s*0.32, -s*0.20, s*0.64, s*0.08); ctx.fill()
+  const hg = ctx.createLinearGradient(-s*0.30, 0, s*0.30, 0)
+  hg.addColorStop(0, '#c0d0e4'); hg.addColorStop(0.5, '#ddeaf8'); hg.addColorStop(1, '#c0d0e4')
+  ctx.fillStyle = hg; ctx.beginPath(); ctx.rect(-s*0.30, -s*0.58, s*0.60, s*0.38); ctx.fill()
+  ctx.strokeStyle = 'rgba(80,110,155,0.22)'; ctx.lineWidth = 0.6; ctx.stroke()
+  for (const xf of [-0.22, -0.07, 0.07, 0.22]) {
+    const cg = ctx.createLinearGradient(xf*s - s*0.04, 0, xf*s + s*0.04, 0)
+    cg.addColorStop(0, '#a8bcd2'); cg.addColorStop(0.5, '#dde8f4'); cg.addColorStop(1, '#a8bcd2')
+    ctx.fillStyle = cg; ctx.beginPath(); ctx.rect(xf*s - s*0.04, -s*0.55, s*0.08, s*0.35); ctx.fill()
+  }
+  ctx.fillStyle = '#b8ccdf'
+  ctx.beginPath(); ctx.moveTo(-s*0.32, -s*0.58); ctx.lineTo(0, -s*0.88); ctx.lineTo(s*0.32, -s*0.58); ctx.closePath(); ctx.fill()
+  ctx.strokeStyle = 'rgba(80,110,155,0.25)'; ctx.lineWidth = 0.7; ctx.stroke()
+  ctx.fillStyle = 'rgba(50,80,130,0.32)'
+  ctx.beginPath(); ctx.arc(0, -s*0.28, s*0.09, Math.PI, 0); ctx.fill()
+  ctx.beginPath(); ctx.rect(-s*0.09, -s*0.28, s*0.18, s*0.10); ctx.fill()
+  for (const xf of [-0.20, 0.20]) {
+    ctx.beginPath(); ctx.arc(xf*s, -s*0.42, s*0.055, Math.PI, 0); ctx.fill()
+    ctx.beginPath(); ctx.rect(xf*s - s*0.055, -s*0.42, s*0.11, s*0.07); ctx.fill()
+  }
+}
+
+function veXacTau(ctx, s, t) {
+  ctx.fillStyle = 'rgba(0,0,0,0.15)'
+  ctx.beginPath(); ctx.ellipse(s*0.05, s*0.07, s*0.54, s*0.08, 0, 0, Math.PI*2); ctx.fill()
+  ctx.save()
+  ctx.rotate(Math.sin(t * 0.35) * 0.035)
+  const hg = ctx.createLinearGradient(0, -s*0.32, 0, s*0.05)
+  hg.addColorStop(0, '#4A3520'); hg.addColorStop(1, '#2A1A0A')
+  ctx.fillStyle = hg
+  ctx.beginPath()
+  ctx.moveTo(-s*0.50, s*0.02); ctx.quadraticCurveTo(-s*0.54, -s*0.10, -s*0.44, -s*0.32)
+  ctx.lineTo(s*0.44, -s*0.32); ctx.quadraticCurveTo(s*0.54, -s*0.10, s*0.50, s*0.02)
+  ctx.closePath(); ctx.fill()
+  ctx.strokeStyle = 'rgba(18,10,3,0.38)'; ctx.lineWidth = s*0.028
+  for (let i = -3; i <= 3; i++) { ctx.beginPath(); ctx.moveTo(i*s*0.14, -s*0.32); ctx.lineTo(i*s*0.12, s*0.02); ctx.stroke() }
+  ctx.beginPath(); ctx.moveTo(-s*0.50, -s*0.12); ctx.lineTo(s*0.50, -s*0.12); ctx.stroke()
+  ctx.strokeStyle = '#3A2510'; ctx.lineWidth = s*0.07; ctx.lineCap = 'round'
+  ctx.beginPath(); ctx.moveTo(-s*0.08, -s*0.32); ctx.lineTo(s*0.18, -s*0.82); ctx.stroke()
+  ctx.lineWidth = s*0.05
+  ctx.beginPath(); ctx.moveTo(-s*0.04, -s*0.58); ctx.lineTo(s*0.24, -s*0.54); ctx.stroke()
+  ctx.fillStyle = 'rgba(8,4,1,0.80)'
+  ctx.beginPath(); ctx.ellipse(s*0.20, -s*0.18, s*0.11, s*0.07, 0.25, 0, Math.PI*2); ctx.fill()
+  ctx.fillStyle = 'rgba(28,88,38,0.52)'
+  ctx.beginPath(); ctx.ellipse(-s*0.30, -s*0.06, s*0.07, s*0.14, -0.3, 0, Math.PI*2); ctx.fill()
+  ctx.beginPath(); ctx.ellipse(-s*0.36, -s*0.12, s*0.05, s*0.10, 0.4, 0, Math.PI*2); ctx.fill()
+  ctx.restore()
+}
+
+function veNamPhatSang(ctx, s, t) {
+  const pulse = 0.72 + Math.sin(t * 2.2) * 0.28
+  const glow = ctx.createRadialGradient(0, -s*0.30, 0, 0, -s*0.20, s*0.85)
+  glow.addColorStop(0, `rgba(210,80,255,${(0.26 * pulse).toFixed(2)})`)
+  glow.addColorStop(0.6, `rgba(180,50,220,${(0.12 * pulse).toFixed(2)})`)
+  glow.addColorStop(1, 'rgba(160,40,200,0)')
+  ctx.fillStyle = glow; ctx.beginPath(); ctx.arc(0, -s*0.20, s*0.85, 0, Math.PI*2); ctx.fill()
+  const sg = ctx.createLinearGradient(-s*0.10, 0, s*0.10, 0)
+  sg.addColorStop(0, '#c890e0'); sg.addColorStop(0.5, '#e0b8f8'); sg.addColorStop(1, '#b878d0')
+  ctx.fillStyle = sg
+  ctx.beginPath(); ctx.moveTo(-s*0.07, 0); ctx.lineTo(-s*0.12, -s*0.36); ctx.lineTo(s*0.12, -s*0.36); ctx.lineTo(s*0.07, 0); ctx.closePath(); ctx.fill()
+  const capG = ctx.createRadialGradient(-s*0.14, -s*0.68, 0, 0, -s*0.48, s*0.48)
+  capG.addColorStop(0, `rgba(245,160,255,${(0.85 + pulse*0.15).toFixed(2)})`)
+  capG.addColorStop(0.6, `rgba(185,60,230,${(0.80 + pulse*0.12).toFixed(2)})`)
+  capG.addColorStop(1, 'rgba(120,20,185,0.72)')
+  ctx.fillStyle = capG
+  ctx.beginPath()
+  ctx.moveTo(-s*0.42, -s*0.36); ctx.quadraticCurveTo(-s*0.52, -s*0.72, 0, -s*0.90)
+  ctx.quadraticCurveTo(s*0.52, -s*0.72, s*0.42, -s*0.36); ctx.quadraticCurveTo(0, -s*0.26, -s*0.42, -s*0.36)
+  ctx.fill()
+  ctx.fillStyle = `rgba(255,255,255,${(0.55 + pulse*0.22).toFixed(2)})`
+  ;[[-0.12,-0.66,0.07],[0.18,-0.58,0.055],[0.05,-0.78,0.05],[-0.26,-0.52,0.044]].forEach(([sx,sy,sr]) => {
+    ctx.beginPath(); ctx.arc(sx*s, sy*s, sr*s, 0, Math.PI*2); ctx.fill()
+  })
+}
+
 function veVatTrangTri(ctx, item, w, h, t) {
   if (item.an) return
   const x  = item.pos_x * w
@@ -946,12 +1097,18 @@ function veVatTrangTri(ctx, item, w, h, t) {
   ctx.translate(x, y)
   if (sc !== 1) ctx.scale(sc, sc)
   switch (item.loai) {
-    case 'rong_bien':  veRongBien(ctx, s, t);  break
-    case 'san_ho_cay': veSanHoCay(ctx, s, t);  break
-    case 'da_cuoi':    veDaCuoi(ctx, s);        break
-    case 'kho_bau':    veKhoBau(ctx, s, t);    break
-    case 'vo_oc':      veVoOc(ctx, s);          break
-    case 'hai_quy':    veHaiQuy(ctx, s, t);    break
+    case 'rong_bien':      veRongBien(ctx, s, t);     break
+    case 'san_ho_cay':    veSanHoCay(ctx, s, t);     break
+    case 'da_cuoi':       veDaCuoi(ctx, s);           break
+    case 'kho_bau':       veKhoBau(ctx, s, t);       break
+    case 'vo_oc':         veVoOc(ctx, s);             break
+    case 'hai_quy':       veHaiQuy(ctx, s, t);       break
+    case 'den_long':      veDenLong(ctx, s, t);      break
+    case 'ruong_go':      veRuongGo(ctx, s);         break
+    case 'cot_da_co':     veCotDaCo(ctx, s);         break
+    case 'cung_dien':     veCungDien(ctx, s);        break
+    case 'xac_tau':       veXacTau(ctx, s, t);       break
+    case 'nam_phat_sang': veNamPhatSang(ctx, s, t);  break
   }
   ctx.restore()
 }
@@ -1129,6 +1286,9 @@ export default function AquariumCanvas({
     }
     ctx.restore()
 
+    // ─── Layer 0 decorations (buried under sand) ─────────────────────
+    decors.filter(d => !d.an && d.layer === 0).forEach(d => veVatTrangTri(ctx, d, w, h, t))
+
     // ─── Sand ───────────────────────────────────────────────────────
     const dayH = 60
     const dayY = h - dayH
@@ -1238,8 +1398,8 @@ export default function AquariumCanvas({
 
     veBongBong(ctx, bongRef.current, dt)
 
-    // ─── Layer 1 decorations (bottom — below fish) ───────────────────
-    decors.filter(d => !d.an && d.layer <= 1).forEach(d => veVatTrangTri(ctx, d, w, h, t))
+    // ─── Layer 1-4 decorations (above sand — below fish) ────────────
+    decors.filter(d => !d.an && d.layer >= 1 && d.layer <= 4).sort((a,b) => a.layer - b.layer).forEach(d => veVatTrangTri(ctx, d, w, h, t))
 
     const thucAnActive = thucAnRef.current.filter(f => !f.eaten)
     const eatCb = onCaAnRef.current
@@ -1288,8 +1448,8 @@ export default function AquariumCanvas({
       }
     })
 
-    // ─── Layer 2 decorations (above fish, below sứa) ────────────────
-    decors.filter(d => !d.an && d.layer === 2).forEach(d => veVatTrangTri(ctx, d, w, h, t))
+    // ─── Layer 5-7 decorations (above fish — below sứa) ─────────────
+    decors.filter(d => !d.an && d.layer >= 5 && d.layer <= 7).sort((a,b) => a.layer - b.layer).forEach(d => veVatTrangTri(ctx, d, w, h, t))
 
     // Vẽ sứa gai
     const suaList = suaGaiRef.current
@@ -1328,8 +1488,8 @@ export default function AquariumCanvas({
       })
     }
 
-    // ─── Layer 3 decorations (top — above sứa/oysters) ──────────────
-    decors.filter(d => !d.an && d.layer >= 3).forEach(d => veVatTrangTri(ctx, d, w, h, t))
+    // ─── Layer 8-10 decorations (top — above sứa/oysters) ───────────
+    decors.filter(d => !d.an && d.layer >= 8 && d.layer <= 10).sort((a,b) => a.layer - b.layer).forEach(d => veVatTrangTri(ctx, d, w, h, t))
 
     veBubbleLofi(ctx, bubbleRef.current, dt)
 

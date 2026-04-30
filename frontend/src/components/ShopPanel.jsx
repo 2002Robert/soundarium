@@ -172,13 +172,186 @@ function HaiQuyIcon({ size = 48 }) {
   )
 }
 
+function DenLongIcon({ size = 48 }) {
+  return (
+    <svg width={size} height={size} viewBox="0 0 60 64" fill="none">
+      {/* string */}
+      <line x1="30" y1="2" x2="30" y2="10" stroke="rgba(200,140,60,0.7)" strokeWidth="1.2" strokeLinecap="round"/>
+      {/* top cap */}
+      <ellipse cx="30" cy="12" rx="10" ry="3.5" fill="rgba(200,40,40,0.95)"/>
+      {/* body */}
+      <ellipse cx="30" cy="33" rx="13" ry="20" fill="rgba(220,40,30,0.92)"/>
+      {/* glow */}
+      <ellipse cx="30" cy="33" rx="16" ry="23" fill="rgba(255,100,20,0.10)"/>
+      {/* ribs */}
+      <ellipse cx="30" cy="22" rx="13" ry="2" fill="none" stroke="rgba(255,180,60,0.35)" strokeWidth="1"/>
+      <ellipse cx="30" cy="33" rx="13" ry="2" fill="none" stroke="rgba(255,180,60,0.35)" strokeWidth="1"/>
+      <ellipse cx="30" cy="44" rx="13" ry="2" fill="none" stroke="rgba(255,180,60,0.35)" strokeWidth="1"/>
+      {/* bottom cap */}
+      <ellipse cx="30" cy="52" rx="10" ry="3.5" fill="rgba(200,40,40,0.95)"/>
+      {/* tassel */}
+      <line x1="27" y1="55" x2="25" y2="62" stroke="rgba(220,160,20,0.8)" strokeWidth="1.2" strokeLinecap="round"/>
+      <line x1="30" y1="55" x2="30" y2="63" stroke="rgba(220,160,20,0.8)" strokeWidth="1.2" strokeLinecap="round"/>
+      <line x1="33" y1="55" x2="35" y2="62" stroke="rgba(220,160,20,0.8)" strokeWidth="1.2" strokeLinecap="round"/>
+    </svg>
+  )
+}
+
+function RuongGoIcon({ size = 48 }) {
+  return (
+    <svg width={size} height={size} viewBox="0 0 60 56" fill="none">
+      <defs>
+        <linearGradient id="rgBody" x1="0%" y1="0%" x2="0%" y2="100%">
+          <stop offset="0%" stopColor="#8B5A2B"/>
+          <stop offset="100%" stopColor="#5D3A1A"/>
+        </linearGradient>
+        <linearGradient id="rgLid" x1="0%" y1="0%" x2="0%" y2="100%">
+          <stop offset="0%" stopColor="#A0693A"/>
+          <stop offset="100%" stopColor="#7A4820"/>
+        </linearGradient>
+      </defs>
+      {/* shadow */}
+      <ellipse cx="30" cy="54" rx="22" ry="4" fill="rgba(0,0,0,0.18)"/>
+      {/* body */}
+      <rect x="6" y="28" width="48" height="22" rx="2" fill="url(#rgBody)"/>
+      {/* lid */}
+      <rect x="6" y="16" width="48" height="14" rx="2" fill="url(#rgLid)"/>
+      {/* metal bands */}
+      <rect x="6" y="36" width="48" height="3" rx="1" fill="rgba(200,165,50,0.6)"/>
+      <rect x="6" y="22" width="48" height="3" rx="1" fill="rgba(200,165,50,0.6)"/>
+      {/* corner rivets */}
+      <circle cx="12" cy="37.5" r="2" fill="rgba(230,190,60,0.85)"/>
+      <circle cx="48" cy="37.5" r="2" fill="rgba(230,190,60,0.85)"/>
+      <circle cx="12" cy="23.5" r="2" fill="rgba(230,190,60,0.85)"/>
+      <circle cx="48" cy="23.5" r="2" fill="rgba(230,190,60,0.85)"/>
+      {/* center lock */}
+      <rect x="26" y="33" width="8" height="6" rx="1.5" fill="rgba(210,175,50,0.9)"/>
+      <circle cx="30" cy="33" r="3" fill="none" stroke="rgba(210,175,50,0.9)" strokeWidth="2"/>
+    </svg>
+  )
+}
+
+function CotDaCoIcon({ size = 48 }) {
+  return (
+    <svg width={size} height={size} viewBox="0 0 60 64" fill="none">
+      <defs>
+        <linearGradient id="cdcShaft" x1="0%" y1="0%" x2="100%" y2="0%">
+          <stop offset="0%" stopColor="#6b7280"/>
+          <stop offset="50%" stopColor="#9ca3af"/>
+          <stop offset="100%" stopColor="#4b5563"/>
+        </linearGradient>
+      </defs>
+      {/* base slab */}
+      <rect x="10" y="54" width="40" height="8" rx="2" fill="#4b5563"/>
+      {/* shaft */}
+      <rect x="20" y="14" width="20" height="42" rx="2" fill="url(#cdcShaft)"/>
+      {/* capital */}
+      <rect x="14" y="8" width="32" height="8" rx="2" fill="#6b7280"/>
+      {/* moss patches */}
+      <ellipse cx="23" cy="32" rx="5" ry="3" fill="rgba(55,105,45,0.55)"/>
+      <ellipse cx="37" cy="44" rx="4" ry="2.5" fill="rgba(55,105,45,0.45)"/>
+      {/* cracks */}
+      <path d="M 28 20 L 26 30 L 30 35" stroke="rgba(0,0,0,0.25)" strokeWidth="1" fill="none" strokeLinecap="round"/>
+      <path d="M 34 42 L 33 50" stroke="rgba(0,0,0,0.2)" strokeWidth="0.8" fill="none" strokeLinecap="round"/>
+    </svg>
+  )
+}
+
+function CungDienIcon({ size = 48 }) {
+  return (
+    <svg width={size} height={size} viewBox="0 0 60 64" fill="none">
+      <defs>
+        <linearGradient id="cdHall" x1="0%" y1="0%" x2="0%" y2="100%">
+          <stop offset="0%" stopColor="#e8edf5"/>
+          <stop offset="100%" stopColor="#b0bcd0"/>
+        </linearGradient>
+      </defs>
+      {/* tier 3 (bottom wide) */}
+      <rect x="4" y="48" width="52" height="14" rx="1" fill="#c8d4e8"/>
+      {/* tier 2 */}
+      <rect x="10" y="36" width="40" height="14" rx="1" fill="#d0daea"/>
+      {/* hall body */}
+      <rect x="14" y="20" width="32" height="18" rx="1" fill="url(#cdHall)"/>
+      {/* pediment */}
+      <polygon points="14,20 30,8 46,20" fill="#d8e2f0"/>
+      {/* columns */}
+      <rect x="16" y="22" width="4" height="16" rx="1" fill="#b0bcd0"/>
+      <rect x="24" y="22" width="4" height="16" rx="1" fill="#b0bcd0"/>
+      <rect x="32" y="22" width="4" height="16" rx="1" fill="#b0bcd0"/>
+      <rect x="40" y="22" width="4" height="16" rx="1" fill="#b0bcd0"/>
+      {/* door arch */}
+      <path d="M 25 38 L 25 28 Q 30 22 35 28 L 35 38 Z" fill="rgba(80,110,170,0.4)"/>
+      {/* windows */}
+      <path d="M 18 28 Q 20 24 22 28" fill="rgba(80,110,170,0.3)" stroke="none"/>
+      <path d="M 38 28 Q 40 24 42 28" fill="rgba(80,110,170,0.3)" stroke="none"/>
+    </svg>
+  )
+}
+
+function XacTauIcon({ size = 48 }) {
+  return (
+    <svg width={size} height={size} viewBox="0 0 60 60" fill="none">
+      <defs>
+        <linearGradient id="xtHull" x1="0%" y1="0%" x2="0%" y2="100%">
+          <stop offset="0%" stopColor="#4A3520"/>
+          <stop offset="100%" stopColor="#2A1A0A"/>
+        </linearGradient>
+      </defs>
+      {/* hull */}
+      <path d="M 5 48 Q 8 30 12 24 L 48 24 Q 52 30 55 48 Q 40 54 30 54 Q 20 54 5 48 Z" fill="url(#xtHull)"/>
+      {/* plank lines */}
+      <path d="M 10 34 Q 30 32 50 34" stroke="rgba(255,200,130,0.2)" strokeWidth="1" fill="none"/>
+      <path d="M 8 42 Q 30 40 52 42" stroke="rgba(255,200,130,0.2)" strokeWidth="1" fill="none"/>
+      {/* broken mast */}
+      <line x1="22" y1="24" x2="18" y2="6" stroke="rgba(120,80,40,0.85)" strokeWidth="3" strokeLinecap="round"/>
+      <line x1="18" y1="12" x2="10" y2="16" stroke="rgba(120,80,40,0.7)" strokeWidth="1.8" strokeLinecap="round"/>
+      {/* hull hole */}
+      <ellipse cx="38" cy="40" rx="7" ry="4" fill="rgba(0,0,0,0.35)"/>
+      {/* algae tufts */}
+      <path d="M 44 24 Q 42 18 44 14" stroke="rgba(34,120,55,0.65)" strokeWidth="2" fill="none" strokeLinecap="round"/>
+      <path d="M 48 24 Q 50 16 47 12" stroke="rgba(34,120,55,0.55)" strokeWidth="1.8" fill="none" strokeLinecap="round"/>
+    </svg>
+  )
+}
+
+function NamPhatSangIcon({ size = 48 }) {
+  return (
+    <svg width={size} height={size} viewBox="0 0 60 64" fill="none">
+      <defs>
+        <radialGradient id="npsCap" cx="38%" cy="35%">
+          <stop offset="0%" stopColor="rgba(245,160,255,0.98)"/>
+          <stop offset="100%" stopColor="rgba(120,20,185,0.95)"/>
+        </radialGradient>
+      </defs>
+      {/* outer glow */}
+      <ellipse cx="30" cy="30" rx="22" ry="18" fill="rgba(180,0,220,0.08)"/>
+      {/* stem */}
+      <path d="M 24 56 Q 26 42 30 36" stroke="rgba(220,180,240,0.7)" strokeWidth="6" strokeLinecap="round" fill="none"/>
+      <path d="M 36 56 Q 34 42 30 36" stroke="rgba(220,180,240,0.6)" strokeWidth="4" strokeLinecap="round" fill="none"/>
+      {/* cap */}
+      <ellipse cx="30" cy="28" rx="20" ry="12" fill="url(#npsCap)"/>
+      {/* spots */}
+      <circle cx="22" cy="26" r="2.5" fill="rgba(255,255,255,0.75)"/>
+      <circle cx="30" cy="20" r="2" fill="rgba(255,255,255,0.65)"/>
+      <circle cx="38" cy="26" r="2.5" fill="rgba(255,255,255,0.75)"/>
+      <circle cx="33" cy="31" r="1.5" fill="rgba(255,255,255,0.55)"/>
+    </svg>
+  )
+}
+
 const TRANG_TRI_SHOP = [
-  { id: 'rong_bien',  ten: 'Rong biển',  Icon: RongBienIcon,  gia: 50  },
-  { id: 'san_ho_cay', ten: 'San hô cây', Icon: SanHoCayIcon,  gia: 80  },
-  { id: 'da_cuoi',    ten: 'Đá cuội',    Icon: DaCuoiIcon,    gia: 30  },
-  { id: 'kho_bau',    ten: 'Kho báu',    Icon: KhoBauIcon,    gia: 200 },
-  { id: 'vo_oc',      ten: 'Vỏ ốc',      Icon: VoOcIcon,      gia: 40  },
-  { id: 'hai_quy',    ten: 'Hải quỳ',    Icon: HaiQuyIcon,    gia: 120 },
+  { id: 'rong_bien',    ten: 'Rong biển',     Icon: RongBienIcon,    gia: 50  },
+  { id: 'san_ho_cay',   ten: 'San hô cây',    Icon: SanHoCayIcon,    gia: 80  },
+  { id: 'da_cuoi',      ten: 'Đá cuội',       Icon: DaCuoiIcon,      gia: 30  },
+  { id: 'kho_bau',      ten: 'Kho báu',       Icon: KhoBauIcon,      gia: 200 },
+  { id: 'vo_oc',        ten: 'Vỏ ốc',         Icon: VoOcIcon,        gia: 40  },
+  { id: 'hai_quy',      ten: 'Hải quỳ',       Icon: HaiQuyIcon,      gia: 120 },
+  { id: 'den_long',     ten: 'Đèn lồng',      Icon: DenLongIcon,     gia: 150 },
+  { id: 'ruong_go',     ten: 'Rương gỗ',      Icon: RuongGoIcon,     gia: 100 },
+  { id: 'cot_da_co',    ten: 'Cột đá cổ',     Icon: CotDaCoIcon,     gia: 80  },
+  { id: 'cung_dien',    ten: 'Cung điện nhỏ', Icon: CungDienIcon,    gia: 300 },
+  { id: 'xac_tau',      ten: 'Xác tàu',       Icon: XacTauIcon,      gia: 250 },
+  { id: 'nam_phat_sang',ten: 'Nấm phát sáng', Icon: NamPhatSangIcon, gia: 120 },
 ]
 
 // ── SVG icons for special shop items ─────────────────────────────

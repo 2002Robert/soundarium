@@ -21,6 +21,8 @@ import { tinhLevel, TIEU_DE_LEVEL } from '../utils/playerLevel'
 const DECOR_ICON = {
   rong_bien: '🌿', san_ho_cay: '🪸', da_cuoi: '🪨',
   kho_bau: '🏺',  vo_oc: '🐚',       hai_quy: '🌺',
+  den_long: '🏮',  ruong_go: '📦',    cot_da_co: '🗿',
+  cung_dien: '🏛', xac_tau: '⚓',     nam_phat_sang: '🍄',
 }
 
 function PlacementOverlay({ icon, playerBarHeight, onPlace, onCancel }) {
@@ -490,7 +492,7 @@ export default function Home() {
   async function doiLayerDecor(id, delta) {
     const d = danhSachDecor.find(x => x.id === id)
     if (!d) return
-    const newLayer = Math.max(1, Math.min(3, d.layer + delta))
+    const newLayer = Math.max(0, Math.min(10, d.layer + delta))
     setDanhSachDecor(prev => prev.map(x => x.id === id ? { ...x, layer: newLayer } : x))
     setMenuDecor(prev => prev ? { ...prev, decor: { ...prev.decor, layer: newLayer } } : null)
     try { await API.capNhatDecor(id, { layer: newLayer }) } catch {}

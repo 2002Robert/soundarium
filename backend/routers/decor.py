@@ -15,12 +15,18 @@ from auth import lay_user_id
 router = APIRouter(prefix="/api/decor", tags=["decor"])
 
 GIA_TRANG_TRI = {
-    "rong_bien":  50,
-    "san_ho_cay": 80,
-    "da_cuoi":    30,
-    "kho_bau":    200,
-    "vo_oc":      40,
-    "hai_quy":    120,
+    "rong_bien":     50,
+    "san_ho_cay":    80,
+    "da_cuoi":       30,
+    "kho_bau":       200,
+    "vo_oc":         40,
+    "hai_quy":       120,
+    "den_long":      150,
+    "ruong_go":      100,
+    "cot_da_co":     80,
+    "cung_dien":     300,
+    "xac_tau":       250,
+    "nam_phat_sang": 120,
 }
 
 
@@ -136,7 +142,7 @@ async def cap_nhat(
     updates = {}
     if body.pos_x is not None: updates["pos_x"]      = max(0.01, min(0.99, body.pos_x))
     if body.pos_y is not None: updates["pos_y"]      = max(0.05, min(0.97, body.pos_y))
-    if body.layer is not None: updates["layer"]      = max(1, min(3, body.layer))
+    if body.layer is not None: updates["layer"]      = max(0, min(10, body.layer))
     if body.an    is not None: updates["is_visible"] = not body.an
     if body.scale is not None: updates["scale"]      = max(0.3, min(3.0, body.scale))
 
