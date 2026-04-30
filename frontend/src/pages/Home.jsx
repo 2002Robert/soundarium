@@ -602,7 +602,7 @@ export default function Home() {
     if (!d) return
     const stored = parseFloat(localStorage.getItem('snd_sc_' + id) || '1') || 1.0
     const cur = d.scale ?? stored
-    const newScale = Math.round(Math.max(0.3, Math.min(10.0, cur + delta)) * 10) / 10
+    const newScale = Math.round(Math.max(0.1, cur + delta) * 10) / 10
     setDanhSachDecor(prev => prev.map(x => x.id === id ? { ...x, scale: newScale } : x))
     setMenuDecor(prev => prev ? { ...prev, decor: { ...prev.decor, scale: newScale } } : null)
     localStorage.setItem('snd_sc_' + id, String(newScale))
@@ -829,7 +829,7 @@ export default function Home() {
             <div className="flex items-center gap-1 px-3 py-1.5 border-b border-ho-anh/8">
               <button
                 onClick={() => doiScaleDecor(menuDecor.decor.id, -0.5)}
-                disabled={(menuDecor.decor.scale ?? 1.0) <= 0.3}
+                disabled={(menuDecor.decor.scale ?? 1.0) <= 0.1}
                 className="flex-1 py-1 rounded-lg text-xs bg-ho-anh/10 hover:bg-ho-anh/20 text-ho-anh/70 hover:text-white disabled:opacity-30 disabled:cursor-not-allowed transition"
               >🔍−</button>
               <span className="w-12 text-center text-xs font-mono text-white/70 tabular-nums">
@@ -837,8 +837,7 @@ export default function Home() {
               </span>
               <button
                 onClick={() => doiScaleDecor(menuDecor.decor.id, 0.5)}
-                disabled={(menuDecor.decor.scale ?? 1.0) >= 10.0}
-                className="flex-1 py-1 rounded-lg text-xs bg-ho-anh/10 hover:bg-ho-anh/20 text-ho-anh/70 hover:text-white disabled:opacity-30 disabled:cursor-not-allowed transition"
+                className="flex-1 py-1 rounded-lg text-xs bg-ho-anh/10 hover:bg-ho-anh/20 text-ho-anh/70 hover:text-white transition"
               >🔍+</button>
             </div>
             <button
