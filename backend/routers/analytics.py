@@ -7,6 +7,7 @@ from auth import lay_user_id
 router = APIRouter(prefix="/api/analytics", tags=["analytics"])
 
 ADMIN_USERNAME = "daorobert2002"
+_LIMIT = 50000  # vượt giới hạn 1000 row mặc định của PostgREST
 
 
 class SessionBody(BaseModel):
@@ -18,6 +19,7 @@ class SessionBody(BaseModel):
 async def bat_dau_session(user_id: str = Depends(lay_user_id)):
     result = supabase_admin.table("analytics_sessions").insert({
         "user_id": user_id,
+        "ngay":    date.today().isoformat(),
     }).execute()
     return {"session_id": result.data[0]["id"]}
 
@@ -55,38 +57,69 @@ async def dashboard(user_id: str = Depends(lay_user_id)):
     yesterday = (date.today() - timedelta(days=1)).isoformat()
 
     # Tổng user
-    total_res = supabase_admin.table("profiles").select("id").execute()
+    total_res = (
+        supabase_admin.table("profiles")
+        .select("id")
+        .limit(_LIMIT)
+        .execute()
+    )
     tong_user = len(total_res.data or [])
 
     # DAU hôm nay / hôm qua
-    today_res     = supabase_admin.table("analytics_sessions").select("user_id").eq("ngay", today).execute()
-    yesterday_res = supabase_admin.table("analytics_sessions").select("user_id").eq("ngay", yesterday).execute()
+    today_res = (
+        supabase_admin.table("analytics_sessions")
+        .select("user_id")
+        .eq("ngay", today)
+        .limit(_LIMIT)
+        .execute()
+    )
+    yesterday_res = (
+        supabase_admin.table("analytics_sessions")
+        .select("user_id")
+        .eq("ngay", yesterday)
+        .limit(_LIMIT)
+        .execute()
+    )
     today_users     = {s["user_id"] for s in (today_res.data or [])}
     yesterday_users = {s["user_id"] for s in (yesterday_res.data or [])}
 
     returning = today_users & yesterday_users
     dau_rate  = round(len(returning) / len(today_users) * 100, 1) if today_users else 0.0
 
-    # Thời gian chơi
-    dur_res   = supabase_admin.table("analytics_sessions").select("duration_seconds").execute()
-    durations = [s["duration_seconds"] for s in (dur_res.data or []) if (s["duration_seconds"] or 0) > 0]
-    avg_min   = round(sum(durations) / len(durations) / 60, 1) if durations else 0.0
-    max_min   = round(max(durations) / 60, 1) if durations else 0.0
+    # Thời gian chơi — lấy về Python rồi filter, tránh dùng comparison operator DB
+    dur_res = (
+        supabase_admin.table("analytics_sessions")
+        .select("duration_seconds")
+        .limit(_LIMIT)
+        .execute()
+    )
+    durations = [
+        s["duration_seconds"]
+        for s in (dur_res.data or [])
+        if (s["duration_seconds"] or 0) > 0
+    ]
+    avg_min = round(sum(durations) / len(durations) / 60, 1) if durations else 0.0
+    max_min = round(max(durations) / 60, 1) if durations else 0.0
 
     # Feedback
-    fb_res   = supabase_admin.table("user_feedback").select("liked").execute()
+    fb_res = (
+        supabase_admin.table("user_feedback")
+        .select("liked")
+        .limit(_LIMIT)
+        .execute()
+    )
     likes    = sum(1 for f in (fb_res.data or []) if f["liked"] is True)
     dislikes = sum(1 for f in (fb_res.data or []) if f["liked"] is False)
     total_fb = likes + dislikes
 
     return {
-        "tong_nguoi_dung":            tong_user,
-        "nguoi_choi_hom_nay":         len(today_users),
-        "nguoi_choi_hom_qua":         len(yesterday_users),
-        "ti_le_quay_lai":             dau_rate,
-        "thoi_gian_trung_binh_phut":  avg_min,
-        "thoi_gian_lau_nhat_phut":    max_min,
-        "so_like":                    likes,
-        "so_dislike":                 dislikes,
-        "ti_le_like":                 round(likes / total_fb * 100, 1) if total_fb > 0 else 0.0,
+        "tong_nguoi_dung":           tong_user,
+        "nguoi_choi_hom_nay":        len(today_users),
+        "nguoi_choi_hom_qua":        len(yesterday_users),
+        "ti_le_quay_lai":            dau_rate,
+        "thoi_gian_trung_binh_phut": avg_min,
+        "thoi_gian_lau_nhat_phut":   max_min,
+        "so_like":                   likes,
+        "so_dislike":                dislikes,
+        "ti_le_like":                round(likes / total_fb * 100, 1) if total_fb > 0 else 0.0,
     }
