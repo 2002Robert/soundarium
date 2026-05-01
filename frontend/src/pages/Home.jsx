@@ -562,6 +562,17 @@ export default function Home() {
     }
   }, [caDangPhat, dangPhat, ytPlayer, danhSachCa])
 
+  // Polling resume: nếu YouTube tự pause khi out app/tắt màn hình → play lại
+  useEffect(() => {
+    if (!ytPlayer || !dangPhat) return
+    const id = setInterval(() => {
+      try {
+        if (ytPlayer.getPlayerState?.() === 2) ytPlayer.playVideo?.()
+      } catch {}
+    }, 1500)
+    return () => clearInterval(id)
+  }, [ytPlayer, dangPhat])
+
   // Đo chiều cao player bar để canvas né
   useEffect(() => {
     const el = playerBarRef.current
