@@ -1,0 +1,15 @@
+{
+  "name": "Soundarium",
+  "short_name": "Soundarium",
+  "description": "Hồ cá nhạc YouTube — nghe nhạc cùng cá của bạn",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#020c1b",
+  "theme_color": "#020c1b",
+  "orientation": "portrait-primary",
+  "icons": [
+    { "src": "/icon-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any maskable" },
+    { "src": "/icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any maskable" },
+    { "src": "/fish.svg",     "sizes": "any",      "type": "image/svg+xml" }
+  ]
+}

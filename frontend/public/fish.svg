@@ -1,0 +1,22 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
+  <rect width="512" height="512" rx="96" fill="#020c1b"/>
+  <!-- Tail -->
+  <path d="M 90 256 L 30 190 L 55 256 L 30 322 Z" fill="#FF8C00"/>
+  <!-- Body -->
+  <ellipse cx="230" cy="256" rx="148" ry="96" fill="#FF8C00"/>
+  <!-- Dorsal fin -->
+  <path d="M 120 160 Q 210 100 300 160 Q 210 165 120 160 Z" fill="#E06000" opacity="0.7"/>
+  <!-- Eye white -->
+  <circle cx="330" cy="230" r="28" fill="rgba(255,255,255,0.92)"/>
+  <!-- Eye pupil -->
+  <circle cx="337" cy="230" r="16" fill="#111"/>
+  <circle cx="342" cy="222" r="6" fill="rgba(255,255,255,0.85)"/>
+  <!-- Bubbles -->
+  <circle cx="395" cy="175" r="12" stroke="rgba(96,165,250,0.55)" stroke-width="6" fill="none"/>
+  <circle cx="425" cy="135" r="8"  stroke="rgba(96,165,250,0.38)" stroke-width="5" fill="none"/>
+  <circle cx="445" cy="105" r="5"  stroke="rgba(96,165,250,0.25)" stroke-width="4" fill="none"/>
+  <!-- Music note -->
+  <line x1="455" y1="270" x2="455" y2="370" stroke="rgba(96,165,250,0.9)" stroke-width="18" stroke-linecap="round"/>
+  <path d="M 455 270 Q 510 300 490 355" stroke="rgba(96,165,250,0.85)" stroke-width="14" fill="none" stroke-linecap="round"/>
+  <ellipse cx="440" cy="375" rx="28" ry="18" transform="rotate(-18 440 375)" fill="rgba(96,165,250,0.9)"/>
+</svg>

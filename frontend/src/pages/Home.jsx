@@ -17,6 +17,7 @@ import ExplorePanel from '../components/ExplorePanel'
 import TankSwitcher from '../components/TankSwitcher'
 import { tinhLevel, TIEU_DE_LEVEL } from '../utils/playerLevel'
 import FeedbackPopup from '../components/FeedbackPopup'
+import PWAInstallBanner from '../components/PWAInstallBanner'
 
 
 function mergeScaleLS(list) {
@@ -501,6 +502,43 @@ export default function Home() {
       hienToast(err.message || 'Lỗi nhặt ngọc', 'loi')
     }
   }
+
+  // Media Session API — hiện controls trên lock screen khi phát nhạc
+  useEffect(() => {
+    if (!('mediaSession' in navigator)) return
+    if (!caDangPhat) {
+      navigator.mediaSession.playbackState = 'none'
+      return
+    }
+
+    navigator.mediaSession.metadata = new MediaMetadata({
+      title:   caDangPhat.nickname || caDangPhat.ten_bai || 'Soundarium',
+      artist:  caDangPhat.ten_kenh || '',
+      album:   'Soundarium',
+      artwork: [{ src: '/fish.svg', sizes: 'any', type: 'image/svg+xml' }],
+    })
+    navigator.mediaSession.playbackState = dangPhat ? 'playing' : 'paused'
+
+    navigator.mediaSession.setActionHandler('play',  () => { try { ytPlayer?.playVideo?.() } catch {} })
+    navigator.mediaSession.setActionHandler('pause', () => { try { ytPlayer?.pauseVideo?.() } catch {} })
+
+    navigator.mediaSession.setActionHandler('nexttrack', () => {
+      const i = danhSachCa.findIndex(c => c.id === caDangPhat.id)
+      if (i >= 0 && i < danhSachCa.length - 1) chuyenCa(danhSachCa[i + 1])
+    })
+    navigator.mediaSession.setActionHandler('previoustrack', () => {
+      const i = danhSachCa.findIndex(c => c.id === caDangPhat.id)
+      if (i > 0) chuyenCa(danhSachCa[i - 1])
+    })
+
+    return () => {
+      try {
+        ;['play', 'pause', 'nexttrack', 'previoustrack'].forEach(a =>
+          navigator.mediaSession.setActionHandler(a, null)
+        )
+      } catch {}
+    }
+  }, [caDangPhat, dangPhat, ytPlayer, danhSachCa])
 
   // Đo chiều cao player bar để canvas né
   useEffect(() => {
@@ -1105,6 +1143,8 @@ export default function Home() {
       {toast && <Toast thongBao={toast.thongBao} loai={toast.loai} onHet={() => setToast(null)} />}
 
       {hienFeedback && <FeedbackPopup onDong={() => setHienFeedback(false)} />}
+
+      <PWAInstallBanner />
     </div>
   )
 }
