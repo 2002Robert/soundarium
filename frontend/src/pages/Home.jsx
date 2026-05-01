@@ -385,6 +385,23 @@ export default function Home() {
   useEffect(() => {
     supabase.auth.getUser().then(({ data }) => {
       if (!data.user) { navigate('/login'); return }
+
+      const currentId  = data.user.id
+      const storedId   = localStorage.getItem('snd_user_id')
+
+      if (storedId && storedId !== currentId) {
+        // User khác đăng nhập cùng thiết bị → xóa data của user cũ
+        ;['snd_con_trai', 'snd_nen', 'snd_day', 'snd_onboarded'].forEach(k =>
+          localStorage.removeItem(k)
+        )
+        Object.keys(localStorage)
+          .filter(k => k.startsWith('snd_an_') || k.startsWith('snd_sc_'))
+          .forEach(k => localStorage.removeItem(k))
+        setConTrai([])
+      }
+
+      localStorage.setItem('snd_user_id', currentId)
+
       if (!localStorage.getItem('snd_onboarded')) setHienOnboarding(true)
       khoiDong()
     })
