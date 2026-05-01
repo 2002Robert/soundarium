@@ -1,10 +1,11 @@
 import { useState, useRef, useCallback, useEffect } from 'react'
 import { API } from '../lib/api'
 
-const KHOANG_CAP_NHAT_NGHE_MS = 5 * 60 * 1000 // 5 phút
+const KHOANG_CAP_NHAT_NGHE_MS = 5 * 60 * 1000
 
 export function useAudio({ onNgheCapNhat } = {}) {
   const [dangPhat, setDangPhat] = useState(null)
+  const [player, setPlayer]     = useState(null)
   const demGioRef  = useRef(null)
   const caIdRef    = useRef(null)
   const onNgheRef  = useRef(onNgheCapNhat)
@@ -24,10 +25,7 @@ export function useAudio({ onNgheCapNhat } = {}) {
   }, [])
 
   const dungDemGio = useCallback(() => {
-    if (demGioRef.current) {
-      clearInterval(demGioRef.current)
-      demGioRef.current = null
-    }
+    if (demGioRef.current) { clearInterval(demGioRef.current); demGioRef.current = null }
   }, [])
 
   const phatCa = useCallback((caId) => {
@@ -35,13 +33,15 @@ export function useAudio({ onNgheCapNhat } = {}) {
     batDauDemGio(caId)
   }, [batDauDemGio])
 
-  // Actual audio pause is handled by Home.jsx via useEffect watching dangPhat
   const dungPhat = useCallback(() => {
     setDangPhat(null)
     dungDemGio()
-  }, [dungDemGio])
+    player?.pauseVideo?.()
+  }, [player, dungDemGio])
+
+  const dangKyPlayer = useCallback((ytPlayer) => setPlayer(ytPlayer), [])
 
   useEffect(() => () => dungDemGio(), [dungDemGio])
 
-  return { dangPhat, phatCa, dungPhat }
+  return { dangPhat, phatCa, dungPhat, dangKyPlayer, player }
 }

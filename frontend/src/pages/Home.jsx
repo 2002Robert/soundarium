@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef, useCallback, useMemo } from 'react'
+import { useState, useEffect, useRef, useCallback } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { supabase } from '../lib/supabase'
 import { API } from '../lib/api'
@@ -15,6 +15,7 @@ import ShopPanel from '../components/ShopPanel'
 import ExplorePanel from '../components/ExplorePanel'
 import TankSwitcher from '../components/TankSwitcher'
 import { tinhLevel, TIEU_DE_LEVEL } from '../utils/playerLevel'
+import YouTubePlayer from '../components/YouTubePlayer'
 import FeedbackPopup from '../components/FeedbackPopup'
 import PWAInstallBanner from '../components/PWAInstallBanner'
 
@@ -237,7 +238,8 @@ export default function Home() {
   const [hienExplore, setHienExplore]         = useState(false)
   const [hienOnboarding, setHienOnboarding]   = useState(false)
   const [hienLogout, setHienLogout]           = useState(false)
-  const audioRef = useRef(null)
+  const [videoIdDangPhat, setVideoIdDangPhat] = useState(null)
+  const [ytPlayer, setYtPlayer]               = useState(null)
 
   const [ngocTrai, setNgocTrai]               = useState(0)
   const [conTrai, setConTrai]                 = useState([])
@@ -358,8 +360,13 @@ export default function Home() {
   function doiVolume(val) {
     setVolume(val)
     localStorage.setItem('snd_vol', String(val))
-    if (audioRef.current) audioRef.current.volume = val / 100
+    try { ytPlayer?.setVolume?.(val) } catch {}
   }
+
+  useEffect(() => {
+    if (!ytPlayer) return
+    try { ytPlayer.setVolume?.(volume) } catch {}
+  }, [ytPlayer])
 
   const khiNgheCapNhat = useCallback((caId, res) => {
     setDanhSachCa(prev => prev.map(c =>
@@ -371,19 +378,8 @@ export default function Home() {
     }
   }, [])
 
-  const { dangPhat, phatCa, dungPhat } = useAudio({ onNgheCapNhat: khiNgheCapNhat })
-  const { coins, thuHoach, setCoins }  = useCoins()
-
-  // Duck-type adapter: giao diện giống YouTube player để các component khác không cần đổi
-  const ytPlayer = useMemo(() => ({
-    getCurrentTime: () => audioRef.current?.currentTime ?? 0,
-    getDuration:    () => (isFinite(audioRef.current?.duration) ? audioRef.current.duration : 0),
-    seekTo:         (t) => { if (audioRef.current) audioRef.current.currentTime = t },
-    playVideo:      () => audioRef.current?.play().catch(() => {}),
-    pauseVideo:     () => audioRef.current?.pause(),
-    getPlayerState: () => audioRef.current ? (audioRef.current.paused ? 2 : 1) : -1,
-    setVolume:      (v) => { if (audioRef.current) audioRef.current.volume = v / 100 },
-  }), [])
+  const { dangPhat, phatCa, dungPhat, dangKyPlayer } = useAudio({ onNgheCapNhat: khiNgheCapNhat })
+  const { coins, thuHoach, setCoins }                = useCoins()
 
   const danhSachSua      = danhSachCa.filter(c => c.loai_ca === 'sua_gai')
   const danhSachCaThuong = danhSachCa.filter(c => c.loai_ca !== 'sua_gai')
@@ -545,8 +541,8 @@ export default function Home() {
     })
     navigator.mediaSession.playbackState = dangPhat ? 'playing' : 'paused'
 
-    navigator.mediaSession.setActionHandler('play',  () => { phatCa(caDangPhat.id); audioRef.current?.play().catch(() => {}) })
-    navigator.mediaSession.setActionHandler('pause', () => { dungPhat(); audioRef.current?.pause() })
+    navigator.mediaSession.setActionHandler('play',  () => { try { ytPlayer?.playVideo?.() } catch {} })
+    navigator.mediaSession.setActionHandler('pause', () => { try { ytPlayer?.pauseVideo?.() } catch {} })
 
     navigator.mediaSession.setActionHandler('nexttrack', () => {
       const i = danhSachCa.findIndex(c => c.id === caDangPhat.id)
@@ -566,10 +562,6 @@ export default function Home() {
     }
   }, [caDangPhat, dangPhat, ytPlayer, danhSachCa])
 
-  // Pause native audio khi dungPhat() được gọi
-  useEffect(() => {
-    if (!dangPhat) audioRef.current?.pause()
-  }, [dangPhat])
 
   // Đo chiều cao player bar để canvas né
   useEffect(() => {
@@ -634,20 +626,7 @@ export default function Home() {
 
   function hienToast(thongBao, loai = 'info') { setToast({ thongBao, loai }) }
 
-  async function phatCaObject(ca) {
-    phatCa(ca.id)
-    try {
-      const { url } = await API.layAudioUrl(ca.video_id)
-      if (audioRef.current) {
-        audioRef.current.src = url
-        audioRef.current.volume = volume / 100
-        audioRef.current.play().catch(() => {})
-      }
-    } catch (e) {
-      hienToast(e?.message || 'Không tải được audio', 'loi')
-      dungPhat()
-    }
-  }
+  function phatCaObject(ca) { phatCa(ca.id); setVideoIdDangPhat(ca.video_id) }
 
   function clickCa(ca, x, y) {
     if (infoCa?.ca.id === ca.id) { setInfoCa(null); return }
@@ -657,12 +636,8 @@ export default function Home() {
 
   function togglePhatCaHienTai() {
     if (!caDangPhat) return
-    if (dangPhat) {
-      dungPhat()
-    } else {
-      phatCa(caDangPhat.id)
-      audioRef.current?.play().catch(() => {})
-    }
+    if (dangPhat) dungPhat()
+    else phatCaObject(caDangPhat)
   }
 
   function togglePhatTuPanel(ca) {
@@ -1107,8 +1082,12 @@ export default function Home() {
         </div>
       </div>
 
-      {/* eslint-disable-next-line jsx-a11y/media-has-caption */}
-      <audio ref={audioRef} onEnded={khiKetThucBai} playsInline style={{ display: 'none' }} />
+      <YouTubePlayer
+        videoId={videoIdDangPhat}
+        dangPhat={!!dangPhat}
+        onReady={(p) => { setYtPlayer(p); dangKyPlayer(p) }}
+        onEnded={khiKetThucBai}
+      />
 
       <div ref={playerBarRef} className="fixed bottom-0 left-0 right-0 z-[100]">
         <MusicPlayerBar
