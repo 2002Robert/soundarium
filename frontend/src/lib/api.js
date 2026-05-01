@@ -218,4 +218,7 @@ export const API = {
     }),
 
   trangThaiFeedback: () => goiApi('/api/feedback/trang-thai'),
+
+  // Audio (yt-dlp)
+  layAudioUrl: (videoId) => goiApi(`/audio/url?v=${encodeURIComponent(videoId)}`),
 }

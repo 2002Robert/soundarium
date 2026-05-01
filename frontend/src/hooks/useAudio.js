@@ -5,20 +5,15 @@ const KHOANG_CAP_NHAT_NGHE_MS = 5 * 60 * 1000 // 5 phút
 
 export function useAudio({ onNgheCapNhat } = {}) {
   const [dangPhat, setDangPhat] = useState(null)
-  const [player, setPlayer] = useState(null)
   const demGioRef  = useRef(null)
   const caIdRef    = useRef(null)
   const onNgheRef  = useRef(onNgheCapNhat)
 
   useEffect(() => { onNgheRef.current = onNgheCapNhat }, [onNgheCapNhat])
-
-  useEffect(() => {
-    caIdRef.current = dangPhat
-  }, [dangPhat])
+  useEffect(() => { caIdRef.current = dangPhat }, [dangPhat])
 
   const batDauDemGio = useCallback((caId) => {
     if (demGioRef.current) clearInterval(demGioRef.current)
-
     demGioRef.current = setInterval(async () => {
       if (!caIdRef.current) return
       try {
@@ -40,20 +35,13 @@ export function useAudio({ onNgheCapNhat } = {}) {
     batDauDemGio(caId)
   }, [batDauDemGio])
 
+  // Actual audio pause is handled by Home.jsx via useEffect watching dangPhat
   const dungPhat = useCallback(() => {
     setDangPhat(null)
     dungDemGio()
-    player?.pauseVideo?.()
-  }, [player, dungDemGio])
-
-  const dangKyPlayer = useCallback((ytPlayer) => {
-    setPlayer(ytPlayer)
-  }, [])
-
-  // Dọn dẹp khi unmount
-  useEffect(() => {
-    return () => dungDemGio()
   }, [dungDemGio])
 
-  return { dangPhat, phatCa, dungPhat, dangKyPlayer, player }
+  useEffect(() => () => dungDemGio(), [dungDemGio])
+
+  return { dangPhat, phatCa, dungPhat }
 }

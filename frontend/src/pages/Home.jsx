@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef, useCallback } from 'react'
+import { useState, useEffect, useRef, useCallback, useMemo } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { supabase } from '../lib/supabase'
 import { API } from '../lib/api'
@@ -238,8 +238,7 @@ export default function Home() {
   const [hienExplore, setHienExplore]         = useState(false)
   const [hienOnboarding, setHienOnboarding]   = useState(false)
   const [hienLogout, setHienLogout]           = useState(false)
-  const [videoIdDangPhat, setVideoIdDangPhat] = useState(null)
-  const [ytPlayer, setYtPlayer]               = useState(null)
+  const audioRef = useRef(null)
 
   const [ngocTrai, setNgocTrai]               = useState(0)
   const [conTrai, setConTrai]                 = useState([])
@@ -277,8 +276,6 @@ export default function Home() {
   // PWA install
   const [pwaPrompt, setPwaPrompt] = useState(null)
 
-  // Silent audio — giữ iOS/Android audio session sống khi out app
-  const silentAudioRef = useRef(null)
 
   // ESC cancels placement mode
   useEffect(() => {
@@ -362,14 +359,8 @@ export default function Home() {
   function doiVolume(val) {
     setVolume(val)
     localStorage.setItem('snd_vol', String(val))
-    try { ytPlayer?.setVolume?.(val) } catch {}
+    if (audioRef.current) audioRef.current.volume = val / 100
   }
-
-  // Áp dụng volume khi player ready
-  useEffect(() => {
-    if (!ytPlayer) return
-    try { ytPlayer.setVolume?.(volume) } catch {}
-  }, [ytPlayer])
 
   const khiNgheCapNhat = useCallback((caId, res) => {
     setDanhSachCa(prev => prev.map(c =>
@@ -383,6 +374,17 @@ export default function Home() {
 
   const { dangPhat, phatCa, dungPhat } = useAudio({ onNgheCapNhat: khiNgheCapNhat })
   const { coins, thuHoach, setCoins }  = useCoins()
+
+  // Duck-type adapter: giao diện giống YouTube player để các component khác không cần đổi
+  const ytPlayer = useMemo(() => ({
+    getCurrentTime: () => audioRef.current?.currentTime ?? 0,
+    getDuration:    () => (isFinite(audioRef.current?.duration) ? audioRef.current.duration : 0),
+    seekTo:         (t) => { if (audioRef.current) audioRef.current.currentTime = t },
+    playVideo:      () => audioRef.current?.play().catch(() => {}),
+    pauseVideo:     () => audioRef.current?.pause(),
+    getPlayerState: () => audioRef.current ? (audioRef.current.paused ? 2 : 1) : -1,
+    setVolume:      (v) => { if (audioRef.current) audioRef.current.volume = v / 100 },
+  }), [])
 
   const danhSachSua      = danhSachCa.filter(c => c.loai_ca === 'sua_gai')
   const danhSachCaThuong = danhSachCa.filter(c => c.loai_ca !== 'sua_gai')
@@ -544,8 +546,8 @@ export default function Home() {
     })
     navigator.mediaSession.playbackState = dangPhat ? 'playing' : 'paused'
 
-    navigator.mediaSession.setActionHandler('play',  () => { try { ytPlayer?.playVideo?.() } catch {} })
-    navigator.mediaSession.setActionHandler('pause', () => { try { ytPlayer?.pauseVideo?.() } catch {} })
+    navigator.mediaSession.setActionHandler('play',  () => { phatCa(caDangPhat.id); audioRef.current?.play().catch(() => {}) })
+    navigator.mediaSession.setActionHandler('pause', () => { dungPhat(); audioRef.current?.pause() })
 
     navigator.mediaSession.setActionHandler('nexttrack', () => {
       const i = danhSachCa.findIndex(c => c.id === caDangPhat.id)
@@ -565,33 +567,9 @@ export default function Home() {
     }
   }, [caDangPhat, dangPhat, ytPlayer, danhSachCa])
 
-  // Polling resume: nếu YouTube tự pause khi out app/tắt màn hình → play lại
+  // Pause native audio khi dungPhat() được gọi
   useEffect(() => {
-    if (!ytPlayer || !dangPhat) return
-    const id = setInterval(() => {
-      try {
-        if (ytPlayer.getPlayerState?.() === 2) ytPlayer.playVideo?.()
-      } catch {}
-    }, 1500)
-    return () => clearInterval(id)
-  }, [ytPlayer, dangPhat])
-
-  // Silent audio loop — trick iOS/Android giữ audio session khi out app/tắt màn hình
-  // iOS chỉ cho audio native <audio> chạy background; YouTube iframe sẽ theo
-  useEffect(() => {
-    if (!silentAudioRef.current) {
-      const a = new Audio()
-      // 1 giây silent WAV
-      a.src = 'data:audio/wav;base64,UklGRiQAAABXQVZFZm10IBAAAAABAAEAQB8AAEAfAAABAAgAZGF0YQAAAAA='
-      a.loop = true
-      a.volume = 0.001
-      silentAudioRef.current = a
-    }
-    if (dangPhat) {
-      silentAudioRef.current.play().catch(() => {})
-    } else {
-      silentAudioRef.current.pause()
-    }
+    if (!dangPhat) audioRef.current?.pause()
   }, [dangPhat])
 
   // Đo chiều cao player bar để canvas né
@@ -657,7 +635,20 @@ export default function Home() {
 
   function hienToast(thongBao, loai = 'info') { setToast({ thongBao, loai }) }
 
-  function phatCaObject(ca) { phatCa(ca.id); setVideoIdDangPhat(ca.video_id) }
+  async function phatCaObject(ca) {
+    phatCa(ca.id)
+    try {
+      const { url } = await API.layAudioUrl(ca.video_id)
+      if (audioRef.current) {
+        audioRef.current.src = url
+        audioRef.current.volume = volume / 100
+        audioRef.current.play().catch(() => {})
+      }
+    } catch {
+      hienToast('Không tải được audio — thử lại', 'loi')
+      dungPhat()
+    }
+  }
 
   function clickCa(ca, x, y) {
     if (infoCa?.ca.id === ca.id) { setInfoCa(null); return }
@@ -667,8 +658,12 @@ export default function Home() {
 
   function togglePhatCaHienTai() {
     if (!caDangPhat) return
-    if (dangPhat) dungPhat()
-    else phatCaObject(caDangPhat)
+    if (dangPhat) {
+      dungPhat()
+    } else {
+      phatCa(caDangPhat.id)
+      audioRef.current?.play().catch(() => {})
+    }
   }
 
   function togglePhatTuPanel(ca) {
@@ -1113,12 +1108,8 @@ export default function Home() {
         </div>
       </div>
 
-      <YouTubePlayer
-        videoId={videoIdDangPhat}
-        dangPhat={!!dangPhat}
-        onReady={setYtPlayer}
-        onEnded={khiKetThucBai}
-      />
+      {/* eslint-disable-next-line jsx-a11y/media-has-caption */}
+      <audio ref={audioRef} onEnded={khiKetThucBai} playsInline style={{ display: 'none' }} />
 
       <div ref={playerBarRef} className="fixed bottom-0 left-0 right-0 z-[100]">
         <MusicPlayerBar
