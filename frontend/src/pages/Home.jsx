@@ -384,7 +384,9 @@ export default function Home() {
   const danhSachSua      = danhSachCa.filter(c => c.loai_ca === 'sua_gai')
   const danhSachCaThuong = danhSachCa.filter(c => c.loai_ca !== 'sua_gai')
 
-  const caDangPhat = danhSachCa.find(c => c.id === dangPhat) ?? null
+  const [lastDangPhatId, setLastDangPhatId] = useState(null)
+  useEffect(() => { if (dangPhat) setLastDangPhatId(dangPhat) }, [dangPhat])
+  const caDangPhat = danhSachCa.find(c => c.id === (dangPhat || lastDangPhatId)) ?? null
 
   useEffect(() => {
     supabase.auth.getUser().then(({ data }) => {
@@ -634,7 +636,7 @@ export default function Home() {
   function togglePhatCaHienTai() {
     if (!caDangPhat) return
     if (dangPhat) dungPhat()
-    else phatCa(caDangPhat.id)
+    else phatCaObject(caDangPhat)
   }
 
   function togglePhatTuPanel(ca) {
