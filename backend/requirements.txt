@@ -7,3 +7,4 @@ python-jose[cryptography]>=3.3.0
 python-multipart>=0.0.9
 supabase>=2.0.0
 yt-dlp>=2024.1.1
+pytubefix>=6.0.0

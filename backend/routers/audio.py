@@ -33,8 +33,7 @@ async def _via_piped(video_id: str) -> str:
                 if not resp.is_success:
                     print(f"[audio] Piped {instance}: HTTP {resp.status_code}")
                     continue
-                data = resp.json()
-                streams = data.get("audioStreams", [])
+                streams = resp.json().get("audioStreams", [])
                 if not streams:
                     print(f"[audio] Piped {instance}: no audioStreams")
                     continue
@@ -59,8 +58,10 @@ async def _via_invidious(video_id: str) -> str:
                 if not resp.is_success:
                     print(f"[audio] Invidious {instance}: HTTP {resp.status_code}")
                     continue
-                formats = resp.json().get("adaptiveFormats", [])
-                audio = [f for f in formats if "audio" in f.get("type", "")]
+                audio = [
+                    f for f in resp.json().get("adaptiveFormats", [])
+                    if "audio" in f.get("type", "")
+                ]
                 if not audio:
                     print(f"[audio] Invidious {instance}: no audio formats")
                     continue
@@ -74,8 +75,23 @@ async def _via_invidious(video_id: str) -> str:
     raise ValueError("Invidious thất bại")
 
 
+def _via_pytubefix(video_id: str) -> str:
+    from pytubefix import YouTube
+    from pytubefix.cli import on_progress
+    yt = YouTube(
+        f"https://www.youtube.com/watch?v={video_id}",
+        use_oauth=False,
+        allow_oauth_cache=False,
+    )
+    stream = yt.streams.filter(only_audio=True).order_by("abr").last()
+    if not stream:
+        raise ValueError("pytubefix: không có audio stream")
+    print(f"[audio] pytubefix OK: {stream.abr}")
+    return stream.url
+
+
 def _via_ytdlp(video_id: str) -> str:
-    for client in ["android_vr", "android", "mweb"]:
+    for client in ["tv_embedded", "web_embedded", "android_music", "android_vr"]:
         try:
             with yt_dlp.YoutubeDL({
                 "format": "bestaudio[ext=m4a]/bestaudio",
@@ -90,13 +106,13 @@ def _via_ytdlp(video_id: str) -> str:
             url = info.get("url") or next(
                 (f["url"] for f in info.get("formats", [])
                  if f.get("acodec") not in (None, "none") and f.get("url")),
-                None
+                None,
             )
             if url:
                 print(f"[audio] yt-dlp OK: client={client}")
                 return url
         except Exception as e:
-            print(f"[audio] yt-dlp client={client} error: {e}")
+            print(f"[audio] yt-dlp client={client}: {e}")
     raise ValueError("yt-dlp thất bại với mọi client")
 
 
@@ -113,20 +129,34 @@ async def lay_audio_url(v: str):
         del _cache[v]
 
     errors = []
+    loop = asyncio.get_event_loop()
 
-    for name, coro in [
-        ("Piped",    _via_piped(v)),
-        ("Invidious", _via_invidious(v)),
-    ]:
-        try:
-            url = await coro
-            _cache[v] = (url, now + _CACHE_TTL)
-            return {"url": url, "video_id": v}
-        except Exception as e:
-            errors.append(f"{name}: {e}")
-
+    # 1. Piped
     try:
-        loop = asyncio.get_event_loop()
+        url = await _via_piped(v)
+        _cache[v] = (url, now + _CACHE_TTL)
+        return {"url": url, "video_id": v}
+    except Exception as e:
+        errors.append(f"Piped: {e}")
+
+    # 2. Invidious
+    try:
+        url = await _via_invidious(v)
+        _cache[v] = (url, now + _CACHE_TTL)
+        return {"url": url, "video_id": v}
+    except Exception as e:
+        errors.append(f"Invidious: {e}")
+
+    # 3. pytubefix
+    try:
+        url = await loop.run_in_executor(None, partial(_via_pytubefix, v))
+        _cache[v] = (url, now + _CACHE_TTL)
+        return {"url": url, "video_id": v}
+    except Exception as e:
+        errors.append(f"pytubefix: {e}")
+
+    # 4. yt-dlp
+    try:
         url = await loop.run_in_executor(None, partial(_via_ytdlp, v))
         _cache[v] = (url, now + _CACHE_TTL)
         return {"url": url, "video_id": v}
