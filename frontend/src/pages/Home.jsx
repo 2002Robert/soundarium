@@ -231,24 +231,7 @@ export default function Home() {
   const [ytPlayer, setYtPlayer]               = useState(null)
 
   const [ngocTrai, setNgocTrai]               = useState(0)
-  const [conTrai, setConTrai]                 = useState(() => {
-    try {
-      const saved = JSON.parse(localStorage.getItem('snd_con_trai') || 'null')
-      if (!Array.isArray(saved) || saved.length === 0) return []
-      const now = Date.now()
-      // Migration: gộp nhiều con thành 1 con bự ở giữa
-      if (saved.length > 1) {
-        const anyOpen   = saved.some(ct => ct.isOpen || (!ct.lastOpened || now - ct.lastOpened >= 15 * 60 * 1000))
-        const lastOpened = saved.reduce((m, ct) => Math.max(m, ct.lastOpened || 0), 0)
-        return [{ id: `ct_${now}_0`, x: 0.5, isOpen: anyOpen, lastOpened, createdAt: now }]
-      }
-      return saved.map(ct => ({
-        ...ct,
-        x: 0.5,
-        isOpen: ct.isOpen || (!ct.lastOpened || now - ct.lastOpened >= 15 * 60 * 1000),
-      }))
-    } catch { return [] }
-  })
+  const [conTrai, setConTrai]                 = useState([])
   const [danhSachTank, setDanhSachTank]       = useState([])
   const [selectedTankId, setSelectedTankId]   = useState(null)
   const [dangTaoTank, setDangTaoTank]         = useState(false)
@@ -400,8 +383,9 @@ export default function Home() {
         Object.keys(localStorage)
           .filter(k => k.startsWith('snd_an_') || k.startsWith('snd_sc_'))
           .forEach(k => localStorage.removeItem(k))
-        setConTrai([])
       }
+      // Luôn xóa snd_con_trai khi mount — DB là nguồn duy nhất
+      localStorage.removeItem('snd_con_trai')
 
       localStorage.setItem('snd_user_id', currentId)
 
@@ -409,11 +393,6 @@ export default function Home() {
       khoiDong()
     })
   }, [navigate])
-
-  // Persist con trai to localStorage whenever it changes
-  useEffect(() => {
-    localStorage.setItem('snd_con_trai', JSON.stringify(conTrai))
-  }, [conTrai])
 
   // Coin drip: mỗi 5 phút cá no nhả 1 coin
   useEffect(() => {
@@ -561,24 +540,14 @@ export default function Home() {
         setDanhSachDecor(mergeScaleLS(filtered1))
         // Truyền list raw (chưa merge LS) để so sánh DB vs localStorage đúng
         syncScalesLSToDB(filtered1)
+        // Con trai: DB là nguồn duy nhất — xóa hết localStorage cũ
+        localStorage.removeItem('snd_con_trai')
         const hasNgocTraiInDB = allDecors.some(d => d.loai === 'ngoc_trai')
-        if (!hasNgocTraiInDB) {
-          const savedCT = JSON.parse(localStorage.getItem('snd_con_trai') || 'null')
-          if (Array.isArray(savedCT) && savedCT.length > 0) {
-            // User cũ có oyster trong localStorage nhưng chưa có DB record → tạo (giá 0 coins)
-            API.muaDecor('ngoc_trai', tid).catch(() => {})
-          } else {
-            // Không có oyster ở cả DB lẫn localStorage → xóa stale data từ session cũ
-            localStorage.removeItem('snd_con_trai')
-            setConTrai([])
-          }
+        if (hasNgocTraiInDB) {
+          const now = Date.now()
+          setConTrai([{ id: `ct_${now}_0`, x: 0.5, isOpen: false, lastOpened: 0, createdAt: now }])
         } else {
-          // Có oyster trong DB → đảm bảo conTrai được init (thiết bị mới không có localStorage)
-          setConTrai(prev => {
-            if (prev.length > 0) return prev
-            const now = Date.now()
-            return [{ id: `ct_${now}_0`, x: 0.5, isOpen: false, lastOpened: 0, createdAt: now }]
-          })
+          setConTrai([])
         }
       }
       setDangKhoiDong(false)
