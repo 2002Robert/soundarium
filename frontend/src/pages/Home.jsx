@@ -16,6 +16,7 @@ import ShopPanel from '../components/ShopPanel'
 import ExplorePanel from '../components/ExplorePanel'
 import TankSwitcher from '../components/TankSwitcher'
 import { tinhLevel, TIEU_DE_LEVEL } from '../utils/playerLevel'
+import FeedbackPopup from '../components/FeedbackPopup'
 
 
 function mergeScaleLS(list) {
@@ -273,11 +274,61 @@ export default function Home() {
   const [loiKetNoi, setLoiKetNoi]             = useState(false)
   const [soLanThu, setSoLanThu]               = useState(1)
 
+  // Session analytics
+  const sessionIdRef    = useRef(null)
+  const sessionStartRef = useRef(null)
+  const authTokenRef    = useRef(null)
+  const [hienFeedback, setHienFeedback] = useState(false)
+
   // ESC cancels placement mode
   useEffect(() => {
     function onKey(e) { if (e.key === 'Escape') { setDangDatDecor(null); setMenuDecor(null) } }
     window.addEventListener('keydown', onKey)
     return () => window.removeEventListener('keydown', onKey)
+  }, [])
+
+  // Session analytics: bắt đầu session khi load, kết thúc khi rời trang
+  useEffect(() => {
+    let pingInterval = null
+    let feedbackTimeout = null
+
+    async function batDau() {
+      try {
+        const { data } = await supabase.auth.getSession()
+        authTokenRef.current = data?.session?.access_token || null
+        const res = await API.batDauSession()
+        sessionIdRef.current    = res.session_id
+        sessionStartRef.current = Date.now()
+
+        // Ping mỗi 60 giây
+        pingInterval = setInterval(() => {
+          if (!sessionIdRef.current) return
+          const dur = Math.floor((Date.now() - sessionStartRef.current) / 1000)
+          API.capNhatSession(sessionIdRef.current, dur).catch(() => {})
+        }, 60_000)
+
+        // Hiện feedback popup sau 30 phút
+        feedbackTimeout = setTimeout(() => setHienFeedback(true), 30 * 60_000)
+      } catch {}
+    }
+
+    function ketThuc() {
+      if (!sessionIdRef.current) return
+      const dur = Math.floor((Date.now() - sessionStartRef.current) / 1000)
+      API.ketThucSessionSync(sessionIdRef.current, dur, authTokenRef.current)
+    }
+
+    batDau()
+    window.addEventListener('beforeunload', ketThuc)
+    return () => {
+      window.removeEventListener('beforeunload', ketThuc)
+      clearInterval(pingInterval)
+      clearTimeout(feedbackTimeout)
+      if (sessionIdRef.current) {
+        const dur = Math.floor((Date.now() - sessionStartRef.current) / 1000)
+        API.ketThucSession(sessionIdRef.current, dur).catch(() => {})
+      }
+    }
   }, [])
 
   const [nenHo, setNenHoState] = useState(() => localStorage.getItem('snd_nen') || 'ocean-shallow')
@@ -1063,6 +1114,8 @@ export default function Home() {
       )}
 
       {toast && <Toast thongBao={toast.thongBao} loai={toast.loai} onHet={() => setToast(null)} />}
+
+      {hienFeedback && <FeedbackPopup onDong={() => setHienFeedback(false)} />}
     </div>
   )
 }

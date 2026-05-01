@@ -181,4 +181,41 @@ export const API = {
 
   muaItem: (itemId) =>
     goiApi(`/api/coins/mua-item/${itemId}`, { method: 'POST' }),
+
+  // Analytics
+  batDauSession: () => goiApi('/api/analytics/bat-dau-session', { method: 'POST' }),
+
+  capNhatSession: (sessionId, durationSeconds) =>
+    goiApi('/api/analytics/cap-nhat-session', {
+      method: 'POST',
+      body: JSON.stringify({ session_id: sessionId, duration_seconds: durationSeconds }),
+    }),
+
+  ketThucSession: (sessionId, durationSeconds) =>
+    goiApi('/api/analytics/ket-thuc-session', {
+      method: 'POST',
+      body: JSON.stringify({ session_id: sessionId, duration_seconds: durationSeconds }),
+    }),
+
+  ketThucSessionSync: (sessionId, durationSeconds, token) =>
+    fetch(`${BASE}/api/analytics/ket-thuc-session`, {
+      method: 'POST',
+      keepalive: true,
+      headers: {
+        'Content-Type': 'application/json',
+        ...(token ? { Authorization: `Bearer ${token}` } : {}),
+      },
+      body: JSON.stringify({ session_id: sessionId, duration_seconds: durationSeconds }),
+    }),
+
+  layDashboard: () => goiApi('/api/analytics/dashboard'),
+
+  // Feedback
+  danhGia: (liked) =>
+    goiApi('/api/feedback/danh-gia', {
+      method: 'POST',
+      body: JSON.stringify({ liked }),
+    }),
+
+  trangThaiFeedback: () => goiApi('/api/feedback/trang-thai'),
 }

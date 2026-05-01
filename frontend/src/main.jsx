@@ -6,6 +6,7 @@ import Home from './pages/Home'
 import Login from './pages/Login'
 import PublicTank from './pages/PublicTank'
 import SetupProfile from './pages/SetupProfile'
+import Admin from './pages/Admin'
 
 ReactDOM.createRoot(document.getElementById('root')).render(
   <React.StrictMode>
@@ -15,6 +16,7 @@ ReactDOM.createRoot(document.getElementById('root')).render(
         <Route path="/login"          element={<Login />} />
         <Route path="/setup-profile"  element={<SetupProfile />} />
         <Route path="/u/:username"    element={<PublicTank />} />
+        <Route path="/admin"          element={<Admin />} />
       </Routes>
     </BrowserRouter>
   </React.StrictMode>,

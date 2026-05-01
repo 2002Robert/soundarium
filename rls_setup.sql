@@ -112,5 +112,32 @@ ALTER TABLE tanks ADD COLUMN IF NOT EXISTS day_ho TEXT DEFAULT 'cat_trang';
 -- Thêm cột scale cho decorations (nếu chưa có)
 ALTER TABLE decorations ADD COLUMN IF NOT EXISTS scale FLOAT DEFAULT 1.0;
 
+-- ──────────────────────────────────────────────────────
+-- Analytics sessions
+-- ──────────────────────────────────────────────────────
+CREATE TABLE IF NOT EXISTS analytics_sessions (
+    id               UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    user_id          UUID NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE,
+    session_start    TIMESTAMPTZ NOT NULL DEFAULT now(),
+    session_end      TIMESTAMPTZ,
+    duration_seconds INT NOT NULL DEFAULT 0,
+    ngay             DATE NOT NULL DEFAULT CURRENT_DATE,
+    created_at       TIMESTAMPTZ NOT NULL DEFAULT now()
+);
+
+CREATE INDEX IF NOT EXISTS analytics_sessions_ngay_idx ON analytics_sessions(ngay);
+CREATE INDEX IF NOT EXISTS analytics_sessions_user_idx ON analytics_sessions(user_id);
+
+-- ──────────────────────────────────────────────────────
+-- User feedback
+-- ──────────────────────────────────────────────────────
+CREATE TABLE IF NOT EXISTS user_feedback (
+    id         UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    user_id    UUID NOT NULL UNIQUE REFERENCES auth.users(id) ON DELETE CASCADE,
+    liked      BOOLEAN NOT NULL,
+    created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+    updated_at TIMESTAMPTZ NOT NULL DEFAULT now()
+);
+
 -- Reload PostgREST schema cache
 NOTIFY pgrst, 'reload schema';
