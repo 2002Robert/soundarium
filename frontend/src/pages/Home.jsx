@@ -4,7 +4,6 @@ import { supabase } from '../lib/supabase'
 import { API } from '../lib/api'
 import AquariumCanvas from '../components/AquariumCanvas'
 import FishInfoPanel from '../components/FishInfoPanel'
-import YouTubePlayer from '../components/YouTubePlayer'
 import MusicPlayerBar from '../components/MusicPlayerBar'
 import Onboarding from '../components/Onboarding'
 import Toast from '../components/Toast'
@@ -644,8 +643,8 @@ export default function Home() {
         audioRef.current.volume = volume / 100
         audioRef.current.play().catch(() => {})
       }
-    } catch {
-      hienToast('Không tải được audio — thử lại', 'loi')
+    } catch (e) {
+      hienToast(e?.message || 'Không tải được audio', 'loi')
       dungPhat()
     }
   }
