@@ -10,10 +10,12 @@ function loadYouTubeAPI() {
 }
 
 export default function YouTubePlayer({ videoId, dangPhat, onReady, onEnded }) {
-  const iframeRef  = useRef(null)
-  const playerRef  = useRef(null)
-  const onEndedRef = useRef(onEnded)
-  onEndedRef.current = onEnded   // luôn trỏ đến callback mới nhất
+  const iframeRef    = useRef(null)
+  const playerRef    = useRef(null)
+  const onEndedRef   = useRef(onEnded)
+  const dangPhatRef  = useRef(dangPhat)
+  onEndedRef.current  = onEnded
+  dangPhatRef.current = dangPhat
 
   useEffect(() => {
     loadYouTubeAPI()
@@ -38,6 +40,13 @@ export default function YouTubePlayer({ videoId, dangPhat, onReady, onEnded }) {
           // Dùng ref để tránh stale closure — callback luôn là phiên bản mới nhất
           onStateChange: (e) => {
             if (e.data === 0) onEndedRef.current?.()
+            // YouTube tự pause khi out app / tắt màn hình (state=2)
+            // Nếu ta đang muốn phát → resume lại ngay
+            if (e.data === 2 && dangPhatRef.current) {
+              setTimeout(() => {
+                if (dangPhatRef.current) playerRef.current?.playVideo?.()
+              }, 500)
+            }
           },
         },
       })
