@@ -101,10 +101,11 @@ async def tao_tank_moi(user_id: str = Depends(lay_user_id)):
     tank_moi = (
         supabase_admin.table("tanks")
         .insert({
-            "user_id": user_id,
-            "ten": f"Hồ {so_ho + 1}",
+            "user_id":      user_id,
+            "ten":          f"Hồ {so_ho + 1}",
             "la_cong_khai": False,
-            "nen_ho": "ocean-shallow",
+            "nen_ho":       "ocean-shallow",
+            "day_ho":       "cat_trang",
         })
         .execute()
     )

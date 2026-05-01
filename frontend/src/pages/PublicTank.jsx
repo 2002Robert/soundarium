@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { useParams } from 'react-router-dom'
 import { API } from '../lib/api'
 import AquariumCanvas from '../components/AquariumCanvas'
@@ -11,10 +11,20 @@ export default function PublicTank() {
   const { username } = useParams()
   const [tank, setTank]         = useState(null)
   const [dang404, setDang404]   = useState(false)
-  const [dangPhat, setDangPhat] = useState(null)   // ca_id đang phát
+  const [dangPhat, setDangPhat] = useState(null)
   const [videoId, setVideoId]   = useState(null)
   const [ytPlayer, setYtPlayer] = useState(null)
-  const [infoCa, setInfoCa]     = useState(null)  // { ca, x, y }
+  const [infoCa, setInfoCa]     = useState(null)
+  const [playerBarHeight, setPlayerBarHeight] = useState(0)
+  const playerBarRef = useRef(null)
+
+  useEffect(() => {
+    const el = playerBarRef.current
+    if (!el) return
+    const obs = new ResizeObserver(() => setPlayerBarHeight(el.offsetHeight))
+    obs.observe(el)
+    return () => obs.disconnect()
+  }, [])
 
   const danhSachCa      = tank?.fish || []
   const danhSachSua     = danhSachCa.filter(c => c.loai_ca === 'sua_gai')
@@ -105,6 +115,7 @@ export default function PublicTank() {
         decorations={decorList}
         nenHo={tank?.nen_ho || 'ocean-shallow'}
         dayHo={tank?.day_ho || 'cat_trang'}
+        bottomPad={playerBarHeight}
       />
 
       {/* Header */}
@@ -142,15 +153,17 @@ export default function PublicTank() {
         />
       )}
 
-      {/* Music player bar — chỉ hiện khi đang phát */}
-      <MusicPlayerBar
-        caDangPhat={caDangPhat}
-        danhSachCa={danhSachCa}
-        dangPhat={!!dangPhat}
-        player={ytPlayer}
-        onToggle={togglePhat}
-        onChuyenCa={chuyenCa}
-      />
+      {/* Music player bar — đo height để canvas biết effectiveH */}
+      <div ref={playerBarRef} className="fixed bottom-0 left-0 right-0 z-[100]">
+        <MusicPlayerBar
+          caDangPhat={caDangPhat}
+          danhSachCa={danhSachCa}
+          dangPhat={!!dangPhat}
+          player={ytPlayer}
+          onToggle={togglePhat}
+          onChuyenCa={chuyenCa}
+        />
+      </div>
     </div>
   )
 }
