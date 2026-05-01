@@ -156,12 +156,13 @@ export default function ProfileCard({
                     onChange={e => { setTenMoi(e.target.value); setLoiTen('') }}
                     onKeyDown={e => { if (e.key === 'Enter') luuTen(); if (e.key === 'Escape') huy() }}
                     maxLength={20}
-                    placeholder="username"
-                    className="bg-ho-nong border border-ho-anh/40 rounded-lg px-2 py-0.5 text-white text-sm w-28 focus:outline-none focus:border-ho-anh"
+                    placeholder="3-20 ký tự, a-z 0-9 _"
+                    className="bg-ho-nong border border-ho-anh/40 rounded-lg px-2 py-0.5 text-white text-sm w-36 focus:outline-none focus:border-ho-anh"
                   />
                   <button onClick={luuTen} disabled={dangLuu} className="text-green-400 hover:text-green-300 text-sm font-bold leading-none disabled:opacity-40">✓</button>
                   <button onClick={huy} className="text-red-400/60 hover:text-red-400 text-sm leading-none">✕</button>
                 </div>
+                <div className="text-ho-anh/35 text-[9px] mt-0.5">chỉ a-z, 0-9, _ · tối thiểu 3 ký tự · chỉ đổi 1 lần</div>
                 {loiTen && <div className="text-red-400 text-[10px] mt-0.5">{loiTen}</div>}
               </div>
             ) : (
