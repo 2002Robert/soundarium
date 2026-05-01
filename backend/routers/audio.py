@@ -14,16 +14,11 @@ _CACHE_TTL = 4 * 3600  # 4h — YouTube CDN URL expire ~6h
 def _extract_sync(video_id: str) -> str:
     """Chạy yt-dlp đồng bộ — sẽ được gọi trong thread executor."""
     ydl_opts = {
-        "format": "bestaudio[ext=m4a]/bestaudio[acodec=mp4a]/bestaudio",
+        # ios client bypass bot detection mà không cần cookies
+        "format": "bestaudio[ext=m4a]/bestaudio",
+        "extractor_args": {"youtube": {"player_client": ["ios"]}},
         "quiet": True,
         "no_warnings": True,
-        "http_headers": {
-            "User-Agent": (
-                "Mozilla/5.0 (Windows NT 10.0; Win64; x64) "
-                "AppleWebKit/537.36 (KHTML, like Gecko) "
-                "Chrome/124.0.0.0 Safari/537.36"
-            )
-        },
     }
     with yt_dlp.YoutubeDL(ydl_opts) as ydl:
         info = ydl.extract_info(
