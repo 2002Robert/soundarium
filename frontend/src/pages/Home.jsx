@@ -277,6 +277,9 @@ export default function Home() {
   // PWA install
   const [pwaPrompt, setPwaPrompt] = useState(null)
 
+  // Silent audio — giữ iOS/Android audio session sống khi out app
+  const silentAudioRef = useRef(null)
+
   // ESC cancels placement mode
   useEffect(() => {
     function onKey(e) { if (e.key === 'Escape') { setDangDatDecor(null); setMenuDecor(null) } }
@@ -572,6 +575,24 @@ export default function Home() {
     }, 1500)
     return () => clearInterval(id)
   }, [ytPlayer, dangPhat])
+
+  // Silent audio loop — trick iOS/Android giữ audio session khi out app/tắt màn hình
+  // iOS chỉ cho audio native <audio> chạy background; YouTube iframe sẽ theo
+  useEffect(() => {
+    if (!silentAudioRef.current) {
+      const a = new Audio()
+      // 1 giây silent WAV
+      a.src = 'data:audio/wav;base64,UklGRiQAAABXQVZFZm10IBAAAAABAAEAQB8AAEAfAAABAAgAZGF0YQAAAAA='
+      a.loop = true
+      a.volume = 0.001
+      silentAudioRef.current = a
+    }
+    if (dangPhat) {
+      silentAudioRef.current.play().catch(() => {})
+    } else {
+      silentAudioRef.current.pause()
+    }
+  }, [dangPhat])
 
   // Đo chiều cao player bar để canvas né
   useEffect(() => {
