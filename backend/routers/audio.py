@@ -3,12 +3,39 @@ import yt_dlp
 import httpx
 import asyncio
 import time
+import os
+import base64
+import tempfile
 from functools import partial
 
 router = APIRouter(prefix="/audio", tags=["audio"])
 
 _cache: dict[str, tuple[str, float]] = {}
 _CACHE_TTL = 4 * 3600
+_cookies_file: str | None = None
+
+
+def _init_cookies():
+    """Decode YOUTUBE_COOKIES env var → ghi ra /tmp khi server khởi động."""
+    global _cookies_file
+    raw = os.environ.get("YOUTUBE_COOKIES", "").strip()
+    if not raw:
+        print("[audio] YOUTUBE_COOKIES không có — chạy không có cookies")
+        return
+    try:
+        content = base64.b64decode(raw).decode("utf-8")
+        tmp = tempfile.NamedTemporaryFile(
+            mode="w", suffix=".txt", delete=False, prefix="yt_cookies_"
+        )
+        tmp.write(content)
+        tmp.close()
+        _cookies_file = tmp.name
+        print(f"[audio] Cookies loaded → {_cookies_file}")
+    except Exception as e:
+        print(f"[audio] Lỗi decode cookies: {e}")
+
+
+_init_cookies()
 
 PIPED_INSTANCES = [
     "https://pipedapi.kavin.rocks",
@@ -31,11 +58,9 @@ async def _via_piped(video_id: str) -> str:
             try:
                 resp = await client.get(f"{instance}/streams/{video_id}")
                 if not resp.is_success:
-                    print(f"[audio] Piped {instance}: HTTP {resp.status_code}")
                     continue
                 streams = resp.json().get("audioStreams", [])
                 if not streams:
-                    print(f"[audio] Piped {instance}: no audioStreams")
                     continue
                 streams.sort(key=lambda x: x.get("bitrate", 0), reverse=True)
                 url = streams[0].get("url", "")
@@ -43,7 +68,7 @@ async def _via_piped(video_id: str) -> str:
                     print(f"[audio] Piped OK: {instance}")
                     return url
             except Exception as e:
-                print(f"[audio] Piped {instance} error: {e}")
+                print(f"[audio] Piped {instance}: {e}")
     raise ValueError("Piped thất bại")
 
 
@@ -56,14 +81,12 @@ async def _via_invidious(video_id: str) -> str:
                     params={"fields": "adaptiveFormats"},
                 )
                 if not resp.is_success:
-                    print(f"[audio] Invidious {instance}: HTTP {resp.status_code}")
                     continue
                 audio = [
                     f for f in resp.json().get("adaptiveFormats", [])
                     if "audio" in f.get("type", "")
                 ]
                 if not audio:
-                    print(f"[audio] Invidious {instance}: no audio formats")
                     continue
                 audio.sort(key=lambda x: x.get("bitrate", 0), reverse=True)
                 url = audio[0].get("url", "")
@@ -71,34 +94,30 @@ async def _via_invidious(video_id: str) -> str:
                     print(f"[audio] Invidious OK: {instance}")
                     return url
             except Exception as e:
-                print(f"[audio] Invidious {instance} error: {e}")
+                print(f"[audio] Invidious {instance}: {e}")
     raise ValueError("Invidious thất bại")
 
 
-def _via_pytubefix(video_id: str) -> str:
-    from pytubefix import YouTube
-    from pytubefix.cli import on_progress
-    yt = YouTube(
-        f"https://www.youtube.com/watch?v={video_id}",
-        use_oauth=False,
-        allow_oauth_cache=False,
-    )
-    stream = yt.streams.filter(only_audio=True).order_by("abr").last()
-    if not stream:
-        raise ValueError("pytubefix: không có audio stream")
-    print(f"[audio] pytubefix OK: {stream.abr}")
-    return stream.url
-
-
 def _via_ytdlp(video_id: str) -> str:
-    for client in ["tv_embedded", "web_embedded", "android_music", "android_vr"]:
+    base_opts = {
+        "format": "bestaudio[ext=m4a]/bestaudio",
+        "quiet": True,
+        "no_warnings": True,
+    }
+    if _cookies_file:
+        base_opts["cookiefile"] = _cookies_file
+
+    # Với cookies: thử web client trước (chất lượng tốt nhất)
+    clients = (
+        ["web", "ios", "android"]
+        if _cookies_file
+        else ["tv_embedded", "web_embedded", "android_music", "android_vr"]
+    )
+
+    for client in clients:
         try:
-            with yt_dlp.YoutubeDL({
-                "format": "bestaudio[ext=m4a]/bestaudio",
-                "extractor_args": {"youtube": {"player_client": [client]}},
-                "quiet": True,
-                "no_warnings": True,
-            }) as ydl:
+            opts = {**base_opts, "extractor_args": {"youtube": {"player_client": [client]}}}
+            with yt_dlp.YoutubeDL(opts) as ydl:
                 info = ydl.extract_info(
                     f"https://www.youtube.com/watch?v={video_id}",
                     download=False,
@@ -109,7 +128,7 @@ def _via_ytdlp(video_id: str) -> str:
                 None,
             )
             if url:
-                print(f"[audio] yt-dlp OK: client={client}")
+                print(f"[audio] yt-dlp OK: client={client}, cookies={bool(_cookies_file)}")
                 return url
         except Exception as e:
             print(f"[audio] yt-dlp client={client}: {e}")
@@ -147,15 +166,7 @@ async def lay_audio_url(v: str):
     except Exception as e:
         errors.append(f"Invidious: {e}")
 
-    # 3. pytubefix
-    try:
-        url = await loop.run_in_executor(None, partial(_via_pytubefix, v))
-        _cache[v] = (url, now + _CACHE_TTL)
-        return {"url": url, "video_id": v}
-    except Exception as e:
-        errors.append(f"pytubefix: {e}")
-
-    # 4. yt-dlp
+    # 3. yt-dlp (với cookies nếu có)
     try:
         url = await loop.run_in_executor(None, partial(_via_ytdlp, v))
         _cache[v] = (url, now + _CACHE_TTL)
@@ -163,4 +174,9 @@ async def lay_audio_url(v: str):
     except Exception as e:
         errors.append(f"yt-dlp: {e}")
 
-    raise HTTPException(status_code=400, detail=" | ".join(errors))
+    raise HTTPException(
+        status_code=400,
+        detail=" | ".join(errors) + (
+            " — Cần thêm YOUTUBE_COOKIES vào Render env" if not _cookies_file else ""
+        ),
+    )
