@@ -388,8 +388,11 @@ export default function Home() {
 
       const currentId  = data.user.id
       const storedId   = localStorage.getItem('snd_user_id')
+      const userChanged = storedId
+        ? storedId !== currentId
+        : !!localStorage.getItem('snd_onboarded') // thiết bị cũ: có onboarded nhưng chưa lưu userId
 
-      if (storedId && storedId !== currentId) {
+      if (userChanged) {
         // User khác đăng nhập cùng thiết bị → xóa data của user cũ
         ;['snd_con_trai', 'snd_nen', 'snd_day', 'snd_onboarded'].forEach(k =>
           localStorage.removeItem(k)
