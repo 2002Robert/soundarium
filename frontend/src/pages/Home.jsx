@@ -177,6 +177,16 @@ function IcoExit() {
   )
 }
 
+function IcoDownload() {
+  return (
+    <svg width="22" height="22" viewBox="0 0 22 22" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M11 3v11"/>
+      <polyline points="6,10 11,15 16,10"/>
+      <path d="M4 18h14"/>
+    </svg>
+  )
+}
+
 function IconBtn({ onClick, title, children, className = '' }) {
   return (
     <button
@@ -264,11 +274,21 @@ export default function Home() {
   const authTokenRef    = useRef(null)
   const [hienFeedback, setHienFeedback] = useState(false)
 
+  // PWA install
+  const [pwaPrompt, setPwaPrompt] = useState(null)
+
   // ESC cancels placement mode
   useEffect(() => {
     function onKey(e) { if (e.key === 'Escape') { setDangDatDecor(null); setMenuDecor(null) } }
     window.addEventListener('keydown', onKey)
     return () => window.removeEventListener('keydown', onKey)
+  }, [])
+
+  // Capture PWA install prompt (Android)
+  useEffect(() => {
+    function onPrompt(e) { e.preventDefault(); setPwaPrompt(e) }
+    window.addEventListener('beforeinstallprompt', onPrompt)
+    return () => window.removeEventListener('beforeinstallprompt', onPrompt)
   }, [])
 
   // Session analytics: bắt đầu session khi load, kết thúc khi rời trang
@@ -819,6 +839,15 @@ export default function Home() {
     navigate('/login')
   }
 
+  async function caiApp() {
+    const isStandalone = window.matchMedia('(display-mode: standalone)').matches || window.navigator.standalone === true
+    if (isStandalone) { hienToast('Đã cài rồi!', 'thanhCong'); return }
+    if (pwaPrompt) { pwaPrompt.prompt(); return }
+    const isIOS = /iPhone|iPad|iPod/i.test(navigator.userAgent)
+    if (isIOS) hienToast('Nhấn chia sẻ → "Thêm vào màn hình chính"', 'info')
+    else hienToast('Mở menu trình duyệt → Cài ứng dụng', 'info')
+  }
+
   return (
     <div className="fixed inset-0 overflow-hidden">
       {/* Loading / lỗi kết nối */}
@@ -1045,6 +1074,7 @@ export default function Home() {
             onTaoMoi={taoTankMoi}
             dangTao={dangTaoTank}
           />
+          <IconBtn onClick={caiApp} title="Cài ứng dụng"><IcoDownload /></IconBtn>
           <IconBtn onClick={() => setHienLogout(true)} title="Đăng xuất" className="text-white/35 hover:text-red-400"><IcoExit /></IconBtn>
         </div>
       </div>
