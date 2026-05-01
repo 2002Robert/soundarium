@@ -68,7 +68,7 @@ async def dashboard(user_id: str = Depends(lay_user_id)):
     dau_rate  = round(len(returning) / len(today_users) * 100, 1) if today_users else 0.0
 
     # Thời gian chơi
-    dur_res   = supabase_admin.table("analytics_sessions").select("duration_seconds").gt("duration_seconds", 0).execute()
+    dur_res   = supabase_admin.table("analytics_sessions").select("duration_seconds").filter("duration_seconds", "gt", "0").execute()
     durations = [s["duration_seconds"] for s in (dur_res.data or [])]
     avg_min   = round(sum(durations) / len(durations) / 60, 1) if durations else 0.0
     max_min   = round(max(durations) / 60, 1) if durations else 0.0
