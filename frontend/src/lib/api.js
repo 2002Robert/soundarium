@@ -219,6 +219,12 @@ export const API = {
 
   trangThaiFeedback: () => goiApi('/api/feedback/trang-thai'),
 
-  // Audio (yt-dlp)
-  layAudioUrl: (videoId) => goiApi(`/audio/url?v=${encodeURIComponent(videoId)}`),
+  // Audio — Cloudflare Pages Function (edge IP, không phải Render datacenter)
+  layAudioUrl: (videoId) =>
+    fetch(`/audio/url?v=${encodeURIComponent(videoId)}`)
+      .then(async r => {
+        const d = await r.json()
+        if (!r.ok) throw new Error(d.error || 'Lỗi tải audio')
+        return d
+      }),
 }
