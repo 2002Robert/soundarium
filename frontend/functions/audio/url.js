@@ -40,6 +40,7 @@ export async function onRequestGet({ request, env }) {
 
   const cookieStr = parseCookieEnv(env?.YOUTUBE_COOKIES || '')
 
+  const errors = []
   for (const cfg of CLIENTS) {
     try {
       const hdrs = {
@@ -67,15 +68,25 @@ export async function onRequestGet({ request, env }) {
         }),
       })
 
-      if (!resp.ok) continue
+      if (!resp.ok) {
+        errors.push(`${cfg.name}:HTTP${resp.status}`)
+        continue
+      }
 
       const data = await resp.json()
       const status = data?.playabilityStatus?.status
-      if (status && status !== 'OK') continue
+      if (status && status !== 'OK') {
+        const reason = data.playabilityStatus?.reason || status
+        errors.push(`${cfg.name}:${reason}`)
+        continue
+      }
 
       const formats = data?.streamingData?.adaptiveFormats || []
       const audio = formats.filter(f => f.mimeType?.includes('audio'))
-      if (!audio.length) continue
+      if (!audio.length) {
+        errors.push(`${cfg.name}:no_audio`)
+        continue
+      }
 
       const m4a = audio.filter(f => f.mimeType?.includes('mp4'))
       const best = (m4a.length ? m4a : audio).sort((a, b) => (b.bitrate || 0) - (a.bitrate || 0))[0]
@@ -85,10 +96,15 @@ export async function onRequestGet({ request, env }) {
           headers: { 'Cache-Control': 'public, max-age=3600' },
         })
       }
-    } catch {
-      continue
+      errors.push(`${cfg.name}:no_url`)
+    } catch (e) {
+      errors.push(`${cfg.name}:${e.message}`)
     }
   }
 
-  return Response.json({ error: 'Tất cả Innertube clients thất bại' }, { status: 400 })
+  return Response.json({
+    error: 'Innertube thất bại',
+    detail: errors.join(' | '),
+    hasCookie: !!cookieStr,
+  }, { status: 400 })
 }
