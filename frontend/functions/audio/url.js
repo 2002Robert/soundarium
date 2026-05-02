@@ -1,18 +1,28 @@
 const CLIENTS = [
   {
-    name: 'ANDROID', version: '17.31.35', headerName: '3',
-    ua: 'com.google.android.youtube/17.31.35 (Linux; U; Android 11) gzip',
-    extra: { androidSdkVersion: 30 },
+    name: 'ANDROID', version: '19.29.37', headerName: '3',
+    key: 'AIzaSyA8eiZmM1FaDVjRy-df2KTyQ_vz_yYM39w',
+    ua: 'com.google.android.youtube/19.29.37 (Linux; U; Android 11) gzip',
+    extra: { androidSdkVersion: 30, osName: 'Android', osVersion: '11' },
   },
   {
     name: 'ANDROID_TESTSUITE', version: '1.9', headerName: '30',
+    key: 'AIzaSyA8eiZmM1FaDVjRy-df2KTyQ_vz_yYM39w',
     ua: 'com.google.android.youtube/1.9 (Linux; U; Android 11) gzip',
     extra: { androidSdkVersion: 30 },
   },
   {
-    name: 'TV_EMBEDDED', version: '2.0', headerName: '85',
+    name: 'TVHTML5_SIMPLY_EMBEDDED_PLAYER', version: '2.0', headerName: '85',
+    key: 'AIzaSyAO_FJ2SlqU8Q4STEHLGCilw_Y9_11qcW8',
     ua: 'Mozilla/5.0 (SMART-TV; LINUX; Tizen 6.0) AppleWebKit/538.1',
     extra: {},
+    embedUrl: 'https://www.youtube.com/',
+  },
+  {
+    name: 'IOS', version: '19.29.1', headerName: '5',
+    key: 'AIzaSyB-63vPrdThhKuerbB2N_l7Kwwcxj6yUA',
+    ua: 'com.google.ios.youtube/19.29.1 (iPhone14,3; U; CPU iOS 15_6 like Mac OS X)',
+    extra: { deviceModel: 'iPhone14,3', osVersion: '15.6.0.19H274' },
   },
 ]
 
@@ -51,21 +61,16 @@ export async function onRequestGet({ request, env }) {
       }
       if (cookieStr) hdrs['Cookie'] = cookieStr
 
-      const resp = await fetch('https://www.youtube.com/youtubei/v1/player', {
+      const apiUrl = `https://www.youtube.com/youtubei/v1/player?key=${cfg.key}&prettyPrint=false`
+      const ctx = {
+        client: { clientName: cfg.name, clientVersion: cfg.version, hl: 'en', gl: 'US', ...cfg.extra },
+      }
+      if (cfg.embedUrl) ctx.thirdParty = { embedUrl: cfg.embedUrl }
+
+      const resp = await fetch(apiUrl, {
         method: 'POST',
         headers: hdrs,
-        body: JSON.stringify({
-          videoId,
-          context: {
-            client: {
-              clientName: cfg.name,
-              clientVersion: cfg.version,
-              hl: 'en',
-              gl: 'US',
-              ...cfg.extra,
-            },
-          },
-        }),
+        body: JSON.stringify({ videoId, context: ctx, contentCheckOk: true, racyCheckOk: true }),
       })
 
       if (!resp.ok) {

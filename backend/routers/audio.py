@@ -14,24 +14,36 @@ _CACHE_TTL = 3600  # 1h
 _CLIENTS = [
     {
         "name": "ANDROID",
-        "version": "17.31.35",
+        "version": "19.29.37",
         "header_name": "3",
-        "user_agent": "com.google.android.youtube/17.31.35 (Linux; U; Android 11) gzip",
-        "extra": {"androidSdkVersion": 30},
+        "key": "AIzaSyA8eiZmM1FaDVjRy-df2KTyQ_vz_yYM39w",
+        "user_agent": "com.google.android.youtube/19.29.37 (Linux; U; Android 11) gzip",
+        "extra": {"androidSdkVersion": 30, "osName": "Android", "osVersion": "11"},
     },
     {
         "name": "ANDROID_TESTSUITE",
         "version": "1.9",
         "header_name": "30",
+        "key": "AIzaSyA8eiZmM1FaDVjRy-df2KTyQ_vz_yYM39w",
         "user_agent": "com.google.android.youtube/1.9 (Linux; U; Android 11) gzip",
         "extra": {"androidSdkVersion": 30},
     },
     {
-        "name": "TV_EMBEDDED",
+        "name": "TVHTML5_SIMPLY_EMBEDDED_PLAYER",
         "version": "2.0",
         "header_name": "85",
+        "key": "AIzaSyAO_FJ2SlqU8Q4STEHLGCilw_Y9_11qcW8",
         "user_agent": "Mozilla/5.0 (SMART-TV; LINUX; Tizen 6.0) AppleWebKit/538.1",
         "extra": {},
+        "embed_url": "https://www.youtube.com/",
+    },
+    {
+        "name": "IOS",
+        "version": "19.29.1",
+        "header_name": "5",
+        "key": "AIzaSyB-63vPrdThhKuerbB2N_l7Kwwcxj6yUA",
+        "user_agent": "com.google.ios.youtube/19.29.1 (iPhone14,3; U; CPU iOS 15_6 like Mac OS X)",
+        "extra": {"deviceModel": "iPhone14,3", "osVersion": "15.6.0.19H274"},
     },
 ]
 
@@ -79,19 +91,26 @@ async def _innertube(video_id: str) -> str:
                 if has_cookie:
                     hdrs["Cookie"] = cookie
 
+                api_url = f"https://www.youtube.com/youtubei/v1/player?key={cfg['key']}&prettyPrint=false"
+                ctx: dict = {
+                    "client": {
+                        "clientName": cfg["name"],
+                        "clientVersion": cfg["version"],
+                        "hl": "en",
+                        "gl": "US",
+                        **cfg["extra"],
+                    }
+                }
+                if cfg.get("embed_url"):
+                    ctx["thirdParty"] = {"embedUrl": cfg["embed_url"]}
+
                 resp = await client.post(
-                    "https://www.youtube.com/youtubei/v1/player",
+                    api_url,
                     json={
                         "videoId": video_id,
-                        "context": {
-                            "client": {
-                                "clientName": cfg["name"],
-                                "clientVersion": cfg["version"],
-                                "hl": "en",
-                                "gl": "US",
-                                **cfg["extra"],
-                            }
-                        },
+                        "context": ctx,
+                        "contentCheckOk": True,
+                        "racyCheckOk": True,
                     },
                     headers=hdrs,
                 )
