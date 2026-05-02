@@ -1,14 +1,13 @@
-import { useState, useRef, useCallback, useEffect } from 'react'
+import { useRef, useCallback, useEffect, useState } from 'react'
 import { API } from '../lib/api'
 
 const KHOANG_CAP_NHAT_NGHE_MS = 5 * 60 * 1000
 
 export function useAudio({ onNgheCapNhat } = {}) {
   const [dangPhat, setDangPhat] = useState(null)
-  const [player, setPlayer]     = useState(null)
-  const demGioRef  = useRef(null)
-  const caIdRef    = useRef(null)
-  const onNgheRef  = useRef(onNgheCapNhat)
+  const demGioRef = useRef(null)
+  const caIdRef   = useRef(null)
+  const onNgheRef = useRef(onNgheCapNhat)
 
   useEffect(() => { onNgheRef.current = onNgheCapNhat }, [onNgheCapNhat])
   useEffect(() => { caIdRef.current = dangPhat }, [dangPhat])
@@ -36,12 +35,9 @@ export function useAudio({ onNgheCapNhat } = {}) {
   const dungPhat = useCallback(() => {
     setDangPhat(null)
     dungDemGio()
-    player?.pauseVideo?.()
-  }, [player, dungDemGio])
-
-  const dangKyPlayer = useCallback((ytPlayer) => setPlayer(ytPlayer), [])
+  }, [dungDemGio])
 
   useEffect(() => () => dungDemGio(), [dungDemGio])
 
-  return { dangPhat, phatCa, dungPhat, dangKyPlayer, player }
+  return { dangPhat, phatCa, dungPhat }
 }

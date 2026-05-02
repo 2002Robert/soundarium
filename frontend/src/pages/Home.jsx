@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef, useCallback } from 'react'
+import { useState, useEffect, useRef, useCallback, useMemo } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { supabase } from '../lib/supabase'
 import { API } from '../lib/api'
@@ -15,7 +15,6 @@ import ShopPanel from '../components/ShopPanel'
 import ExplorePanel from '../components/ExplorePanel'
 import TankSwitcher from '../components/TankSwitcher'
 import { tinhLevel, TIEU_DE_LEVEL } from '../utils/playerLevel'
-import YouTubePlayer from '../components/YouTubePlayer'
 import FeedbackPopup from '../components/FeedbackPopup'
 import PWAInstallBanner from '../components/PWAInstallBanner'
 
@@ -238,9 +237,6 @@ export default function Home() {
   const [hienExplore, setHienExplore]         = useState(false)
   const [hienOnboarding, setHienOnboarding]   = useState(false)
   const [hienLogout, setHienLogout]           = useState(false)
-  const [videoIdDangPhat, setVideoIdDangPhat] = useState(null)
-  const [ytPlayer, setYtPlayer]               = useState(null)
-
   const [ngocTrai, setNgocTrai]               = useState(0)
   const [conTrai, setConTrai]                 = useState([])
   const [danhSachTank, setDanhSachTank]       = useState([])
@@ -255,6 +251,16 @@ export default function Home() {
   const playerExpRef  = useRef(0)
   const feedCoolRef   = useRef({})
   const gioNgheRef    = useRef(0)
+  const audioRef      = useRef(null)
+
+  const playerAdapter = useMemo(() => ({
+    getCurrentTime: () => audioRef.current?.currentTime ?? 0,
+    getDuration:    () => audioRef.current?.duration ?? 0,
+    seekTo:         (t) => { if (audioRef.current) audioRef.current.currentTime = t },
+    playVideo:      () => audioRef.current?.play(),
+    pauseVideo:     () => audioRef.current?.pause(),
+    setVolume:      (v) => { if (audioRef.current) audioRef.current.volume = v / 100 },
+  }), [])
 
   const [playerLevelUp, setPlayerLevelUp] = useState(null)
 
@@ -360,13 +366,8 @@ export default function Home() {
   function doiVolume(val) {
     setVolume(val)
     localStorage.setItem('snd_vol', String(val))
-    try { ytPlayer?.setVolume?.(val) } catch {}
+    if (audioRef.current) audioRef.current.volume = val / 100
   }
-
-  useEffect(() => {
-    if (!ytPlayer) return
-    try { ytPlayer.setVolume?.(volume) } catch {}
-  }, [ytPlayer])
 
   const khiNgheCapNhat = useCallback((caId, res) => {
     setDanhSachCa(prev => prev.map(c =>
@@ -378,7 +379,7 @@ export default function Home() {
     }
   }, [])
 
-  const { dangPhat, phatCa, dungPhat, dangKyPlayer } = useAudio({ onNgheCapNhat: khiNgheCapNhat })
+  const { dangPhat, phatCa, dungPhat } = useAudio({ onNgheCapNhat: khiNgheCapNhat })
   const { coins, thuHoach, setCoins }                = useCoins()
 
   const danhSachSua      = danhSachCa.filter(c => c.loai_ca === 'sua_gai')
@@ -541,8 +542,8 @@ export default function Home() {
     })
     navigator.mediaSession.playbackState = dangPhat ? 'playing' : 'paused'
 
-    navigator.mediaSession.setActionHandler('play',  () => { try { ytPlayer?.playVideo?.() } catch {} })
-    navigator.mediaSession.setActionHandler('pause', () => { try { ytPlayer?.pauseVideo?.() } catch {} })
+    navigator.mediaSession.setActionHandler('play',  () => { audioRef.current?.play() })
+    navigator.mediaSession.setActionHandler('pause', () => { audioRef.current?.pause() })
 
     navigator.mediaSession.setActionHandler('nexttrack', () => {
       const i = danhSachCa.findIndex(c => c.id === caDangPhat.id)
@@ -560,7 +561,7 @@ export default function Home() {
         )
       } catch {}
     }
-  }, [caDangPhat, dangPhat, ytPlayer, danhSachCa])
+  }, [caDangPhat, dangPhat, danhSachCa])
 
 
   // Đo chiều cao player bar để canvas né
@@ -626,7 +627,20 @@ export default function Home() {
 
   function hienToast(thongBao, loai = 'info') { setToast({ thongBao, loai }) }
 
-  function phatCaObject(ca) { phatCa(ca.id); setVideoIdDangPhat(ca.video_id) }
+  async function phatCaObject(ca) {
+    phatCa(ca.id)
+    try {
+      const res = await API.layAudioUrl(ca.video_id)
+      if (audioRef.current) {
+        audioRef.current.src = res.url
+        audioRef.current.volume = volume / 100
+        await audioRef.current.play()
+      }
+    } catch (err) {
+      hienToast('Không tải được audio: ' + (err.message || ''), 'loi')
+      dungPhat()
+    }
+  }
 
   function clickCa(ca, x, y) {
     if (infoCa?.ca.id === ca.id) { setInfoCa(null); return }
@@ -636,13 +650,22 @@ export default function Home() {
 
   function togglePhatCaHienTai() {
     if (!caDangPhat) return
-    if (dangPhat) dungPhat()
-    else phatCaObject(caDangPhat)
+    if (dangPhat) {
+      dungPhat()
+      audioRef.current?.pause()
+    } else {
+      phatCa(caDangPhat.id)
+      audioRef.current?.play()
+    }
   }
 
   function togglePhatTuPanel(ca) {
-    if (dangPhat === ca.id) dungPhat()
-    else phatCaObject(ca)
+    if (dangPhat === ca.id) {
+      dungPhat()
+      audioRef.current?.pause()
+    } else {
+      phatCaObject(ca)
+    }
   }
 
   function chuyenCa(ca) { phatCaObject(ca) }
@@ -654,7 +677,10 @@ export default function Home() {
 
   function xoaCa(caId) {
     setDanhSachCa(prev => prev.filter(c => c.id !== caId))
-    if (dangPhat === caId) { dungPhat(); setVideoIdDangPhat(null) }
+    if (dangPhat === caId) {
+      dungPhat()
+      if (audioRef.current) { audioRef.current.pause(); audioRef.current.src = '' }
+    }
     setInfoCa(null)
   }
 
@@ -778,7 +804,7 @@ export default function Home() {
 
   function khiKetThucBai() {
     if (repeatMode === 'loop') {
-      try { ytPlayer?.seekTo?.(0, true); ytPlayer?.playVideo?.() } catch {}
+      if (audioRef.current) { audioRef.current.currentTime = 0; audioRef.current.play() }
       return
     }
     if (repeatMode === 'shuffle') {
@@ -792,7 +818,8 @@ export default function Home() {
     if (i >= 0 && i < danhSachCa.length - 1) {
       chuyenCa(danhSachCa[i + 1])
     } else {
-      dungPhat(); setVideoIdDangPhat(null)
+      dungPhat()
+      if (audioRef.current) audioRef.current.src = ''
     }
   }
 
@@ -1082,19 +1109,14 @@ export default function Home() {
         </div>
       </div>
 
-      <YouTubePlayer
-        videoId={videoIdDangPhat}
-        dangPhat={!!dangPhat}
-        onReady={(p) => { setYtPlayer(p); dangKyPlayer(p) }}
-        onEnded={khiKetThucBai}
-      />
+      <audio ref={audioRef} onEnded={khiKetThucBai} preload="none" />
 
       <div ref={playerBarRef} className="fixed bottom-0 left-0 right-0 z-[100]">
         <MusicPlayerBar
           caDangPhat={caDangPhat}
           danhSachCa={danhSachCa}
           dangPhat={!!dangPhat}
-          player={ytPlayer}
+          player={playerAdapter}
           onToggle={togglePhatCaHienTai}
           onChuyenCa={chuyenCa}
           repeatMode={repeatMode}

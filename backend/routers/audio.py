@@ -1,138 +1,96 @@
 from fastapi import APIRouter, HTTPException
-import yt_dlp
 import httpx
-import asyncio
 import time
-import os
-import base64
-import tempfile
-from functools import partial
 
 router = APIRouter(prefix="/audio", tags=["audio"])
 
 _cache: dict[str, tuple[str, float]] = {}
-_CACHE_TTL = 4 * 3600
-_cookies_file: str | None = None
+_CACHE_TTL = 3600  # 1h — Innertube URL expire ~6h, cache 1h để an toàn
 
-
-def _init_cookies():
-    """Decode YOUTUBE_COOKIES env var → ghi ra /tmp khi server khởi động."""
-    global _cookies_file
-    raw = os.environ.get("YOUTUBE_COOKIES", "").strip()
-    if not raw:
-        print("[audio] YOUTUBE_COOKIES không có — chạy không có cookies")
-        return
-    try:
-        content = base64.b64decode(raw).decode("utf-8")
-        tmp = tempfile.NamedTemporaryFile(
-            mode="w", suffix=".txt", delete=False, prefix="yt_cookies_"
-        )
-        tmp.write(content)
-        tmp.close()
-        _cookies_file = tmp.name
-        print(f"[audio] Cookies loaded → {_cookies_file}")
-    except Exception as e:
-        print(f"[audio] Lỗi decode cookies: {e}")
-
-
-_init_cookies()
-
-PIPED_INSTANCES = [
-    "https://pipedapi.kavin.rocks",
-    "https://piped-api.garudalinux.org",
-    "https://api.piped.yt",
-    "https://pipedapi.adminforge.de",
-]
-
-INVIDIOUS_INSTANCES = [
-    "https://iv.nboeck.de",
-    "https://inv.nadeko.net",
-    "https://yt.artemislena.eu",
-    "https://invidious.privacydev.net",
+# Clients thử lần lượt — Android client trả URL không cần giải mã cipher
+_CLIENTS = [
+    {
+        "name": "ANDROID",
+        "version": "17.31.35",
+        "header_name": "3",
+        "user_agent": "com.google.android.youtube/17.31.35 (Linux; U; Android 11) gzip",
+        "extra": {"androidSdkVersion": 30},
+    },
+    {
+        "name": "ANDROID_TESTSUITE",
+        "version": "1.9",
+        "header_name": "30",
+        "user_agent": "com.google.android.youtube/1.9 (Linux; U; Android 11) gzip",
+        "extra": {"androidSdkVersion": 30},
+    },
+    {
+        "name": "TV_EMBEDDED",
+        "version": "2.0",
+        "header_name": "85",
+        "user_agent": "Mozilla/5.0 (SMART-TV; LINUX; Tizen 6.0) AppleWebKit/538.1",
+        "extra": {},
+    },
 ]
 
 
-async def _via_piped(video_id: str) -> str:
-    async with httpx.AsyncClient(timeout=8) as client:
-        for instance in PIPED_INSTANCES:
+async def _innertube(video_id: str) -> str:
+    async with httpx.AsyncClient(timeout=10) as client:
+        for cfg in _CLIENTS:
             try:
-                resp = await client.get(f"{instance}/streams/{video_id}")
-                if not resp.is_success:
-                    continue
-                streams = resp.json().get("audioStreams", [])
-                if not streams:
-                    continue
-                streams.sort(key=lambda x: x.get("bitrate", 0), reverse=True)
-                url = streams[0].get("url", "")
-                if url:
-                    print(f"[audio] Piped OK: {instance}")
-                    return url
-            except Exception as e:
-                print(f"[audio] Piped {instance}: {e}")
-    raise ValueError("Piped thất bại")
-
-
-async def _via_invidious(video_id: str) -> str:
-    async with httpx.AsyncClient(timeout=8) as client:
-        for instance in INVIDIOUS_INSTANCES:
-            try:
-                resp = await client.get(
-                    f"{instance}/api/v1/videos/{video_id}",
-                    params={"fields": "adaptiveFormats"},
+                resp = await client.post(
+                    "https://www.youtube.com/youtubei/v1/player",
+                    json={
+                        "videoId": video_id,
+                        "context": {
+                            "client": {
+                                "clientName": cfg["name"],
+                                "clientVersion": cfg["version"],
+                                "hl": "en",
+                                "gl": "US",
+                                **cfg["extra"],
+                            }
+                        },
+                    },
+                    headers={
+                        "User-Agent": cfg["user_agent"],
+                        "Content-Type": "application/json",
+                        "X-YouTube-Client-Name": cfg["header_name"],
+                        "X-YouTube-Client-Version": cfg["version"],
+                    },
                 )
+
                 if not resp.is_success:
+                    print(f"[audio] {cfg['name']}: HTTP {resp.status_code}")
                     continue
-                audio = [
-                    f for f in resp.json().get("adaptiveFormats", [])
-                    if "audio" in f.get("type", "")
-                ]
+
+                data = resp.json()
+                status = data.get("playabilityStatus", {}).get("status")
+                if status not in ("OK", None):
+                    reason = data["playabilityStatus"].get("reason", status)
+                    print(f"[audio] {cfg['name']}: {reason}")
+                    continue
+
+                formats = data.get("streamingData", {}).get("adaptiveFormats", [])
+                audio = [f for f in formats if "audio" in f.get("mimeType", "")]
                 if not audio:
+                    print(f"[audio] {cfg['name']}: no audio formats")
                     continue
-                audio.sort(key=lambda x: x.get("bitrate", 0), reverse=True)
-                url = audio[0].get("url", "")
+
+                # Ưu tiên m4a (audio/mp4) — tương thích tốt nhất iOS/Android
+                m4a = [f for f in audio if "mp4" in f.get("mimeType", "")]
+                best = sorted(
+                    m4a or audio, key=lambda x: x.get("bitrate", 0), reverse=True
+                )[0]
+
+                url = best.get("url")
                 if url:
-                    print(f"[audio] Invidious OK: {instance}")
+                    print(f"[audio] OK via {cfg['name']}: {best.get('mimeType')} {best.get('bitrate',0)//1000}kbps")
                     return url
+
             except Exception as e:
-                print(f"[audio] Invidious {instance}: {e}")
-    raise ValueError("Invidious thất bại")
+                print(f"[audio] {cfg['name']}: {e}")
 
-
-def _via_ytdlp(video_id: str) -> str:
-    base_opts = {
-        "format": "bestaudio[ext=m4a]/bestaudio",
-        "quiet": True,
-        "no_warnings": True,
-    }
-    if _cookies_file:
-        base_opts["cookiefile"] = _cookies_file
-
-    # Với cookies: thử web client trước (chất lượng tốt nhất)
-    clients = (
-        ["web", "ios", "android"]
-        if _cookies_file
-        else ["tv_embedded", "web_embedded", "android_music", "android_vr"]
-    )
-
-    for client in clients:
-        try:
-            opts = {**base_opts, "extractor_args": {"youtube": {"player_client": [client]}}}
-            with yt_dlp.YoutubeDL(opts) as ydl:
-                info = ydl.extract_info(
-                    f"https://www.youtube.com/watch?v={video_id}",
-                    download=False,
-                )
-            url = info.get("url") or next(
-                (f["url"] for f in info.get("formats", [])
-                 if f.get("acodec") not in (None, "none") and f.get("url")),
-                None,
-            )
-            if url:
-                print(f"[audio] yt-dlp OK: client={client}, cookies={bool(_cookies_file)}")
-                return url
-        except Exception as e:
-            print(f"[audio] yt-dlp client={client}: {e}")
-    raise ValueError("yt-dlp thất bại với mọi client")
+    raise ValueError("Tất cả Innertube clients thất bại")
 
 
 @router.get("/url")
@@ -147,36 +105,9 @@ async def lay_audio_url(v: str):
             return {"url": url, "video_id": v}
         del _cache[v]
 
-    errors = []
-    loop = asyncio.get_event_loop()
-
-    # 1. Piped
     try:
-        url = await _via_piped(v)
+        url = await _innertube(v)
         _cache[v] = (url, now + _CACHE_TTL)
         return {"url": url, "video_id": v}
     except Exception as e:
-        errors.append(f"Piped: {e}")
-
-    # 2. Invidious
-    try:
-        url = await _via_invidious(v)
-        _cache[v] = (url, now + _CACHE_TTL)
-        return {"url": url, "video_id": v}
-    except Exception as e:
-        errors.append(f"Invidious: {e}")
-
-    # 3. yt-dlp (với cookies nếu có)
-    try:
-        url = await loop.run_in_executor(None, partial(_via_ytdlp, v))
-        _cache[v] = (url, now + _CACHE_TTL)
-        return {"url": url, "video_id": v}
-    except Exception as e:
-        errors.append(f"yt-dlp: {e}")
-
-    raise HTTPException(
-        status_code=400,
-        detail=" | ".join(errors) + (
-            " — Cần thêm YOUTUBE_COOKIES vào Render env" if not _cookies_file else ""
-        ),
-    )
+        raise HTTPException(status_code=400, detail=str(e))
