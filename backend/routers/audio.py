@@ -14,6 +14,14 @@ _CACHE_TTL = 3600  # 1h
 
 _CLIENTS = [
     {
+        "name": "ANDROID_VR",
+        "version": "1.60.19",
+        "header_name": "28",
+        "key": "AIzaSyAO_FJ2SlqU8Q4STEHLGCilw_Y9_11qcW8",
+        "user_agent": "com.google.android.apps.youtube.vr.oculus/1.60.19 (Linux; U; Android 12L; eureka-user Build/SQ3A.220605.009.A1) gzip",
+        "extra": {"deviceMake": "Oculus", "deviceModel": "Quest 3", "androidSdkVersion": 32, "osName": "Android", "osVersion": "12L"},
+    },
+    {
         "name": "WEB",
         "version": "2.20240726.00.00",
         "header_name": "1",
