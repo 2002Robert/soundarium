@@ -1,5 +1,11 @@
 const CLIENTS = [
   {
+    name: 'WEB', version: '2.20240726.00.00', headerName: '1',
+    key: 'AIzaSyAO_FJ2SlqU8Q4STEHLGCilw_Y9_11qcW8',
+    ua: 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/126.0.0.0 Safari/537.36',
+    extra: {}, web: true,
+  },
+  {
     name: 'ANDROID', version: '19.29.37', headerName: '3',
     key: 'AIzaSyA8eiZmM1FaDVjRy-df2KTyQ_vz_yYM39w',
     ua: 'com.google.android.youtube/19.29.37 (Linux; U; Android 11) gzip',
@@ -11,20 +17,15 @@ const CLIENTS = [
     ua: 'com.google.android.youtube/1.9 (Linux; U; Android 11) gzip',
     extra: { androidSdkVersion: 30 },
   },
-  {
-    name: 'TVHTML5_SIMPLY_EMBEDDED_PLAYER', version: '2.0', headerName: '85',
-    key: 'AIzaSyAO_FJ2SlqU8Q4STEHLGCilw_Y9_11qcW8',
-    ua: 'Mozilla/5.0 (SMART-TV; LINUX; Tizen 6.0) AppleWebKit/538.1',
-    extra: {},
-    embedUrl: 'https://www.youtube.com/',
-  },
-  {
-    name: 'IOS', version: '19.29.1', headerName: '5',
-    key: 'AIzaSyB-63vPrdThhKuerbB2N_l7Kwwcxj6yUA',
-    ua: 'com.google.ios.youtube/19.29.1 (iPhone14,3; U; CPU iOS 15_6 like Mac OS X)',
-    extra: { deviceModel: 'iPhone14,3', osVersion: '15.6.0.19H274' },
-  },
 ]
+
+async function sapisidHash(sapisid) {
+  const ts = Math.floor(Date.now() / 1000)
+  const data = `${ts} ${sapisid} https://www.youtube.com`
+  const buf = await crypto.subtle.digest('SHA-1', new TextEncoder().encode(data))
+  const hex = Array.from(new Uint8Array(buf)).map(b => b.toString(16).padStart(2, '0')).join('')
+  return `SAPISIDHASH ${ts}_${hex}`
+}
 
 function parseCookieEnv(raw) {
   if (!raw) return ''
@@ -59,7 +60,18 @@ export async function onRequestGet({ request, env }) {
         'X-YouTube-Client-Name': cfg.headerName,
         'X-YouTube-Client-Version': cfg.version,
       }
-      if (cookieStr) hdrs['Cookie'] = cookieStr
+      if (cookieStr) {
+        hdrs['Cookie'] = cookieStr
+        if (cfg.web) {
+          const sapisid = cookieStr.split(';').map(s => s.trim())
+            .find(s => s.startsWith('SAPISID='))?.slice(8)
+          if (sapisid) {
+            hdrs['Authorization'] = await sapisidHash(sapisid)
+            hdrs['Origin'] = 'https://www.youtube.com'
+            hdrs['X-Origin'] = 'https://www.youtube.com'
+          }
+        }
+      }
 
       const apiUrl = `https://www.youtube.com/youtubei/v1/player?key=${cfg.key}&prettyPrint=false`
       const ctx = {

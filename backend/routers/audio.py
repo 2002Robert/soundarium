@@ -1,6 +1,7 @@
 import os
 import base64
 import asyncio
+import hashlib
 import tempfile
 import time
 from fastapi import APIRouter, HTTPException
@@ -12,6 +13,15 @@ _cache: dict[str, tuple[str, float]] = {}
 _CACHE_TTL = 3600  # 1h
 
 _CLIENTS = [
+    {
+        "name": "WEB",
+        "version": "2.20240726.00.00",
+        "header_name": "1",
+        "key": "AIzaSyAO_FJ2SlqU8Q4STEHLGCilw_Y9_11qcW8",
+        "user_agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/126.0.0.0 Safari/537.36",
+        "extra": {},
+        "web": True,
+    },
     {
         "name": "ANDROID",
         "version": "19.29.37",
@@ -28,23 +38,6 @@ _CLIENTS = [
         "user_agent": "com.google.android.youtube/1.9 (Linux; U; Android 11) gzip",
         "extra": {"androidSdkVersion": 30},
     },
-    {
-        "name": "TVHTML5_SIMPLY_EMBEDDED_PLAYER",
-        "version": "2.0",
-        "header_name": "85",
-        "key": "AIzaSyAO_FJ2SlqU8Q4STEHLGCilw_Y9_11qcW8",
-        "user_agent": "Mozilla/5.0 (SMART-TV; LINUX; Tizen 6.0) AppleWebKit/538.1",
-        "extra": {},
-        "embed_url": "https://www.youtube.com/",
-    },
-    {
-        "name": "IOS",
-        "version": "19.29.1",
-        "header_name": "5",
-        "key": "AIzaSyB-63vPrdThhKuerbB2N_l7Kwwcxj6yUA",
-        "user_agent": "com.google.ios.youtube/19.29.1 (iPhone14,3; U; CPU iOS 15_6 like Mac OS X)",
-        "extra": {"deviceModel": "iPhone14,3", "osVersion": "15.6.0.19H274"},
-    },
 ]
 
 
@@ -57,6 +50,12 @@ def _decode_cookies_env() -> str:
         return base64.b64decode(raw).decode("utf-8")
     except Exception:
         return raw
+
+
+def _sapisid_hash(sapisid: str) -> str:
+    ts = int(time.time())
+    sha = hashlib.sha1(f"{ts} {sapisid} https://www.youtube.com".encode()).hexdigest()
+    return f"SAPISIDHASH {ts}_{sha}"
 
 
 def _cookie_header() -> str:
@@ -90,6 +89,16 @@ async def _innertube(video_id: str) -> str:
                 }
                 if has_cookie:
                     hdrs["Cookie"] = cookie
+                    if cfg.get("web"):
+                        # WEB client dùng SAPISIDHASH thay vì chỉ Cookie
+                        sapisid = next(
+                            (v for k, v in (p.split("=", 1) for p in cookie.split("; ") if "=" in p) if k == "SAPISID"),
+                            None
+                        )
+                        if sapisid:
+                            hdrs["Authorization"] = _sapisid_hash(sapisid)
+                            hdrs["Origin"] = "https://www.youtube.com"
+                            hdrs["X-Origin"] = "https://www.youtube.com"
 
                 api_url = f"https://www.youtube.com/youtubei/v1/player?key={cfg['key']}&prettyPrint=false"
                 ctx: dict = {
