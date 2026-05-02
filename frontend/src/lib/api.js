@@ -219,12 +219,16 @@ export const API = {
 
   trangThaiFeedback: () => goiApi('/api/feedback/trang-thai'),
 
-  // Audio — Cloudflare Pages Function (edge IP, không phải Render datacenter)
-  layAudioUrl: (videoId) =>
-    fetch(`/audio/url?v=${encodeURIComponent(videoId)}`)
-      .then(async r => {
+  // Audio — thử Cloudflare Pages Function (edge IP) trước, fallback về Render (có cookie support)
+  layAudioUrl: async (videoId) => {
+    const qs = `v=${encodeURIComponent(videoId)}`
+    try {
+      const r = await fetch(`/audio/url?${qs}`, { signal: AbortSignal.timeout(8000) })
+      if (r.ok) {
         const d = await r.json()
-        if (!r.ok) throw new Error(d.error || 'Lỗi tải audio')
-        return d
-      }),
+        if (d.url) return d
+      }
+    } catch {}
+    return goiApi(`/audio/url?${qs}`)
+  },
 }

@@ -16,7 +16,21 @@ const CLIENTS = [
   },
 ]
 
-export async function onRequestGet({ request }) {
+function parseCookieEnv(raw) {
+  if (!raw) return ''
+  let text = raw
+  try { text = atob(raw) } catch {}
+  const cookies = {}
+  for (const line of text.split('\n')) {
+    const t = line.trim()
+    if (!t || t.startsWith('#')) continue
+    const parts = t.split('\t')
+    if (parts.length >= 7) cookies[parts[5]] = parts[6]
+  }
+  return Object.entries(cookies).map(([k, v]) => `${k}=${v}`).join('; ')
+}
+
+export async function onRequestGet({ request, env }) {
   const { searchParams } = new URL(request.url)
   const videoId = searchParams.get('v')
 
@@ -24,16 +38,21 @@ export async function onRequestGet({ request }) {
     return Response.json({ error: 'Video ID không hợp lệ' }, { status: 400 })
   }
 
+  const cookieStr = parseCookieEnv(env?.YOUTUBE_COOKIES || '')
+
   for (const cfg of CLIENTS) {
     try {
+      const hdrs = {
+        'User-Agent': cfg.ua,
+        'Content-Type': 'application/json',
+        'X-YouTube-Client-Name': cfg.headerName,
+        'X-YouTube-Client-Version': cfg.version,
+      }
+      if (cookieStr) hdrs['Cookie'] = cookieStr
+
       const resp = await fetch('https://www.youtube.com/youtubei/v1/player', {
         method: 'POST',
-        headers: {
-          'User-Agent': cfg.ua,
-          'Content-Type': 'application/json',
-          'X-YouTube-Client-Name': cfg.headerName,
-          'X-YouTube-Client-Version': cfg.version,
-        },
+        headers: hdrs,
         body: JSON.stringify({
           videoId,
           context: {
