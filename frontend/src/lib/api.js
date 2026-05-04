@@ -219,40 +219,4 @@ export const API = {
 
   trangThaiFeedback: () => goiApi('/api/feedback/trang-thai'),
 
-  // Audio — 0) Piped (CORS ok) → 1) Cloudflare edge → 2) Render
-  layAudioUrl: async (videoId) => {
-    // 0) Piped API — open-source YT frontend, CORS enabled, residential-equivalent
-    const PIPED = [
-      'https://pipedapi.kavin.rocks',
-      'https://pipedapi.tokhmi.xyz',
-      'https://pa.il.ax',
-    ]
-    for (const base of PIPED) {
-      try {
-        const r = await fetch(`${base}/streams/${videoId}`, { signal: AbortSignal.timeout(7000) })
-        if (r.ok) {
-          const d = await r.json()
-          const streams = d.audioStreams || []
-          const m4a = streams.filter(s => s.mimeType?.includes('mp4'))
-          const best = (m4a.length ? m4a : streams).sort((a, b) => (b.bitrate || 0) - (a.bitrate || 0))[0]
-          if (best?.url) {
-            console.log('[audio] Piped OK via', base, best.quality || '')
-            return { url: best.url, video_id: videoId }
-          }
-        }
-      } catch (e) {
-        console.log('[audio] Piped', base, ':', e.message)
-      }
-    }
-
-    const qs = `v=${encodeURIComponent(videoId)}`
-    try {
-      const r = await fetch(`/audio/url?${qs}`, { signal: AbortSignal.timeout(10000) })
-      if (r.ok) {
-        const d = await r.json()
-        if (d.url) return d
-      }
-    } catch {}
-    return goiApi(`/audio/url?${qs}`)
-  },
 }

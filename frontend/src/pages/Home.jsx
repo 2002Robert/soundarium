@@ -248,38 +248,19 @@ export default function Home() {
   const [playerExp, setPlayerExp]                 = useState(0)
   const [suaTargets, setSuaTargets]               = useState([])
   const [playerBarHeight, setPlayerBarHeight] = useState(0)
-  const playerBarRef     = useRef(null)
-  const playerExpRef     = useRef(0)
-  const feedCoolRef      = useRef({})
-  const gioNgheRef       = useRef(0)
-  const audioRef         = useRef(null)
-  const iframePlayerRef  = useRef(null)
-  const iframeVideoIdRef = useRef(null)  // ref copy for playerAdapter (no re-render needed)
-
-  const [iframeVideoId, setIframeVideoIdState] = useState(null)
-  function setIframeVideoId(v) { setIframeVideoIdState(v); iframeVideoIdRef.current = v }
+  const playerBarRef  = useRef(null)
+  const playerExpRef  = useRef(0)
+  const feedCoolRef   = useRef({})
+  const gioNgheRef    = useRef(0)
+  const ytPlayerRef   = useRef(null)
 
   const playerAdapter = useMemo(() => ({
-    getCurrentTime: () => iframeVideoIdRef.current
-      ? (iframePlayerRef.current?.getCurrentTime?.() ?? 0)
-      : (audioRef.current?.currentTime ?? 0),
-    getDuration: () => iframeVideoIdRef.current
-      ? (iframePlayerRef.current?.getDuration?.() ?? 0)
-      : (audioRef.current?.duration ?? 0),
-    seekTo: (t) => {
-      if (iframeVideoIdRef.current) iframePlayerRef.current?.seekTo?.(t, true)
-      else if (audioRef.current) audioRef.current.currentTime = t
-    },
-    playVideo: () => iframeVideoIdRef.current
-      ? iframePlayerRef.current?.playVideo?.()
-      : audioRef.current?.play(),
-    pauseVideo: () => iframeVideoIdRef.current
-      ? iframePlayerRef.current?.pauseVideo?.()
-      : audioRef.current?.pause(),
-    setVolume: (v) => {
-      if (iframeVideoIdRef.current) iframePlayerRef.current?.setVolume?.(v)
-      else if (audioRef.current) audioRef.current.volume = v / 100
-    },
+    getCurrentTime: () => ytPlayerRef.current?.getCurrentTime?.() ?? 0,
+    getDuration:    () => ytPlayerRef.current?.getDuration?.()    ?? 0,
+    seekTo:         (t) => ytPlayerRef.current?.seekTo?.(t, true),
+    playVideo:      ()  => ytPlayerRef.current?.playVideo?.(),
+    pauseVideo:     ()  => ytPlayerRef.current?.pauseVideo?.(),
+    setVolume:      (v) => ytPlayerRef.current?.setVolume?.(v),
   }), [])
 
   const [playerLevelUp, setPlayerLevelUp] = useState(null)
@@ -302,6 +283,7 @@ export default function Home() {
 
   // PWA install
   const [pwaPrompt, setPwaPrompt] = useState(null)
+  const [hienPwaHint, setHienPwaHint] = useState(false)
 
 
   // ESC cancels placement mode
@@ -316,6 +298,15 @@ export default function Home() {
     function onPrompt(e) { e.preventDefault(); setPwaPrompt(e) }
     window.addEventListener('beforeinstallprompt', onPrompt)
     return () => window.removeEventListener('beforeinstallprompt', onPrompt)
+  }, [])
+
+  // PWA hint: hiện 1 lần duy nhất trên mobile sau 5 giây
+  useEffect(() => {
+    const isMobile = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent)
+    const isStandalone = window.matchMedia('(display-mode: standalone)').matches || window.navigator.standalone
+    if (!isMobile || isStandalone || localStorage.getItem('snd_pwa_hint')) return
+    const t = setTimeout(() => setHienPwaHint(true), 5000)
+    return () => clearTimeout(t)
   }, [])
 
   // Session analytics: bắt đầu session khi load, kết thúc khi rời trang
@@ -386,8 +377,7 @@ export default function Home() {
   function doiVolume(val) {
     setVolume(val)
     localStorage.setItem('snd_vol', String(val))
-    if (iframeVideoIdRef.current) iframePlayerRef.current?.setVolume?.(val)
-    else if (audioRef.current) audioRef.current.volume = val / 100
+    ytPlayerRef.current?.setVolume?.(val)
   }
 
   const khiNgheCapNhat = useCallback((caId, res) => {
@@ -563,14 +553,8 @@ export default function Home() {
     })
     navigator.mediaSession.playbackState = dangPhat ? 'playing' : 'paused'
 
-    navigator.mediaSession.setActionHandler('play',  () => {
-      if (iframeVideoIdRef.current) iframePlayerRef.current?.playVideo?.()
-      else audioRef.current?.play()
-    })
-    navigator.mediaSession.setActionHandler('pause', () => {
-      if (iframeVideoIdRef.current) iframePlayerRef.current?.pauseVideo?.()
-      else audioRef.current?.pause()
-    })
+    navigator.mediaSession.setActionHandler('play',  () => ytPlayerRef.current?.playVideo?.())
+    navigator.mediaSession.setActionHandler('pause', () => ytPlayerRef.current?.pauseVideo?.())
 
     navigator.mediaSession.setActionHandler('nexttrack', () => {
       const i = danhSachCa.findIndex(c => c.id === caDangPhat.id)
@@ -654,21 +638,9 @@ export default function Home() {
 
   function hienToast(thongBao, loai = 'info') { setToast({ thongBao, loai }) }
 
-  async function phatCaObject(ca) {
+  function phatCaObject(ca) {
     phatCa(ca.id)
-    try {
-      const res = await API.layAudioUrl(ca.video_id)
-      setIframeVideoId(null)
-      if (audioRef.current) {
-        audioRef.current.src = res.url
-        audioRef.current.volume = volume / 100
-        await audioRef.current.play()
-      }
-    } catch (err) {
-      // Silent IFrame fallback — user still hears music, just no background audio
-      console.log('[audio] native failed, IFrame fallback:', err.message)
-      setIframeVideoId(ca.video_id)
-    }
+    // YouTubePlayer tự load videoId từ caDangPhat prop
   }
 
   function clickCa(ca, x, y) {
@@ -681,20 +653,17 @@ export default function Home() {
     if (!caDangPhat) return
     if (dangPhat) {
       dungPhat()
-      if (iframeVideoIdRef.current) iframePlayerRef.current?.pauseVideo?.()
-      else audioRef.current?.pause()
+      ytPlayerRef.current?.pauseVideo?.()
     } else {
       phatCa(caDangPhat.id)
-      if (iframeVideoIdRef.current) iframePlayerRef.current?.playVideo?.()
-      else audioRef.current?.play()
+      ytPlayerRef.current?.playVideo?.()
     }
   }
 
   function togglePhatTuPanel(ca) {
     if (dangPhat === ca.id) {
       dungPhat()
-      if (iframeVideoIdRef.current) iframePlayerRef.current?.pauseVideo?.()
-      else audioRef.current?.pause()
+      ytPlayerRef.current?.pauseVideo?.()
     } else {
       phatCaObject(ca)
     }
@@ -711,8 +680,7 @@ export default function Home() {
     setDanhSachCa(prev => prev.filter(c => c.id !== caId))
     if (dangPhat === caId) {
       dungPhat()
-      if (iframeVideoIdRef.current) setIframeVideoId(null)
-      else if (audioRef.current) { audioRef.current.pause(); audioRef.current.src = '' }
+      ytPlayerRef.current?.stopVideo?.()
     }
     setInfoCa(null)
   }
@@ -837,13 +805,8 @@ export default function Home() {
 
   function khiKetThucBai() {
     if (repeatMode === 'loop') {
-      if (iframeVideoIdRef.current) {
-        iframePlayerRef.current?.seekTo?.(0, true)
-        iframePlayerRef.current?.playVideo?.()
-      } else if (audioRef.current) {
-        audioRef.current.currentTime = 0
-        audioRef.current.play()
-      }
+      ytPlayerRef.current?.seekTo?.(0, true)
+      ytPlayerRef.current?.playVideo?.()
       return
     }
     if (repeatMode === 'shuffle') {
@@ -852,14 +815,11 @@ export default function Home() {
       if (next.length > 0) chuyenCa(next[Math.floor(Math.random() * next.length)])
       return
     }
-    // tuần tự ('off')
     const i = danhSachCa.findIndex(c => c.id === dangPhat)
     if (i >= 0 && i < danhSachCa.length - 1) {
       chuyenCa(danhSachCa[i + 1])
     } else {
       dungPhat()
-      setIframeVideoId(null)
-      if (audioRef.current) audioRef.current.src = ''
     }
   }
 
@@ -1149,20 +1109,16 @@ export default function Home() {
         </div>
       </div>
 
-      <audio ref={audioRef} onEnded={khiKetThucBai} preload="none" />
-
-      {/* IFrame fallback — mounts khi native audio thất bại, user vẫn nghe được */}
-      {iframeVideoId && (
-        <YouTubePlayer
-          videoId={iframeVideoId}
-          dangPhat={!!dangPhat}
-          onReady={(player) => {
-            iframePlayerRef.current = player
-            if (dangPhat) player.playVideo()
-          }}
-          onEnded={khiKetThucBai}
-        />
-      )}
+      <YouTubePlayer
+        videoId={caDangPhat?.video_id || ''}
+        dangPhat={!!dangPhat}
+        onReady={(player) => {
+          ytPlayerRef.current = player
+          player.setVolume(volume)
+          if (dangPhat) player.playVideo()
+        }}
+        onEnded={khiKetThucBai}
+      />
 
       <div ref={playerBarRef} className="fixed bottom-0 left-0 right-0 z-[100]">
         <MusicPlayerBar
@@ -1243,6 +1199,41 @@ export default function Home() {
               <div className="text-ho-anh/60 text-sm mb-1 tracking-wide uppercase">Lên cấp!</div>
               <div className="text-3xl font-bold text-white">Lv.{playerLevelUp}</div>
               <div className="text-ho-anh text-base mt-1">{TIEU_DE_LEVEL[playerLevelUp]}</div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {hienPwaHint && (
+        <div className="fixed bottom-24 left-1/2 -translate-x-1/2 z-[250] w-[calc(100%-2rem)] max-w-sm">
+          <div
+            className="rounded-2xl px-4 py-3 flex items-start gap-3"
+            style={{ background: 'rgba(10,22,40,0.95)', border: '1px solid rgba(96,165,250,0.25)', backdropFilter: 'blur(14px)' }}
+          >
+            <span className="text-2xl mt-0.5 shrink-0">📱</span>
+            <div className="flex-1 min-w-0">
+              <p className="text-white/90 text-sm font-semibold leading-snug">
+                Cài Soundarium về màn hình chính
+              </p>
+              <p className="text-white/50 text-xs mt-0.5">để có trải nghiệm tốt hơn</p>
+              <div className="flex gap-2 mt-2.5">
+                <button
+                  onClick={() => {
+                    localStorage.setItem('snd_pwa_hint', '1')
+                    setHienPwaHint(false)
+                    caiApp()
+                  }}
+                  className="px-3 py-1.5 bg-ho-anh text-ho-sau text-xs font-semibold rounded-lg hover:bg-ho-accent transition"
+                >
+                  Cài ngay
+                </button>
+                <button
+                  onClick={() => { localStorage.setItem('snd_pwa_hint', '1'); setHienPwaHint(false) }}
+                  className="px-3 py-1.5 text-white/40 text-xs rounded-lg hover:text-white/70 transition"
+                >
+                  Bỏ qua
+                </button>
+              </div>
             </div>
           </div>
         </div>

@@ -4,7 +4,7 @@ from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 from dotenv import load_dotenv
-from routers import fish, tank, coins, profile, decor, analytics, feedback, audio
+from routers import fish, tank, coins, profile, decor, analytics, feedback
 
 load_dotenv()
 
@@ -52,7 +52,6 @@ app.include_router(profile.router)
 app.include_router(decor.router)
 app.include_router(analytics.router)
 app.include_router(feedback.router)
-app.include_router(audio.router)
 
 
 @app.get("/")
