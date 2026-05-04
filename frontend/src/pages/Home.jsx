@@ -10,6 +10,7 @@ import Toast from '../components/Toast'
 import { useAudio } from '../hooks/useAudio'
 import YouTubePlayer from '../components/YouTubePlayer'
 import { useCoins } from '../hooks/useCoins'
+import { startAudioService, stopAudioService } from '../lib/nativeAudio'
 import ProfileCard from '../components/ProfileCard'
 import FishManagerModal from '../components/FishManagerModal'
 import ShopPanel from '../components/ShopPanel'
@@ -640,7 +641,8 @@ export default function Home() {
 
   function phatCaObject(ca) {
     phatCa(ca.id)
-    // YouTubePlayer tự load videoId từ caDangPhat prop
+    // Start native foreground service khi chạy trong Capacitor Android
+    startAudioService(ca.nickname || ca.ten_bai || 'Soundarium')
   }
 
   function clickCa(ca, x, y) {
@@ -654,9 +656,11 @@ export default function Home() {
     if (dangPhat) {
       dungPhat()
       ytPlayerRef.current?.pauseVideo?.()
+      stopAudioService()
     } else {
       phatCa(caDangPhat.id)
       ytPlayerRef.current?.playVideo?.()
+      startAudioService(caDangPhat.nickname || caDangPhat.ten_bai || 'Soundarium')
     }
   }
 

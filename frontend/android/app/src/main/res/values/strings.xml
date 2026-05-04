@@ -1,0 +1,7 @@
+<?xml version='1.0' encoding='utf-8'?>
+<resources>
+    <string name="app_name">Soundarium</string>
+    <string name="title_activity_main">Soundarium</string>
+    <string name="package_name">app.soundarium.www</string>
+    <string name="custom_url_scheme">app.soundarium.www</string>
+</resources>
