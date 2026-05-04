@@ -8,6 +8,7 @@ import MusicPlayerBar from '../components/MusicPlayerBar'
 import Onboarding from '../components/Onboarding'
 import Toast from '../components/Toast'
 import { useAudio } from '../hooks/useAudio'
+import YouTubePlayer from '../components/YouTubePlayer'
 import { useCoins } from '../hooks/useCoins'
 import ProfileCard from '../components/ProfileCard'
 import FishManagerModal from '../components/FishManagerModal'
@@ -247,19 +248,38 @@ export default function Home() {
   const [playerExp, setPlayerExp]                 = useState(0)
   const [suaTargets, setSuaTargets]               = useState([])
   const [playerBarHeight, setPlayerBarHeight] = useState(0)
-  const playerBarRef  = useRef(null)
-  const playerExpRef  = useRef(0)
-  const feedCoolRef   = useRef({})
-  const gioNgheRef    = useRef(0)
-  const audioRef      = useRef(null)
+  const playerBarRef     = useRef(null)
+  const playerExpRef     = useRef(0)
+  const feedCoolRef      = useRef({})
+  const gioNgheRef       = useRef(0)
+  const audioRef         = useRef(null)
+  const iframePlayerRef  = useRef(null)
+  const iframeVideoIdRef = useRef(null)  // ref copy for playerAdapter (no re-render needed)
+
+  const [iframeVideoId, setIframeVideoIdState] = useState(null)
+  function setIframeVideoId(v) { setIframeVideoIdState(v); iframeVideoIdRef.current = v }
 
   const playerAdapter = useMemo(() => ({
-    getCurrentTime: () => audioRef.current?.currentTime ?? 0,
-    getDuration:    () => audioRef.current?.duration ?? 0,
-    seekTo:         (t) => { if (audioRef.current) audioRef.current.currentTime = t },
-    playVideo:      () => audioRef.current?.play(),
-    pauseVideo:     () => audioRef.current?.pause(),
-    setVolume:      (v) => { if (audioRef.current) audioRef.current.volume = v / 100 },
+    getCurrentTime: () => iframeVideoIdRef.current
+      ? (iframePlayerRef.current?.getCurrentTime?.() ?? 0)
+      : (audioRef.current?.currentTime ?? 0),
+    getDuration: () => iframeVideoIdRef.current
+      ? (iframePlayerRef.current?.getDuration?.() ?? 0)
+      : (audioRef.current?.duration ?? 0),
+    seekTo: (t) => {
+      if (iframeVideoIdRef.current) iframePlayerRef.current?.seekTo?.(t, true)
+      else if (audioRef.current) audioRef.current.currentTime = t
+    },
+    playVideo: () => iframeVideoIdRef.current
+      ? iframePlayerRef.current?.playVideo?.()
+      : audioRef.current?.play(),
+    pauseVideo: () => iframeVideoIdRef.current
+      ? iframePlayerRef.current?.pauseVideo?.()
+      : audioRef.current?.pause(),
+    setVolume: (v) => {
+      if (iframeVideoIdRef.current) iframePlayerRef.current?.setVolume?.(v)
+      else if (audioRef.current) audioRef.current.volume = v / 100
+    },
   }), [])
 
   const [playerLevelUp, setPlayerLevelUp] = useState(null)
@@ -366,7 +386,8 @@ export default function Home() {
   function doiVolume(val) {
     setVolume(val)
     localStorage.setItem('snd_vol', String(val))
-    if (audioRef.current) audioRef.current.volume = val / 100
+    if (iframeVideoIdRef.current) iframePlayerRef.current?.setVolume?.(val)
+    else if (audioRef.current) audioRef.current.volume = val / 100
   }
 
   const khiNgheCapNhat = useCallback((caId, res) => {
@@ -542,8 +563,14 @@ export default function Home() {
     })
     navigator.mediaSession.playbackState = dangPhat ? 'playing' : 'paused'
 
-    navigator.mediaSession.setActionHandler('play',  () => { audioRef.current?.play() })
-    navigator.mediaSession.setActionHandler('pause', () => { audioRef.current?.pause() })
+    navigator.mediaSession.setActionHandler('play',  () => {
+      if (iframeVideoIdRef.current) iframePlayerRef.current?.playVideo?.()
+      else audioRef.current?.play()
+    })
+    navigator.mediaSession.setActionHandler('pause', () => {
+      if (iframeVideoIdRef.current) iframePlayerRef.current?.pauseVideo?.()
+      else audioRef.current?.pause()
+    })
 
     navigator.mediaSession.setActionHandler('nexttrack', () => {
       const i = danhSachCa.findIndex(c => c.id === caDangPhat.id)
@@ -631,14 +658,16 @@ export default function Home() {
     phatCa(ca.id)
     try {
       const res = await API.layAudioUrl(ca.video_id)
+      setIframeVideoId(null)
       if (audioRef.current) {
         audioRef.current.src = res.url
         audioRef.current.volume = volume / 100
         await audioRef.current.play()
       }
     } catch (err) {
-      hienToast('Không tải được audio: ' + (err.message || ''), 'loi')
-      dungPhat()
+      // Silent IFrame fallback — user still hears music, just no background audio
+      console.log('[audio] native failed, IFrame fallback:', err.message)
+      setIframeVideoId(ca.video_id)
     }
   }
 
@@ -652,17 +681,20 @@ export default function Home() {
     if (!caDangPhat) return
     if (dangPhat) {
       dungPhat()
-      audioRef.current?.pause()
+      if (iframeVideoIdRef.current) iframePlayerRef.current?.pauseVideo?.()
+      else audioRef.current?.pause()
     } else {
       phatCa(caDangPhat.id)
-      audioRef.current?.play()
+      if (iframeVideoIdRef.current) iframePlayerRef.current?.playVideo?.()
+      else audioRef.current?.play()
     }
   }
 
   function togglePhatTuPanel(ca) {
     if (dangPhat === ca.id) {
       dungPhat()
-      audioRef.current?.pause()
+      if (iframeVideoIdRef.current) iframePlayerRef.current?.pauseVideo?.()
+      else audioRef.current?.pause()
     } else {
       phatCaObject(ca)
     }
@@ -679,7 +711,8 @@ export default function Home() {
     setDanhSachCa(prev => prev.filter(c => c.id !== caId))
     if (dangPhat === caId) {
       dungPhat()
-      if (audioRef.current) { audioRef.current.pause(); audioRef.current.src = '' }
+      if (iframeVideoIdRef.current) setIframeVideoId(null)
+      else if (audioRef.current) { audioRef.current.pause(); audioRef.current.src = '' }
     }
     setInfoCa(null)
   }
@@ -804,7 +837,13 @@ export default function Home() {
 
   function khiKetThucBai() {
     if (repeatMode === 'loop') {
-      if (audioRef.current) { audioRef.current.currentTime = 0; audioRef.current.play() }
+      if (iframeVideoIdRef.current) {
+        iframePlayerRef.current?.seekTo?.(0, true)
+        iframePlayerRef.current?.playVideo?.()
+      } else if (audioRef.current) {
+        audioRef.current.currentTime = 0
+        audioRef.current.play()
+      }
       return
     }
     if (repeatMode === 'shuffle') {
@@ -819,6 +858,7 @@ export default function Home() {
       chuyenCa(danhSachCa[i + 1])
     } else {
       dungPhat()
+      setIframeVideoId(null)
       if (audioRef.current) audioRef.current.src = ''
     }
   }
@@ -1110,6 +1150,19 @@ export default function Home() {
       </div>
 
       <audio ref={audioRef} onEnded={khiKetThucBai} preload="none" />
+
+      {/* IFrame fallback — mounts khi native audio thất bại, user vẫn nghe được */}
+      {iframeVideoId && (
+        <YouTubePlayer
+          videoId={iframeVideoId}
+          dangPhat={!!dangPhat}
+          onReady={(player) => {
+            iframePlayerRef.current = player
+            if (dangPhat) player.playVideo()
+          }}
+          onEnded={khiKetThucBai}
+        />
+      )}
 
       <div ref={playerBarRef} className="fixed bottom-0 left-0 right-0 z-[100]">
         <MusicPlayerBar
