@@ -219,53 +219,35 @@ export const API = {
 
   trangThaiFeedback: () => goiApi('/api/feedback/trang-thai'),
 
-  // Audio — 0) browser trực tiếp (residential IP) → 1) Cloudflare edge → 2) Render
+  // Audio — 0) Piped (CORS ok) → 1) Cloudflare edge → 2) Render
   layAudioUrl: async (videoId) => {
-    // 0) Browser-side: user's residential IP bypasses YouTube datacenter block
-    try {
-      const resp = await fetch(
-        'https://www.youtube.com/youtubei/v1/player?key=AIzaSyAO_FJ2SlqU8Q4STEHLGCilw_Y9_11qcW8&prettyPrint=false',
-        {
-          method: 'POST',
-          headers: { 'Content-Type': 'text/plain' },
-          body: JSON.stringify({
-            videoId,
-            context: {
-              client: {
-                clientName: 'ANDROID_VR', clientVersion: '1.60.19',
-                deviceMake: 'Oculus', deviceModel: 'Quest 3',
-                androidSdkVersion: 32, osName: 'Android', osVersion: '12L',
-                hl: 'en', gl: 'US',
-              },
-            },
-            contentCheckOk: true, racyCheckOk: true,
-          }),
-          signal: AbortSignal.timeout(8000),
-        }
-      )
-      if (resp.ok) {
-        const data = await resp.json()
-        const status = data?.playabilityStatus?.status
-        if (!status || status === 'OK') {
-          const formats = data?.streamingData?.adaptiveFormats || []
-          const audio = formats.filter(f => f.mimeType?.includes('audio'))
-          const m4a = audio.filter(f => f.mimeType?.includes('mp4'))
-          const best = (m4a.length ? m4a : audio).sort((a, b) => (b.bitrate || 0) - (a.bitrate || 0))[0]
+    // 0) Piped API — open-source YT frontend, CORS enabled, residential-equivalent
+    const PIPED = [
+      'https://pipedapi.kavin.rocks',
+      'https://pipedapi.tokhmi.xyz',
+      'https://pa.il.ax',
+    ]
+    for (const base of PIPED) {
+      try {
+        const r = await fetch(`${base}/streams/${videoId}`, { signal: AbortSignal.timeout(7000) })
+        if (r.ok) {
+          const d = await r.json()
+          const streams = d.audioStreams || []
+          const m4a = streams.filter(s => s.mimeType?.includes('mp4'))
+          const best = (m4a.length ? m4a : streams).sort((a, b) => (b.bitrate || 0) - (a.bitrate || 0))[0]
           if (best?.url) {
-            console.log('[audio] browser-direct OK:', best.mimeType, Math.round((best.bitrate || 0) / 1000) + 'kbps')
+            console.log('[audio] Piped OK via', base, best.quality || '')
             return { url: best.url, video_id: videoId }
           }
-        } else {
-          console.log('[audio] browser-direct:', data?.playabilityStatus?.reason || status)
         }
+      } catch (e) {
+        console.log('[audio] Piped', base, ':', e.message)
       }
-    } catch (e) {
-      console.log('[audio] browser-direct error:', e.message)
     }
 
     const qs = `v=${encodeURIComponent(videoId)}`
     try {
-      const r = await fetch(`/audio/url?${qs}`, { signal: AbortSignal.timeout(8000) })
+      const r = await fetch(`/audio/url?${qs}`, { signal: AbortSignal.timeout(10000) })
       if (r.ok) {
         const d = await r.json()
         if (d.url) return d

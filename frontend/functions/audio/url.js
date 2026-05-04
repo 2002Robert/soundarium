@@ -1,3 +1,9 @@
+const PIPED_INSTANCES = [
+  'https://pipedapi.kavin.rocks',
+  'https://pipedapi.tokhmi.xyz',
+  'https://pa.il.ax',
+]
+
 const CLIENTS = [
   // VR client — không cần auth, yt-dlp dùng client này để bypass
   {
@@ -48,6 +54,27 @@ export async function onRequestGet({ request, env }) {
 
   if (!videoId || videoId.length < 5) {
     return Response.json({ error: 'Video ID không hợp lệ' }, { status: 400 })
+  }
+
+  // 0) Piped API
+  for (const base of PIPED_INSTANCES) {
+    try {
+      const r = await fetch(`${base}/streams/${videoId}`, {
+        signal: AbortSignal.timeout(7000),
+        headers: { 'User-Agent': 'Mozilla/5.0' },
+      })
+      if (r.ok) {
+        const d = await r.json()
+        const streams = d.audioStreams || []
+        const m4a = streams.filter(s => s.mimeType?.includes('mp4'))
+        const best = (m4a.length ? m4a : streams).sort((a, b) => (b.bitrate || 0) - (a.bitrate || 0))[0]
+        if (best?.url) {
+          return Response.json({ url: best.url, video_id: videoId }, {
+            headers: { 'Cache-Control': 'public, max-age=3600' },
+          })
+        }
+      }
+    } catch {}
   }
 
   const cookieStr = parseCookieEnv(env?.YOUTUBE_COOKIES || '')

@@ -82,6 +82,36 @@ def _cookie_header() -> str:
     return "; ".join(f"{k}={v}" for k, v in cookies.items())
 
 
+_PIPED_INSTANCES = [
+    "https://pipedapi.kavin.rocks",
+    "https://pipedapi.tokhmi.xyz",
+    "https://pa.il.ax",
+]
+
+
+async def _piped(video_id: str) -> str:
+    async with httpx.AsyncClient(timeout=8) as client:
+        for base in _PIPED_INSTANCES:
+            try:
+                r = await client.get(
+                    f"{base}/streams/{video_id}",
+                    headers={"User-Agent": "Mozilla/5.0"},
+                )
+                if not r.is_success:
+                    continue
+                d = r.json()
+                streams = d.get("audioStreams", [])
+                m4a = [s for s in streams if "mp4" in s.get("mimeType", "")]
+                best = sorted(m4a or streams, key=lambda s: s.get("bitrate", 0), reverse=True)
+                if best and best[0].get("url"):
+                    url = best[0]["url"]
+                    print(f"[audio] Piped OK via {base}: {best[0].get('quality','')}")
+                    return url
+            except Exception as e:
+                print(f"[audio] Piped {base}: {e}")
+    return ""
+
+
 async def _innertube(video_id: str) -> str:
     cookie = _cookie_header()
     has_cookie = bool(cookie)
@@ -225,10 +255,14 @@ async def lay_audio_url(v: str):
             return {"url": url, "video_id": v}
         del _cache[v]
 
-    # 1) Innertube (nhanh, dùng cookie nếu có)
-    url = await _innertube(v)
+    # 1) Piped (third-party YT proxy, không bị IP block)
+    url = await _piped(v)
 
-    # 2) yt-dlp fallback (chỉ khi có YOUTUBE_COOKIES)
+    # 2) Innertube (dùng cookie nếu có)
+    if not url:
+        url = await _innertube(v)
+
+    # 3) yt-dlp fallback (chỉ khi có YOUTUBE_COOKIES)
     if not url:
         url = await _ytdlp(v)
 
